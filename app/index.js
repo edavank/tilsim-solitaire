@@ -229,7 +229,10 @@ const styles = StyleSheet.create({
   },
   owlGlow: {
     position: 'absolute',
-    inset: 0,
+    top: 10,
+    left: 10,
+    right: 10,
+    bottom: 10,
     borderRadius: 140,
     backgroundColor: 'rgba(255, 145, 77, 0.08)',
   },
@@ -237,6 +240,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     resizeMode: 'contain',
+    borderRadius: 32,
   },
 
   // Branding
