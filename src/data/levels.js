@@ -1,152 +1,145 @@
 // Tılsım Solitaire — Bölüm Verileri
+// KATEGORİLER sütunlarda özel kart olarak başlar, yukarı çekilince aktifleşir
+
+export const WORD_EMOJIS = {
+  'Elma': '🍎', 'Armut': '🍐', 'Kiraz': '🍒', 'Portakal': '🍊',
+  'Çilek': '🍓', 'Muz': '🍌', 'Karpuz': '🍉', 'Üzüm': '🍇',
+  'Kedi': '🐱', 'Köpek': '🐶', 'Kuş': '🐦', 'Balık': '🐟',
+  'Tavşan': '🐰', 'At': '🐴',
+  'Gül': '🌹', 'Lale': '🌷', 'Papatya': '🌼', 'Orkide': '🪻',
+  'Papağan': '🦜', 'Serçe': '🐦', 'Kartal': '🦅', 'Martı': '🕊️',
+  'Futbol': '⚽', 'Basketbol': '🏀', 'Tenis': '🎾', 'Yüzme': '🏊',
+  'Kırmızı': '🔴', 'Mavi': '🔵', 'Yeşil': '🟢', 'Sarı': '🟡',
+  'Buzlu americano': '🧊', 'Limonata': '🍋', 'Ayran': '🥛',
+  'Milkshake': '🥤', 'Frappe': '☕', 'Smoothie': '🫐',
+  'Banyan ağacı': '🌳', 'Çam': '🌲', 'Meşe': '🌳', 'Kavak': '🌿',
+  'Orta ses': '🎵', 'Bas': '🎸', 'Tiz': '🎶', 'Alto': '🎼',
+  'Soru işareti': '❓', 'Ünlem': '❗', 'Virgül': '✏️', 'Nokta': '⏺️',
+};
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 export const LEVELS = [
   {
-    id: 1,
-    moves: 55,
-    hints: 5,
-    undos: 1,
+    id: 1, moves: 55, hints: 5, undos: 1,
     categories: [
       { name: 'Meyveler', words: ['Elma', 'Armut', 'Kiraz', 'Portakal'] },
       { name: 'Hayvanlar', words: ['Kedi', 'Köpek', 'Kuş', 'Balık'] },
       { name: 'Renkler', words: ['Kırmızı', 'Mavi', 'Yeşil', 'Sarı'] },
     ],
-    rows: 2,
-    colsPerRow: 3,
-    lockedColumns: [0],
-    lockedCategories: [],
+    totalSlots: 5, lockedSlots: 1,
+    tableauCols: 5, tableauRows: 1, lockedColumns: [0],
+    cardsPerColumn: [3, 3, 3, 2],
   },
   {
-    id: 2,
-    moves: 50,
-    hints: 5,
-    undos: 1,
-    categories: [
-      { name: 'Çiçekler', words: ['Gül', 'Lale', 'Papatya', 'Orkide'] },
-      { name: 'Kuşlar', words: ['Serçe', 'Papağan', 'Kartal', 'Martı'] },
-      { name: 'Sporlar', words: ['Futbol', 'Basketbol', 'Tenis', 'Yüzme'] },
-    ],
-    rows: 2,
-    colsPerRow: 3,
-    lockedColumns: [0],
-    lockedCategories: [],
-  },
-  // Bölüm 12 — demo level (Stitch tasarımındaki)
-  {
-    id: 12,
-    moves: 91,
-    hints: 5,
-    undos: 1,
+    id: 12, moves: 91, hints: 5, undos: 1,
     categories: [
       { name: 'Meyveler', words: ['Elma', 'Armut', 'Kiraz', 'Portakal'] },
       { name: 'Hayvanlar', words: ['Kedi', 'Köpek', 'Kuş', 'Balık'] },
       { name: 'Kuşlar', words: ['Papağan', 'Serçe', 'Kartal', 'Martı'] },
       { name: 'Sporlar', words: ['Futbol', 'Basketbol', 'Tenis', 'Yüzme'] },
     ],
-    rows: 2,
-    colsPerRow: 4, // 1 locked + 3-4 active per row
-    lockedColumns: [0, 5],
-    lockedCategories: [],
+    totalSlots: 6, lockedSlots: 1,
+    tableauCols: 5, tableauRows: 2, lockedColumns: [0, 5],
+    cardsPerColumn: [4, 4, 3, 3, 4, 4, 3, 3],
+  },
+  {
+    id: 23, moves: 128, hints: 4, undos: 0,
+    categories: [
+      { name: 'Soğuk içecekler', words: ['Buzlu americano', 'Limonata', 'Ayran', 'Milkshake', 'Frappe', 'Smoothie'] },
+      { name: 'Ağaçlar', words: ['Banyan ağacı', 'Çam', 'Meşe', 'Kavak'] },
+      { name: 'Müzik', words: ['Orta ses', 'Bas', 'Tiz', 'Alto'] },
+      { name: 'Noktalama', words: ['Soru işareti', 'Ünlem', 'Virgül', 'Nokta'] },
+    ],
+    totalSlots: 6, lockedSlots: 1,
+    tableauCols: 5, tableauRows: 2, lockedColumns: [0, 5],
+    cardsPerColumn: [6, 5, 5, 4, 6, 5, 5, 4],
   },
 ];
 
-// SVG emojileri olmadığı için basit emoji mapping
-export const WORD_EMOJIS = {
-  // Meyveler
-  'Elma': '🍎', 'Armut': '🍐', 'Kiraz': '🍒', 'Portakal': '🍊',
-  'Çilek': '🍓', 'Muz': '🍌', 'Karpuz': '🍉', 'Üzüm': '🍇',
-  // Hayvanlar
-  'Kedi': '🐱', 'Köpek': '🐶', 'Kuş': '🐦', 'Balık': '🐟',
-  // Çiçekler
-  'Gül': '🌹', 'Lale': '🌷', 'Papatya': '🌼', 'Orkide': '🪻',
-  'Ayçiçeği': '🌻',
-  // Kuşlar
-  'Papağan': '🦜', 'Serçe': '🐦', 'Kartal': '🦅', 'Martı': '🕊️',
-  // Sporlar
-  'Futbol': '⚽', 'Basketbol': '🏀', 'Tenis': '🎾', 'Yüzme': '🏊',
-  // Renkler
-  'Kırmızı': '🔴', 'Mavi': '🔵', 'Yeşil': '🟢', 'Sarı': '🟡',
-};
-
-// Bölüm verisinden oyun state'i oluştur
 export function generateGameState(level) {
-  const allWords = [];
-
-  // Tüm kelimeleri kategorileriyle birlikte topla
-  level.categories.forEach((cat, catIndex) => {
-    cat.words.forEach((word) => {
-      allWords.push({
-        id: `${catIndex}-${word}`,
-        word,
-        categoryIndex: catIndex,
+  // 1) Kelime kartları
+  const wordCards = [];
+  level.categories.forEach((cat, ci) => {
+    cat.words.forEach((w) => {
+      wordCards.push({
+        id: `w-${ci}-${w}`,
+        type: 'word',
+        word: w,
+        categoryIndex: ci,
         categoryName: cat.name,
-        emoji: WORD_EMOJIS[word] || '❓',
+        emoji: WORD_EMOJIS[w] || '❓',
+        faceUp: false,
       });
     });
   });
 
-  // Karıştır
-  const shuffled = [...allWords].sort(() => Math.random() - 0.5);
+  // 2) Kategori kartları (sütunlara karışacak)
+  const catCards = level.categories.map((cat, ci) => ({
+    id: `cat-${ci}`,
+    type: 'category',
+    word: cat.name,
+    categoryIndex: ci,
+    totalWords: cat.words.length,
+    emoji: '🃏',
+    faceUp: false,
+  }));
 
-  // Deste ve sütunlara dağıt
-  // Toplam kart sayısı
-  const totalCards = shuffled.length;
-  // Sütun sayısı (kilitli sütunlar dahil)
-  const totalColumns = level.rows * level.colsPerRow;
-  const activeColumns = totalColumns - level.lockedColumns.length;
+  // 3) Karıştır
+  const allCards = shuffle([...wordCards, ...catCards]);
 
-  // Her sütuna kaç kart? Yaklaşık yarısını sütunlara, kalanı desteye
-  const cardsInColumns = Math.min(Math.floor(totalCards * 0.6), activeColumns * 4);
-  const cardsInDeck = totalCards - cardsInColumns;
-
-  // Sütunlara dağıt
+  // 4) Sütunlara dağıt
   const columns = [];
-  let cardIdx = 0;
+  let pool = [...allCards];
+  let activeIdx = 0;
+  const totalCols = level.tableauCols * level.tableauRows;
 
-  for (let i = 0; i < totalColumns; i++) {
+  for (let i = 0; i < totalCols; i++) {
     if (level.lockedColumns.includes(i)) {
       columns.push({ locked: true, cards: [] });
       continue;
     }
-
-    const colCardCount = Math.ceil(cardsInColumns / activeColumns);
-    const colCards = [];
-    for (let j = 0; j < colCardCount && cardIdx < cardsInColumns; j++) {
-      colCards.push({
-        ...shuffled[cardIdx],
-        faceUp: j === colCardCount - 1, // sadece en alttaki açık
-      });
-      cardIdx++;
+    const depth = level.cardsPerColumn?.[activeIdx] || 3;
+    const cards = [];
+    for (let j = 0; j < depth && pool.length > 0; j++) {
+      const c = { ...pool.shift() };
+      c.faceUp = (j === depth - 1);
+      cards.push(c);
     }
-    columns.push({ locked: false, cards: colCards });
+    columns.push({ locked: false, cards });
+    activeIdx++;
   }
 
-  // Deste
-  const deck = shuffled.slice(cardsInColumns).map((card) => ({
-    ...card,
-    faceUp: false,
-  }));
+  // 5) Kalan → deste
+  const deck = pool.map((c) => ({ ...c, faceUp: false }));
 
-  // Kategoriler
-  const categories = level.categories.map((cat, i) => ({
-    name: cat.name,
-    totalWords: cat.words.length,
-    placedCards: [],
-    locked: level.lockedCategories.includes(i),
-    colorIndex: i,
-  }));
+  // 6) Foundation slotları (üstte, boş başlar)
+  const slots = [];
+  for (let i = 0; i < level.totalSlots; i++) {
+    slots.push({
+      locked: i < level.lockedSlots,
+      category: null,
+      placedCards: [],
+    });
+  }
 
   return {
     levelId: level.id,
     moves: level.moves,
-    maxMoves: level.moves,
     hints: level.hints,
     undos: level.undos,
     deck,
     drawnCards: [],
     columns,
-    categories,
-    coins: 226,
+    slots,
+    coins: 310,
     score: 0,
     isComplete: false,
     isFailed: false,
