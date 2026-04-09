@@ -187,14 +187,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    borderWidth: 2,
-    borderColor: 'rgba(249, 135, 62, 0.3)',
     overflow: 'hidden',
-    backgroundColor: COLORS.surfaceContainerHigh,
   },
   avatar: {
     width: '100%',
     height: '100%',
+    resizeMode: 'cover',
   },
   coinBadge: {
     flexDirection: 'row',
