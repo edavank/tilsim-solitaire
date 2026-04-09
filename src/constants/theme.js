@@ -89,6 +89,8 @@ export const CATEGORY_COLORS = [
 export const FONTS = {
   headline: 'PlusJakartaSans_700Bold',
   headlineBlack: 'PlusJakartaSans_800ExtraBold',
+  logo: 'Fondamento_400Regular_Italic',
+  logoRegular: 'Fondamento_400Regular',
   body: 'BeVietnamPro_400Regular',
   bodyMedium: 'BeVietnamPro_500Medium',
   bodyBold: 'BeVietnamPro_700Bold',

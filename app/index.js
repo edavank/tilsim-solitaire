@@ -250,10 +250,10 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   titleMain: {
-    fontFamily: FONTS.headlineBlack,
+    fontFamily: 'Fondamento_400Regular_Italic',
     fontSize: 56,
     color: '#ffffff',
-    letterSpacing: -2,
+    letterSpacing: -1,
     includeFontPadding: false,
   },
   titleSub: {

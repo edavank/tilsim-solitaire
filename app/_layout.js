@@ -12,6 +12,10 @@ import {
   BeVietnamPro_500Medium,
   BeVietnamPro_700Bold,
 } from '@expo-google-fonts/be-vietnam-pro';
+import {
+  Fondamento_400Regular,
+  Fondamento_400Regular_Italic,
+} from '@expo-google-fonts/fondamento';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { COLORS } from '../src/constants/theme';
 
@@ -22,6 +26,8 @@ export default function RootLayout() {
     BeVietnamPro_400Regular,
     BeVietnamPro_500Medium,
     BeVietnamPro_700Bold,
+    Fondamento_400Regular,
+    Fondamento_400Regular_Italic,
   });
 
   if (!fontsLoaded) {
