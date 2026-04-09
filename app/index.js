@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 
@@ -111,7 +112,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         {/* Main CTA - Bölüm butonu */}
-        <TouchableOpacity style={styles.ctaOuter} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.ctaOuter} activeOpacity={0.85} onPress={() => router.push('/game')}>
           <Animated.View style={[styles.ctaGlow, { opacity: glowOpacity }]} />
           <LinearGradient
             colors={[COLORS.primary, COLORS.primaryContainer]}
