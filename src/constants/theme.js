@@ -3,8 +3,8 @@
 
 export const COLORS = {
   // Arka plan gradient
-  gradientTop: '#6FA2BA',
-  gradientBottom: '#4A7A92',
+  gradientTop: '#6B5B8A',
+  gradientBottom: '#3D3560',
 
   // Surface hierarchy
   surface: '#001019',
