@@ -101,7 +101,7 @@ export default function HomeScreen() {
         {/* Branding */}
         <View style={styles.branding}>
           <Text style={styles.titleMain}>Tılsım</Text>
-          <Text style={styles.titleSub}>SOLİTAİRE</Text>
+          <Text style={styles.titleSub}>SOLITAIRE</Text>
         </View>
 
         {/* Language picker */}
