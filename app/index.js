@@ -15,9 +15,10 @@ import BottomNav from '../src/components/BottomNav';
 
 const { width, height } = Dimensions.get('window');
 
-// Baykuş maskot placeholder — sonra gerçek asset ile değiştirilecek
-const OWL_PLACEHOLDER = 'https://lh3.googleusercontent.com/aida-public/AB6AXuBNgYWKBzrJ6nMN9sOS6xEbTmSNfAxuK4YIY4xHGJ0QTuyhCGVH0VZo7mlcrtaDdKZ_qyiTHqYzEgnVs8wPyCb7pb7ZOjl-AZPDwUczHh4isrgAsXrUN9jG7iRlqWvtcVD1Gud3pTjVeLgiQ1GXnXnPY8ptxubecuAX_KPeCkN8CBXvZNq_WmJy628EZRWFxM3ZrENXi3JIFyYRWgodi2FXBl34ezfYO1OJDtVhKu8eirMECPoraAMrYYPvhOcSWB4mLrGVXWepDhU';
-const OWL_AVATAR = 'https://lh3.googleusercontent.com/aida-public/AB6AXuA9Byo03fsHlzRUCdB3VG63n6J8KFr8WFqhXpE__8T6DTwLhTnXO59Crf11jrG-KRqTG9Qpv6XjFaeUe8UbhUsOArCuyxHMpbMwbWUmnWsejD_ycavOnZTtMsmVL__znFBpEgSqUqCun1SIyYsLroFBcazOcXDDg4SpA-FHDHBkC4JAI4td4kHV3U4MNCjLM6_ydd2rsj76CUiejWXyIlQAAKFYjbQFPHl3X4GuasQ6Ll86Nv3NzGRKtw9Kbu85qwsoc35WRPVEgO0';
+// Baykuş maskot — local asset
+const OWL_IMAGE = require('../assets/bilge-happy.png');
+// Baykuş avatar — aynı görseli kullan (sonra ayrı avatar eklenebilir)
+const OWL_AVATAR = require('../assets/bilge-happy.png');
 
 export default function HomeScreen() {
   // Owl bounce animation
@@ -72,7 +73,7 @@ export default function HomeScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.avatarContainer}>
-          <Image source={{ uri: OWL_AVATAR }} style={styles.avatar} />
+          <Image source={OWL_AVATAR} style={styles.avatar} />
         </View>
         <View style={styles.coinBadge}>
           <MaterialIcons name="monetization-on" size={20} color={COLORS.tertiaryFixed} />
@@ -94,7 +95,7 @@ export default function HomeScreen() {
         {/* Owl mascot */}
         <Animated.View style={[styles.owlContainer, { transform: [{ translateY: owlBounce }] }]}>
           <View style={styles.owlGlow} />
-          <Image source={{ uri: OWL_PLACEHOLDER }} style={styles.owlImage} />
+          <Image source={OWL_IMAGE} style={styles.owlImage} />
         </Animated.View>
 
         {/* Branding */}
@@ -223,25 +224,23 @@ const styles = StyleSheet.create({
 
   // Owl
   owlContainer: {
-    width: 260,
-    height: 260,
+    width: 280,
+    height: 280,
     marginBottom: 16,
-    borderRadius: 130,
-    overflow: 'hidden',
   },
   owlGlow: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 130,
-    backgroundColor: 'rgba(255, 145, 77, 0.08)',
+    top: 10,
+    left: 10,
+    right: 10,
+    bottom: 10,
+    borderRadius: 140,
+    backgroundColor: 'rgba(111, 162, 186, 0.15)',
   },
   owlImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
+    resizeMode: 'contain',
   },
 
   // Branding
