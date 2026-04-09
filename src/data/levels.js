@@ -1,11 +1,7 @@
-// Tılsım Solitaire — Bölüm Verileri
-// KATEGORİLER sütunlarda özel kart olarak başlar, yukarı çekilince aktifleşir
-
 export const WORD_EMOJIS = {
   'Elma': '🍎', 'Armut': '🍐', 'Kiraz': '🍒', 'Portakal': '🍊',
   'Çilek': '🍓', 'Muz': '🍌', 'Karpuz': '🍉', 'Üzüm': '🍇',
   'Kedi': '🐱', 'Köpek': '🐶', 'Kuş': '🐦', 'Balık': '🐟',
-  'Tavşan': '🐰', 'At': '🐴',
   'Gül': '🌹', 'Lale': '🌷', 'Papatya': '🌼', 'Orkide': '🪻',
   'Papağan': '🦜', 'Serçe': '🐦', 'Kartal': '🦅', 'Martı': '🕊️',
   'Futbol': '⚽', 'Basketbol': '🏀', 'Tenis': '🎾', 'Yüzme': '🏊',
@@ -34,9 +30,16 @@ export const LEVELS = [
       { name: 'Hayvanlar', words: ['Kedi', 'Köpek', 'Kuş', 'Balık'] },
       { name: 'Renkler', words: ['Kırmızı', 'Mavi', 'Yeşil', 'Sarı'] },
     ],
-    totalSlots: 5, lockedSlots: 1,
-    tableauCols: 5, tableauRows: 1, lockedColumns: [0],
-    cardsPerColumn: [3, 3, 3, 2],
+    totalSlots: 5,
+    lockedSlots: 1,
+    // Tek satır sütun: 1 kilitli + 4 aktif
+    columns: [
+      { locked: true },
+      { depth: 3 },
+      { depth: 3 },
+      { depth: 3 },
+      { depth: 2 },
+    ],
   },
   {
     id: 12, moves: 91, hints: 5, undos: 1,
@@ -46,9 +49,15 @@ export const LEVELS = [
       { name: 'Kuşlar', words: ['Papağan', 'Serçe', 'Kartal', 'Martı'] },
       { name: 'Sporlar', words: ['Futbol', 'Basketbol', 'Tenis', 'Yüzme'] },
     ],
-    totalSlots: 6, lockedSlots: 1,
-    tableauCols: 5, tableauRows: 2, lockedColumns: [0, 5],
-    cardsPerColumn: [4, 4, 3, 3, 4, 4, 3, 3],
+    totalSlots: 6,
+    lockedSlots: 1,
+    columns: [
+      { locked: true },
+      { depth: 4 },
+      { depth: 4 },
+      { depth: 3 },
+      { depth: 3 },
+    ],
   },
   {
     id: 23, moves: 128, hints: 4, undos: 0,
@@ -58,90 +67,61 @@ export const LEVELS = [
       { name: 'Müzik', words: ['Orta ses', 'Bas', 'Tiz', 'Alto'] },
       { name: 'Noktalama', words: ['Soru işareti', 'Ünlem', 'Virgül', 'Nokta'] },
     ],
-    totalSlots: 6, lockedSlots: 1,
-    tableauCols: 5, tableauRows: 2, lockedColumns: [0, 5],
-    cardsPerColumn: [6, 5, 5, 4, 6, 5, 5, 4],
+    totalSlots: 6,
+    lockedSlots: 1,
+    columns: [
+      { locked: true },
+      { depth: 6 },
+      { depth: 5 },
+      { depth: 5 },
+      { depth: 4 },
+    ],
   },
 ];
 
 export function generateGameState(level) {
-  // 1) Kelime kartları
   const wordCards = [];
   level.categories.forEach((cat, ci) => {
     cat.words.forEach((w) => {
       wordCards.push({
-        id: `w-${ci}-${w}`,
-        type: 'word',
-        word: w,
-        categoryIndex: ci,
-        categoryName: cat.name,
-        emoji: WORD_EMOJIS[w] || '❓',
-        faceUp: false,
+        id: 'w-' + ci + '-' + w,
+        type: 'word', word: w, categoryIndex: ci,
+        categoryName: cat.name, emoji: WORD_EMOJIS[w] || '❓', faceUp: false,
       });
     });
   });
 
-  // 2) Kategori kartları (sütunlara karışacak)
   const catCards = level.categories.map((cat, ci) => ({
-    id: `cat-${ci}`,
-    type: 'category',
-    word: cat.name,
-    categoryIndex: ci,
-    totalWords: cat.words.length,
-    emoji: '🃏',
-    faceUp: false,
+    id: 'cat-' + ci,
+    type: 'category', word: cat.name, categoryIndex: ci,
+    totalWords: cat.words.length, emoji: '🃏', faceUp: false,
   }));
 
-  // 3) Karıştır
-  const allCards = shuffle([...wordCards, ...catCards]);
+  const pool = shuffle([...wordCards, ...catCards]);
+  let idx = 0;
 
-  // 4) Sütunlara dağıt
-  const columns = [];
-  let pool = [...allCards];
-  let activeIdx = 0;
-  const totalCols = level.tableauCols * level.tableauRows;
-
-  for (let i = 0; i < totalCols; i++) {
-    if (level.lockedColumns.includes(i)) {
-      columns.push({ locked: true, cards: [] });
-      continue;
-    }
-    const depth = level.cardsPerColumn?.[activeIdx] || 3;
+  // Tek satır sütun
+  const columns = level.columns.map((colDef) => {
+    if (colDef.locked) return { locked: true, cards: [] };
     const cards = [];
-    for (let j = 0; j < depth && pool.length > 0; j++) {
-      const c = { ...pool.shift() };
-      c.faceUp = (j === depth - 1);
+    for (let j = 0; j < colDef.depth && idx < pool.length; j++) {
+      const c = { ...pool[idx++] };
+      c.faceUp = (j === colDef.depth - 1);
       cards.push(c);
     }
-    columns.push({ locked: false, cards });
-    activeIdx++;
-  }
+    return { locked: false, cards };
+  });
 
-  // 5) Kalan → deste
-  const deck = pool.map((c) => ({ ...c, faceUp: false }));
+  const deck = pool.slice(idx).map((c) => ({ ...c, faceUp: false }));
 
-  // 6) Foundation slotları (üstte, boş başlar)
   const slots = [];
   for (let i = 0; i < level.totalSlots; i++) {
-    slots.push({
-      locked: i < level.lockedSlots,
-      category: null,
-      placedCards: [],
-    });
+    slots.push({ locked: i < level.lockedSlots, category: null, placedCards: [] });
   }
 
   return {
-    levelId: level.id,
-    moves: level.moves,
-    hints: level.hints,
-    undos: level.undos,
-    deck,
-    drawnCards: [],
-    columns,
-    slots,
-    coins: 310,
-    score: 0,
-    isComplete: false,
-    isFailed: false,
+    levelId: level.id, moves: level.moves, hints: level.hints, undos: level.undos,
+    deck, drawnCards: [], columns, slots,
+    coins: 310, score: 0, isComplete: false, isFailed: false,
   };
 }
