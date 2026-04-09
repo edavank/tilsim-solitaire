@@ -223,23 +223,25 @@ const styles = StyleSheet.create({
 
   // Owl
   owlContainer: {
-    width: 280,
-    height: 280,
+    width: 260,
+    height: 260,
     marginBottom: 16,
+    borderRadius: 130,
+    overflow: 'hidden',
   },
   owlGlow: {
     position: 'absolute',
-    top: 10,
-    left: 10,
-    right: 10,
-    bottom: 10,
-    borderRadius: 140,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 130,
     backgroundColor: 'rgba(255, 145, 77, 0.08)',
   },
   owlImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'contain',
+    resizeMode: 'cover',
   },
 
   // Branding
