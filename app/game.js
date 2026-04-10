@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Dimensions,
-  ScrollView, Animated, Alert, Vibration,
+  ScrollView, Animated, Alert, Vibration, Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -11,6 +11,11 @@ import BottomNav from '../src/components/BottomNav';
 import { LEVELS, generateGameState } from '../src/data/levels';
 
 const { width: SW } = Dimensions.get('window');
+const COL_COUNT = 5; // max columns visible
+const COL_GAP = 5;
+const CARD_W = Math.floor((SW - 20 - (COL_COUNT - 1) * COL_GAP) / COL_COUNT);
+const CARD_H = Math.floor(CARD_W * 1.35);
+const OVERLAP = -Math.floor(CARD_H * 0.72); // kapalı kartlar %72 örtüşür
 
 // ═══ FACE DOWN CARD ═══
 function FaceDownCard() {
@@ -18,7 +23,7 @@ function FaceDownCard() {
     <LinearGradient
       colors={[COLORS.cardBackTop, COLORS.cardBackBottom]}
       start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-      style={s.faceDown}
+      style={[s.faceDown, { width: CARD_W, height: CARD_H }]}
     >
       <View style={s.innerFrame}>
         <View style={s.innerFrameInner} />
@@ -29,20 +34,24 @@ function FaceDownCard() {
 
 // ═══ FACE UP CARD ═══
 function FaceUpCard({ card, selected }) {
-  const isCategory = card.type === 'category';
+  const isCat = card.type === 'category';
   return (
-    <View style={[s.faceUp, selected && s.cardSelected, isCategory && s.catBorder]}>
-      {isCategory ? (
+    <View style={[
+      s.faceUp, { width: CARD_W, height: CARD_H },
+      selected && s.cardSelected,
+      isCat && s.catCardBorder,
+    ]}>
+      {isCat ? (
         <>
           <View style={s.catBadge}>
             <Text style={s.catBadgeText}>0/{card.totalWords}</Text>
-            <Text style={{ fontSize: 9 }}>🃏</Text>
           </View>
+          <MaterialIcons name="style" size={18} color={COLORS.cardBackTop} style={{ marginBottom: 2 }} />
           <Text style={s.catName} numberOfLines={2}>{card.word}</Text>
         </>
       ) : (
         <>
-          <Text style={s.emoji}>{card.emoji}</Text>
+          <Text style={[s.emoji, { fontSize: Math.max(18, CARD_W * 0.35) }]}>{card.emoji}</Text>
           <Text style={s.word} numberOfLines={2}>{card.word}</Text>
         </>
       )}
@@ -54,10 +63,10 @@ function FaceUpCard({ card, selected }) {
 function FoundationSlot({ slot, onPress }) {
   if (slot.locked) {
     return (
-      <View style={s.slotLocked}>
-        <Text style={s.slotLockedText}>KİLİDİ AÇ</Text>
-        <MaterialIcons name="style" size={24} color="rgba(255,255,255,0.2)" />
-        <TouchableOpacity style={s.adBadge}><Text style={s.adText}>AD</Text></TouchableOpacity>
+      <View style={[s.slotLocked, { height: CARD_H * 0.85 }]}>
+        <Text style={s.lockedText}>KİLİDİ AÇ</Text>
+        <MaterialIcons name="style" size={20} color="rgba(255,255,255,0.15)" />
+        <TouchableOpacity style={s.adBadge}><Text style={s.adText}>▶ AD</Text></TouchableOpacity>
       </View>
     );
   }
@@ -66,19 +75,19 @@ function FoundationSlot({ slot, onPress }) {
     const p = slot.placedCards.length;
     const t = slot.category.totalWords;
     return (
-      <TouchableOpacity style={[s.slotActive, { borderColor: clr }]} onPress={onPress} activeOpacity={0.8}>
+      <TouchableOpacity style={[s.slotActive, { height: CARD_H * 0.85, borderColor: clr }]} onPress={onPress} activeOpacity={0.8}>
         <View style={[s.slotTag, { backgroundColor: clr }]}>
           <Text style={s.slotTagText}>{p}/{t}</Text>
-          <Text style={{ fontSize: 8 }}>🃏</Text>
         </View>
+        <MaterialIcons name="style" size={14} color={clr} style={{ marginTop: 8 }} />
         <Text style={s.slotCatName} numberOfLines={2}>{slot.category.word}</Text>
-        {p > 0 && <Text style={s.slotPreview}>{slot.placedCards[p - 1].emoji}</Text>}
       </TouchableOpacity>
     );
   }
   return (
-    <TouchableOpacity style={s.slotEmpty} onPress={onPress} activeOpacity={0.8}>
-      <MaterialIcons name="style" size={24} color="rgba(255,255,255,0.15)" />
+    <TouchableOpacity style={[s.slotEmpty, { height: CARD_H * 0.85 }]} onPress={onPress} activeOpacity={0.8}>
+      <MaterialIcons name="style" size={22} color="rgba(255,255,255,0.12)" />
+      <Text style={s.slotCounter}>0/6</Text>
     </TouchableOpacity>
   );
 }
@@ -87,27 +96,23 @@ function FoundationSlot({ slot, onPress }) {
 function TableauColumn({ column, colIndex, selectedId, onCardTap }) {
   if (column.locked) {
     return (
-      <View style={s.colLocked}>
-        <Text style={s.slotLockedText}>KİLİDİ AÇ</Text>
-        <MaterialIcons name="add" size={18} color="rgba(255,255,255,0.25)" />
-        <TouchableOpacity style={s.adBadge}><Text style={s.adText}>AD</Text></TouchableOpacity>
+      <View style={[s.colLocked, { height: CARD_H }]}>
+        <Text style={s.lockedText}>KİLİDİ AÇ</Text>
+        <MaterialIcons name="add" size={16} color="rgba(255,255,255,0.2)" />
+        <TouchableOpacity style={s.adBadge}><Text style={s.adText}>▶ AD</Text></TouchableOpacity>
       </View>
     );
   }
-  if (column.cards.length === 0) {
-    return <View style={s.colEmpty} />;
-  }
+  if (column.cards.length === 0) return <View style={[s.colEmpty, { height: CARD_H }]} />;
+
   return (
     <View>
       {column.cards.map((card, ci) => {
         const isLast = ci === column.cards.length - 1;
         return (
-          <View key={card.id} style={{ marginTop: ci === 0 ? 0 : -44, zIndex: ci }}>
+          <View key={card.id} style={{ marginTop: ci === 0 ? 0 : OVERLAP, zIndex: ci }}>
             {card.faceUp ? (
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => isLast && onCardTap(card, 'column', colIndex)}
-              >
+              <TouchableOpacity activeOpacity={0.8} onPress={() => isLast && onCardTap(card, 'column', colIndex)}>
                 <FaceUpCard card={card} selected={selectedId === card.id} />
               </TouchableOpacity>
             ) : (
@@ -127,18 +132,16 @@ export default function GameScreen() {
   const [selected, setSelected] = useState(null);
   const [shakeSlot, setShakeSlot] = useState(null);
   const [history, setHistory] = useState([]);
-
   const shakeAnims = useRef(Array.from({ length: 10 }, () => new Animated.Value(0))).current;
 
   useEffect(() => {
     if (shakeSlot !== null && shakeAnims[shakeSlot]) {
-      const a = shakeAnims[shakeSlot];
       Animated.sequence([
-        Animated.timing(a, { toValue: 8, duration: 50, useNativeDriver: true }),
-        Animated.timing(a, { toValue: -8, duration: 50, useNativeDriver: true }),
-        Animated.timing(a, { toValue: 6, duration: 50, useNativeDriver: true }),
-        Animated.timing(a, { toValue: -6, duration: 50, useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 50, useNativeDriver: true }),
+        Animated.timing(shakeAnims[shakeSlot], { toValue: 8, duration: 50, useNativeDriver: true }),
+        Animated.timing(shakeAnims[shakeSlot], { toValue: -8, duration: 50, useNativeDriver: true }),
+        Animated.timing(shakeAnims[shakeSlot], { toValue: 6, duration: 50, useNativeDriver: true }),
+        Animated.timing(shakeAnims[shakeSlot], { toValue: -6, duration: 50, useNativeDriver: true }),
+        Animated.timing(shakeAnims[shakeSlot], { toValue: 0, duration: 50, useNativeDriver: true }),
       ]).start(() => setShakeSlot(null));
     }
   }, [shakeSlot]);
@@ -146,8 +149,7 @@ export default function GameScreen() {
   const drawCard = useCallback(() => {
     setGs((p) => {
       if (p.deck.length === 0) return p;
-      const d = [...p.deck];
-      const card = { ...d.pop(), faceUp: true };
+      const d = [...p.deck]; const card = { ...d.pop(), faceUp: true };
       return { ...p, deck: d, drawnCards: [...p.drawnCards, card] };
     });
     setSelected(null);
@@ -159,8 +161,7 @@ export default function GameScreen() {
 
   const handleDrawnTap = useCallback(() => {
     if (gs.drawnCards.length === 0) return;
-    const top = gs.drawnCards[gs.drawnCards.length - 1];
-    handleCardTap(top, 'drawn', null);
+    handleCardTap(gs.drawnCards[gs.drawnCards.length - 1], 'drawn', null);
   }, [gs.drawnCards, handleCardTap]);
 
   function removeFromSource(state, source, sourceIndex, cardId) {
@@ -170,11 +171,9 @@ export default function GameScreen() {
     } else if (source === 'column') {
       ns.columns = state.columns.map((col, i) => {
         if (i !== sourceIndex) return col;
-        const newCards = col.cards.filter((c) => c.id !== cardId);
-        if (newCards.length > 0 && !newCards[newCards.length - 1].faceUp) {
-          newCards[newCards.length - 1] = { ...newCards[newCards.length - 1], faceUp: true };
-        }
-        return { ...col, cards: newCards };
+        const nc = col.cards.filter((c) => c.id !== cardId);
+        if (nc.length > 0 && !nc[nc.length - 1].faceUp) nc[nc.length - 1] = { ...nc[nc.length - 1], faceUp: true };
+        return { ...col, cards: nc };
       });
     }
     return ns;
@@ -183,14 +182,12 @@ export default function GameScreen() {
   const handleSlotTap = useCallback((slotIndex) => {
     if (!selected) return;
     const { card, source, sourceIndex } = selected;
-    const slot = gs.slots[slotIndex];
-    if (slot.locked) { setSelected(null); return; }
+    if (gs.slots[slotIndex].locked) { setSelected(null); return; }
 
     setGs((prev) => {
       const newSlots = prev.slots.map((sl) => ({ ...sl, placedCards: [...sl.placedCards] }));
       const target = newSlots[slotIndex];
 
-      // Boş slot + kategori kartı → yerleştir
       if (!target.category && card.type === 'category') {
         target.category = card;
         const ns = removeFromSource(prev, source, sourceIndex, card.id);
@@ -198,20 +195,15 @@ export default function GameScreen() {
         return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + 5, isFailed: prev.moves - 1 <= 0 };
       }
 
-      // Aktif slot + kelime kartı
       if (target.category && card.type === 'word') {
         if (card.categoryIndex !== target.category.categoryIndex) {
-          setShakeSlot(slotIndex);
-          Vibration.vibrate(100);
-          setSelected(null);
+          setShakeSlot(slotIndex); Vibration.vibrate(100); setSelected(null);
           return { ...prev, moves: prev.moves - 1, isFailed: prev.moves - 1 <= 0 };
         }
         target.placedCards.push(card);
         const ns = removeFromSource(prev, source, sourceIndex, card.id);
         let done = true;
-        for (const sl of newSlots) {
-          if (sl.category && sl.placedCards.length < sl.category.totalWords) done = false;
-        }
+        for (const sl of newSlots) if (sl.category && sl.placedCards.length < sl.category.totalWords) done = false;
         const catsPlaced = newSlots.filter((sl) => sl.category).length;
         const isComplete = done && catsPlaced >= level.categories.length;
         setHistory((h) => [...h, prev]);
@@ -222,24 +214,16 @@ export default function GameScreen() {
     setSelected(null);
   }, [selected, gs.slots, level.categories.length]);
 
-  const useHint = useCallback(() => {
-    if (gs.hints <= 0) return;
-    setGs((p) => ({ ...p, hints: p.hints - 1 }));
-  }, [gs.hints]);
-
   const useUndo = useCallback(() => {
     if (history.length === 0) return;
-    setGs(history[history.length - 1]);
-    setHistory((h) => h.slice(0, -1));
-    setSelected(null);
+    setGs(history[history.length - 1]); setHistory((h) => h.slice(0, -1)); setSelected(null);
   }, [history]);
 
   const useDelete = useCallback(() => {
     setGs((p) => {
       if (p.drawnCards.length === 0) return p;
       return { ...p, drawnCards: p.drawnCards.slice(0, -1), moves: p.moves - 1 };
-    });
-    setSelected(null);
+    }); setSelected(null);
   }, []);
 
   useEffect(() => {
@@ -251,6 +235,8 @@ export default function GameScreen() {
   }, [gs.isComplete, gs.isFailed]);
 
   const selId = selected?.card?.id;
+  const DRAWN_CW = Math.floor(CARD_W * 1.1);
+  const DRAWN_CH = Math.floor(CARD_H * 1.1);
 
   return (
     <View style={s.container}>
@@ -259,62 +245,72 @@ export default function GameScreen() {
       {/* HEADER */}
       <View style={s.header}>
         <View style={s.coinBadge}>
-          <MaterialIcons name="monetization-on" size={18} color={COLORS.tertiaryFixed} />
+          <MaterialIcons name="monetization-on" size={16} color={COLORS.coin} />
           <Text style={s.coinText}>{gs.coins}</Text>
-          <MaterialIcons name="add-circle" size={14} color={COLORS.primary} />
+          <MaterialIcons name="add-circle" size={13} color={COLORS.primary} />
         </View>
         <Text style={s.headerTitle}>BÖLÜM {gs.levelId}</Text>
         <TouchableOpacity style={s.settingsBtn}>
-          <MaterialIcons name="settings" size={22} color="#cbd5e1" />
+          <MaterialIcons name="settings" size={20} color={COLORS.onSurfaceVariant} />
         </TouchableOpacity>
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
 
-        {/* MOVES + DRAWN + DECK */}
+        {/* HAMLELER + ÇEKİLEN + DESTE */}
         <View style={s.deckRow}>
+          {/* Hamleler */}
           <View style={s.movesPanel}>
-            <Text style={s.movesLabel}>HAMLELER</Text>
+            <Text style={s.movesLabel}>HAMLE</Text>
             <Text style={s.movesNum}>{gs.moves}</Text>
             <TouchableOpacity style={s.addBtn}>
-              <Text style={s.addBtnText}>+ 20</Text>
+              <Text style={s.addBtnText}>+20 ▶</Text>
             </TouchableOpacity>
           </View>
 
+          {/* Çekilen kartlar */}
           <TouchableOpacity style={s.drawnArea} onPress={handleDrawnTap} activeOpacity={0.8}>
             {gs.drawnCards.length === 0 ? (
-              <View style={s.emptyCard}>
-                <MaterialIcons name="swipe" size={22} color="rgba(255,255,255,0.15)" />
-              </View>
+              <View style={[s.emptyCard, { width: DRAWN_CW, height: DRAWN_CH }]} />
             ) : (
-              <View style={s.drawnStack}>
+              <View style={{ width: DRAWN_CW + 24, height: DRAWN_CH, justifyContent: 'center', alignItems: 'center' }}>
                 {gs.drawnCards.slice(-3).map((card, i, arr) => (
                   <View key={card.id} style={[s.drawnWrap, {
-                    transform: [{ translateX: (i - (arr.length - 1)) * 12 }],
-                    zIndex: i, opacity: i === arr.length - 1 ? 1 : 0.4 + i * 0.2,
+                    transform: [{ translateX: (i - (arr.length - 1)) * 14 }],
+                    zIndex: i, opacity: i === arr.length - 1 ? 1 : 0.35 + i * 0.2,
                   }]}>
-                    <FaceUpCard card={card} selected={i === arr.length - 1 && selId === card.id} />
+                    <View style={[
+                      s.faceUp, { width: DRAWN_CW, height: DRAWN_CH },
+                      i === arr.length - 1 && selId === card.id && s.cardSelected,
+                    ]}>
+                      <Text style={{ fontSize: 20 }}>{card.emoji}</Text>
+                      <Text style={s.word} numberOfLines={1}>{card.word}</Text>
+                    </View>
                   </View>
                 ))}
               </View>
             )}
           </TouchableOpacity>
 
+          {/* Deste */}
           <TouchableOpacity onPress={drawCard} activeOpacity={0.8}>
             {gs.deck.length > 0 ? (
               <View>
-                <FaceDownCard />
+                <LinearGradient
+                  colors={[COLORS.cardBackTop, COLORS.cardBackBottom]}
+                  style={[s.faceDown, { width: DRAWN_CW, height: DRAWN_CH }]}
+                >
+                  <View style={s.innerFrame}><View style={s.innerFrameInner} /></View>
+                </LinearGradient>
                 <View style={s.deckBadge}><Text style={s.deckBadgeText}>{gs.deck.length}</Text></View>
               </View>
             ) : (
-              <View style={s.emptyCard}>
-                <MaterialIcons name="block" size={22} color="rgba(255,255,255,0.12)" />
-              </View>
+              <View style={[s.emptyCard, { width: DRAWN_CW, height: DRAWN_CH }]} />
             )}
           </TouchableOpacity>
         </View>
 
-        {/* FOUNDATION SLOTS */}
+        {/* FOUNDATION */}
         <View style={s.slotsRow}>
           {gs.slots.map((slot, i) => (
             <Animated.View key={i} style={{ flex: 1, transform: [{ translateX: shakeAnims[i] || 0 }] }}>
@@ -331,16 +327,18 @@ export default function GameScreen() {
             </View>
           ))}
         </View>
-
       </ScrollView>
 
       {/* TOOLBAR */}
       <View style={s.toolbar}>
-        <ToolBtn icon="bolt" label="İPUCU" badge={gs.hints} badgeColor={COLORS.fail} onPress={useHint} />
+        <ToolBtn icon="bolt" label="İPUCU" badge={gs.hints} badgeColor={COLORS.fail} onPress={() => setGs(p => ({ ...p, hints: p.hints - 1 }))} />
         <ToolBtn icon="undo" label="GERİ AL" badge="+" badgeColor={COLORS.success} onPress={useUndo} />
         <ToolBtn icon="auto-fix-normal" label="SİL" badge="+" badgeColor={COLORS.success} onPress={useDelete} />
-        <ToolBtn icon="search" label="" small onPress={() => {}} />
+        <ToolBtn icon="search" label="ARA" small onPress={() => {}} />
       </View>
+
+      {/* Bilge mini */}
+      <Image source={require('../assets/bilge-happy.png')} style={s.bilgeMini} />
 
       <BottomNav activeTab="home" onTabPress={(t) => t === 'home' && router.back()} />
     </View>
@@ -351,7 +349,7 @@ function ToolBtn({ icon, label, badge, badgeColor, onPress, small }) {
   return (
     <View style={s.toolWrap}>
       <TouchableOpacity style={[s.toolBtn, small && s.toolBtnSm]} onPress={onPress} activeOpacity={0.7}>
-        <MaterialIcons name={icon} size={small ? 18 : 22} color="#fff" />
+        <MaterialIcons name={icon} size={small ? 16 : 20} color="#fff" />
         {badge !== undefined && (
           <View style={[s.toolBdg, { backgroundColor: badgeColor }]}>
             <Text style={s.toolBdgText}>{badge}</Text>
@@ -364,121 +362,123 @@ function ToolBtn({ icon, label, badge, badgeColor, onPress, small }) {
 }
 
 // ═══ STYLES ═══
-const CW = 56; const CH = 76;
-
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.surface },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingTop: 54, paddingBottom: 8, backgroundColor: 'rgba(0,0,0,0.06)',
+    paddingHorizontal: 14, paddingTop: 52, paddingBottom: 6, backgroundColor: COLORS.headerBg,
   },
   coinBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: 'rgba(0,0,0,0.12)', paddingHorizontal: 12, paddingVertical: 5,
-    borderRadius: 9999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: COLORS.panelBg, paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 9999, borderWidth: 1, borderColor: COLORS.panelBorder,
   },
-  coinText: { fontFamily: FONTS.headline, fontSize: 14, color: '#fff' },
-  headerTitle: { fontFamily: FONTS.headlineBlack, fontSize: 17, color: '#fff', letterSpacing: 2 },
-  settingsBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-  scrollContent: { paddingHorizontal: 10, paddingTop: 12, paddingBottom: 200, gap: 14 },
+  coinText: { fontFamily: FONTS.headline, fontSize: 13, color: COLORS.onSurface },
+  headerTitle: { fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff', letterSpacing: 2 },
+  settingsBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: COLORS.panelBg, alignItems: 'center', justifyContent: 'center' },
+  scrollContent: { paddingHorizontal: 10, paddingTop: 10, paddingBottom: 200, gap: 10 },
 
   // Deck row
-  deckRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  deckRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   movesPanel: {
-    backgroundColor: '#3C6E88', borderWidth: 2, borderColor: '#4A8099',
-    borderRadius: 14, padding: 8, alignItems: 'center', width: 80, aspectRatio: 1,
+    backgroundColor: COLORS.panelBg, borderWidth: 1.5, borderColor: COLORS.panelBorder,
+    borderRadius: 14, paddingHorizontal: 10, paddingVertical: 8, alignItems: 'center', minWidth: 72,
   },
-  movesLabel: { fontFamily: FONTS.headlineBlack, fontSize: 8, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5 },
-  movesNum: { fontFamily: FONTS.headlineBlack, fontSize: 28, color: '#fff', lineHeight: 32 },
-  addBtn: { backgroundColor: COLORS.success, paddingHorizontal: 10, paddingVertical: 2, borderRadius: 9999, marginTop: 2 },
-  addBtnText: { fontFamily: FONTS.headlineBlack, fontSize: 10, color: '#fff' },
-  drawnArea: { flex: 1, height: CH + 8, justifyContent: 'center', alignItems: 'center' },
-  drawnStack: { width: CW + 30, height: CH, justifyContent: 'center', alignItems: 'center' },
+  movesLabel: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: COLORS.onSurfaceVariant, letterSpacing: 1 },
+  movesNum: { fontFamily: FONTS.headlineBlack, fontSize: 26, color: '#fff', lineHeight: 30 },
+  addBtn: { backgroundColor: COLORS.success, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 9999, marginTop: 2 },
+  addBtnText: { fontFamily: FONTS.headlineBlack, fontSize: 8, color: '#fff' },
+  drawnArea: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   drawnWrap: { position: 'absolute' },
   emptyCard: {
-    width: CW, height: CH, borderRadius: 10, borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.06)', borderStyle: 'dashed',
-    alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.06)',
+    borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.panelBorder, borderStyle: 'dashed',
+    alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.03)',
   },
   deckBadge: {
-    position: 'absolute', bottom: 4, right: 4, backgroundColor: COLORS.fail,
-    minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: '#fff', paddingHorizontal: 4,
+    position: 'absolute', top: -5, right: -5, backgroundColor: COLORS.primary,
+    minWidth: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.5, borderColor: '#fff', paddingHorizontal: 3,
   },
-  deckBadgeText: { fontFamily: FONTS.headlineBlack, fontSize: 10, color: '#fff' },
+  deckBadgeText: { fontFamily: FONTS.headlineBlack, fontSize: 9, color: '#fff' },
 
   // Cards
   faceDown: {
-    width: CW, height: CH, borderRadius: 10, borderWidth: 2, borderColor: COLORS.cardBackBorder, overflow: 'hidden',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 3,
+    borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.cardBackBorder, overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 3,
   },
-  innerFrame: { flex: 1, margin: 3, borderRadius: 7, borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)', alignItems: 'center', justifyContent: 'center' },
-  innerFrameInner: { width: '65%', height: '65%', borderRadius: 5, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' },
+  innerFrame: { flex: 1, margin: 3, borderRadius: 7, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center' },
+  innerFrameInner: { width: '60%', height: '60%', borderRadius: 5, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
   faceUp: {
-    width: CW, height: CH, borderRadius: 10, borderWidth: 2, borderColor: COLORS.cardBorder,
-    backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2, paddingVertical: 4,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 4, elevation: 3,
+    borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.cardBorder, backgroundColor: '#fff',
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2, paddingVertical: 3,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3, elevation: 2,
   },
-  cardSelected: { borderColor: COLORS.primary, borderWidth: 2.5, shadowColor: COLORS.primary, shadowOpacity: 0.5, shadowRadius: 8 },
-  catBorder: { borderColor: '#FFB074', borderWidth: 2.5 },
-  emoji: { fontSize: 24, marginBottom: 2 },
+  cardSelected: { borderColor: COLORS.primary, borderWidth: 2, shadowColor: COLORS.primary, shadowOpacity: 0.6, shadowRadius: 8, elevation: 6 },
+  catCardBorder: { borderColor: COLORS.cardBackBorder, borderWidth: 2 },
+  emoji: { marginBottom: 1 },
   word: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: '#1e293b', textAlign: 'center', lineHeight: 9 },
-  catBadge: { flexDirection: 'row', alignItems: 'center', gap: 2, position: 'absolute', top: 3, right: 3 },
-  catBadgeText: { fontFamily: FONTS.headlineBlack, fontSize: 8, color: COLORS.primary },
-  catName: { fontFamily: FONTS.headlineBlack, fontSize: 10, color: '#1e293b', textAlign: 'center', lineHeight: 13 },
+  catBadge: { position: 'absolute', top: 2, right: 3 },
+  catBadgeText: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: COLORS.cardBackTop },
+  catName: { fontFamily: FONTS.headlineBlack, fontSize: 8, color: '#1e293b', textAlign: 'center', lineHeight: 10, marginTop: 2 },
 
-  // Foundation slots
-  slotsRow: { flexDirection: 'row', gap: 4 },
+  // Foundation
+  slotsRow: { flexDirection: 'row', gap: 3 },
   slotLocked: {
-    aspectRatio: 0.72, borderRadius: 10, backgroundColor: 'rgba(60,110,136,0.2)',
-    borderWidth: 2, borderColor: 'rgba(74,128,153,0.3)', borderStyle: 'dashed',
-    alignItems: 'center', justifyContent: 'center', gap: 4,
+    borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1.5, borderColor: COLORS.panelBorder, borderStyle: 'dashed',
+    alignItems: 'center', justifyContent: 'center', gap: 3,
   },
-  slotLockedText: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: 'rgba(255,255,255,0.35)', letterSpacing: 0.5 },
-  adBadge: { backgroundColor: COLORS.tagOrange, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  adText: { fontFamily: FONTS.headlineBlack, fontSize: 8, color: '#fff' },
+  lockedText: { fontFamily: FONTS.headlineBlack, fontSize: 6, color: 'rgba(255,255,255,0.3)', letterSpacing: 0.5 },
+  adBadge: { backgroundColor: COLORS.primary, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  adText: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: '#fff' },
   slotEmpty: {
-    aspectRatio: 0.72, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.04)',
-    borderWidth: 2, borderColor: 'rgba(255,255,255,0.08)', borderStyle: 'dashed',
-    alignItems: 'center', justifyContent: 'center',
+    borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1.5, borderColor: COLORS.panelBorder, borderStyle: 'dashed',
+    alignItems: 'center', justifyContent: 'center', gap: 2,
   },
+  slotCounter: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: 'rgba(255,255,255,0.15)' },
   slotActive: {
-    aspectRatio: 0.72, borderRadius: 10, backgroundColor: '#fff', borderWidth: 2.5,
-    alignItems: 'center', justifyContent: 'center', padding: 4, overflow: 'hidden',
+    borderRadius: 10, backgroundColor: '#fff', borderWidth: 2,
+    alignItems: 'center', justifyContent: 'center', padding: 3, overflow: 'hidden',
   },
-  slotTag: { flexDirection: 'row', alignItems: 'center', gap: 2, position: 'absolute', top: 3, left: 3, right: 3, paddingHorizontal: 4, paddingVertical: 1, borderRadius: 4 },
-  slotTagText: { fontFamily: FONTS.headlineBlack, fontSize: 8, color: '#fff' },
-  slotCatName: { fontFamily: FONTS.headlineBlack, fontSize: 9, color: '#1e293b', textAlign: 'center', marginTop: 10, lineHeight: 12 },
-  slotPreview: { position: 'absolute', bottom: 4, fontSize: 12 },
+  slotTag: { position: 'absolute', top: 0, left: 0, right: 0, paddingVertical: 2, alignItems: 'center', borderTopLeftRadius: 8, borderTopRightRadius: 8 },
+  slotTagText: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: '#fff' },
+  slotCatName: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: '#1e293b', textAlign: 'center', lineHeight: 9, marginTop: 2 },
 
-  // Tableau — TEK SATIR
-  tableauRow: { flexDirection: 'row', gap: 4, alignItems: 'flex-start' },
+  // Tableau
+  tableauRow: { flexDirection: 'row', gap: COL_GAP, alignItems: 'flex-start' },
   colLocked: {
-    aspectRatio: 4.5 / 6, borderRadius: 10, backgroundColor: 'rgba(60,110,136,0.2)',
-    borderWidth: 2, borderColor: 'rgba(74,128,153,0.3)', borderStyle: 'dashed',
-    alignItems: 'center', justifyContent: 'center', gap: 4,
+    borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1.5, borderColor: COLORS.panelBorder, borderStyle: 'dashed',
+    alignItems: 'center', justifyContent: 'center', gap: 3,
   },
   colEmpty: {
-    aspectRatio: 4.5 / 6, borderRadius: 10, borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.04)', borderStyle: 'dashed', backgroundColor: 'rgba(0,0,0,0.02)',
+    borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.04)', borderStyle: 'dashed',
+    backgroundColor: 'rgba(255,255,255,0.01)',
   },
 
   // Toolbar
   toolbar: {
-    position: 'absolute', bottom: 94, left: 0, right: 0,
-    flexDirection: 'row', justifyContent: 'center', gap: 14, paddingVertical: 6, zIndex: 40,
+    position: 'absolute', bottom: 92, left: 0, right: 0,
+    flexDirection: 'row', justifyContent: 'center', gap: 12, paddingVertical: 4, zIndex: 40,
   },
   toolWrap: { alignItems: 'center', gap: 3 },
   toolBtn: {
-    width: 50, height: 50, borderRadius: 14, backgroundColor: COLORS.buttonBlue,
-    alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.12)',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 6, elevation: 4,
+    width: 46, height: 46, borderRadius: 13, backgroundColor: COLORS.buttonBlue,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.1)',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 5, elevation: 3,
   },
-  toolBtnSm: { width: 40, height: 40, borderRadius: 10 },
+  toolBtnSm: { width: 36, height: 36, borderRadius: 10 },
   toolBdg: {
-    position: 'absolute', top: -5, right: -5, minWidth: 18, height: 18, borderRadius: 9,
-    alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff', paddingHorizontal: 3,
+    position: 'absolute', top: -4, right: -4, minWidth: 16, height: 16, borderRadius: 8,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff', paddingHorizontal: 2,
   },
-  toolBdgText: { fontFamily: FONTS.headlineBlack, fontSize: 9, color: '#fff' },
-  toolLabel: { fontFamily: FONTS.headlineBlack, fontSize: 8, color: 'rgba(255,255,255,0.65)', letterSpacing: 1 },
+  toolBdgText: { fontFamily: FONTS.headlineBlack, fontSize: 8, color: '#fff' },
+  toolLabel: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: COLORS.onSurfaceVariant, letterSpacing: 1 },
+
+  // Bilge mini
+  bilgeMini: {
+    position: 'absolute', bottom: 100, right: 8, width: 52, height: 52,
+    borderRadius: 12, opacity: 0.85, zIndex: 30,
+  },
 });

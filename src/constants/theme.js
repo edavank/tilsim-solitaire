@@ -1,46 +1,47 @@
-// Tılsım Solitaire — Luminous Arboretum Design System
-// Renk paleti, fontlar, spacing
+// Tılsım Solitaire — Cosmic Dawn Design System
+// Stitch mor gradient paleti + oyun renkleri
 
 export const COLORS = {
-  // Arka plan gradient
+  // Arka plan gradient (mor — alacakaranlık)
   gradientTop: '#6B5B8A',
   gradientBottom: '#3D3560',
 
-  // Surface hierarchy
-  surface: '#001019',
-  surfaceDim: '#001019',
-  surfaceContainer: '#001c29',
-  surfaceContainerLow: '#001620',
-  surfaceContainerHigh: '#002331',
-  surfaceContainerHighest: '#00293a',
+  // Surface (koyu mor tonları)
+  surface: '#150629',
+  surfaceDim: '#150629',
+  surfaceContainer: '#22103A',
+  surfaceContainerLow: '#1B0A31',
+  surfaceContainerHigh: '#291543',
+  surfaceContainerHighest: '#301A4D',
 
-  // Primary (turuncu — büyülü kıvılcım)
-  primary: '#ff914d',
-  primaryContainer: '#f38239',
-  primaryFixed: '#f9873e',
-  onPrimary: '#502100',
+  // Primary (pembe-turuncu — Stitch cosmic)
+  primary: '#FF8AA7',
+  primaryContainer: '#FF7199',
+  primaryDim: '#E3096A',
+  onPrimary: '#620029',
 
-  // Secondary (yeşil)
-  secondary: '#95f8a1',
-  secondaryContainer: '#006e2c',
+  // Secondary (cyan)
+  secondary: '#00D2FD',
+  secondaryContainer: '#00677E',
 
-  // Tertiary (altın)
-  tertiaryFixed: '#f9cc61',
-  tertiary: '#ffdb8f',
+  // Tertiary (turuncu — kart arkası, butonlar)
+  tertiary: '#FF9F4A',
+  tertiaryFixed: '#FF9734',
+  tertiaryContainer: '#FD8B00',
 
   // Error
-  error: '#ff7351',
-  errorContainer: '#b92902',
+  error: '#FF716C',
+  errorContainer: '#9F0519',
 
   // On surface
-  onSurface: '#c9eaff',
-  onSurfaceVariant: '#80b1ce',
+  onSurface: '#EFDFFF',
+  onSurfaceVariant: '#B7A3CF',
 
   // Outline
-  outlineVariant: '#154d66',
-  outline: '#4a7b96',
+  outlineVariant: '#514166',
+  outline: '#806E96',
 
-  // Kart renkleri
+  // Kart renkleri (bunlar sabit kalıyor)
   cardFace: '#FFFFFF',
   cardBorder: '#E8DDCC',
   cardBackTop: '#FF8C42',
@@ -65,16 +66,20 @@ export const COLORS = {
   tagPurple: '#8B6FC0',
   tagYellow: '#FFD166',
 
-  // Nav
-  navBg: 'rgba(15, 23, 42, 0.8)',
-  navInactive: '#94a3b8',
-  navActive: '#ff914d',
+  // Nav (koyu mor)
+  navBg: 'rgba(21, 6, 41, 0.85)',
+  navInactive: '#B7A3CF',
+  navActive: '#FF8AA7',
 
   // Header
-  headerBg: 'rgba(15, 23, 42, 0.4)',
+  headerBg: 'rgba(0, 0, 0, 0.06)',
+
+  // Glassmorphic panel
+  panelBg: 'rgba(255, 255, 255, 0.08)',
+  panelBorder: 'rgba(255, 255, 255, 0.12)',
 
   // Overlay
-  overlay: 'rgba(0, 0, 0, 0.75)',
+  overlay: 'rgba(0, 0, 0, 0.6)',
 };
 
 export const CATEGORY_COLORS = [
@@ -97,26 +102,13 @@ export const FONTS = {
 };
 
 export const SIZES = {
-  // Border radius
   radiusSm: 8,
   radius: 16,
   radiusLg: 24,
   radiusXl: 32,
   radiusFull: 9999,
-
-  // Spacing
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 24,
-  xxl: 32,
-  xxxl: 48,
-
-  // Bottom nav
+  xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32, xxxl: 48,
   navHeight: 88,
   navPaddingBottom: 32,
-
-  // Header
   headerHeight: 64,
 };
