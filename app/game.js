@@ -347,9 +347,35 @@ export default function GameScreen() {
           setFeedback('❌ Yanlış! (-1 hamle)');
           return { ...prev, moves: prev.moves - 1, isFailed: prev.moves - 1 <= 0 };
         }
+        // Place the selected card
         target.placedCards.push(card);
-        const ns = removeFromSource(prev, source, sourceIndex, card.id);
-        // Sparkle
+        let ns = removeFromSource(prev, source, sourceIndex, card.id);
+        let extraCount = 0;
+
+        // Auto-collect: if source was a column, grab consecutive same-category cards from bottom
+        if (source === 'column' && sourceIndex !== null) {
+          let keepGoing = true;
+          while (keepGoing) {
+            const col = ns.columns[sourceIndex];
+            if (!col || col.cards.length === 0) break;
+            const bottom = col.cards[col.cards.length - 1];
+            if (bottom.faceUp && bottom.type === 'word' && bottom.categoryIndex === card.categoryIndex) {
+              // Check if slot still has room
+              if (target.placedCards.length < target.category.totalWords) {
+                target.placedCards.push(bottom);
+                ns = removeFromSource(ns, 'column', sourceIndex, bottom.id);
+                extraCount++;
+              } else { keepGoing = false; }
+            } else { keepGoing = false; }
+          }
+        }
+
+        // Also check drawn cards top
+        if (source === 'drawn' || extraCount === 0) {
+          // Don't auto-grab from drawn, just the single card
+        }
+
+        const totalPlaced = 1 + extraCount;
         setSparkle({ x: SW / 2, y: 200 });
         setTimeout(() => setSparkle(null), 700);
         let done = true;
@@ -357,9 +383,13 @@ export default function GameScreen() {
         const catsPlaced = newSlots.filter((sl) => sl.category).length;
         const isComplete = done && catsPlaced >= level.categories.length;
         setHistory((h) => [...h, prev]);
-        setFeedback('✅ Doğru! (+10)');
+        if (extraCount > 0) {
+          setFeedback('✅ ' + totalPlaced + ' kart yerleşti! (+' + (totalPlaced * 10) + ')');
+        } else {
+          setFeedback('✅ Doğru! (+10)');
+        }
         playHaptic('correct');
-        return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + 10, isComplete, isFailed: prev.moves - 1 <= 0 && !isComplete };
+        return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + (totalPlaced * 10), isComplete, isFailed: prev.moves - 1 <= 0 && !isComplete };
       }
       return prev;
     });
