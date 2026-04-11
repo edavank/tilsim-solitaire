@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { loadProgress } from '../src/utils/storage';
@@ -10,13 +10,26 @@ import { loadProgress } from '../src/utils/storage';
 const { width: SW } = Dimensions.get('window');
 const OWL_IMAGE = require('../assets/bilge-happy.png');
 
+const BILGE_MESSAGES = [
+  'Hoş geldin! Bugün harika bir gün.',
+  'Kelimelerin büyüsüne hazır mısın?',
+  'Her bölüm yeni bir macera!',
+  'Bilgelik, sabırla gelir.',
+  'Kartları çöz, zihni aç!',
+  'Bugün kaç bölüm geçeceksin?',
+];
+
 export default function HomeScreen() {
   const [currentLevel, setCurrentLevel] = useState(1);
   const [coins, setCoins] = useState(310);
+  const [bilgeMsg] = useState(() => BILGE_MESSAGES[Math.floor(Math.random() * BILGE_MESSAGES.length)]);
 
-  useEffect(() => {
-    loadProgress().then((p) => { setCurrentLevel(p.currentLevel); setCoins(p.coins); });
-  }, []);
+  // Refresh on screen focus (coming back from game)
+  useFocusEffect(
+    useCallback(() => {
+      loadProgress().then((p) => { setCurrentLevel(p.currentLevel); setCoins(p.coins); });
+    }, [])
+  );
   const owlBounce = useRef(new Animated.Value(0)).current;
   const glowPulse = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -77,7 +90,7 @@ export default function HomeScreen() {
 
         {/* Speech bubble */}
         <View style={s.speechBubble}>
-          <Text style={s.speechText}>Hoş geldin! Bugün harika bir gün.</Text>
+          <Text style={s.speechText}>{bilgeMsg}</Text>
           <View style={s.speechArrow} />
         </View>
 

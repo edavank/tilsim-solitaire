@@ -282,14 +282,32 @@ export default function GameScreen() {
   const [sparkle, setSparkle] = useState(null);
   const [coins, setCoins] = useState(310);
   const [paused, setPaused] = useState(false);
+  const [shakeSlotIdx, setShakeSlotIdx] = useState(-1);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const shakeAnim = useRef(new Animated.Value(0)).current;
 
   // Load progress
   useEffect(() => {
     loadProgress().then((p) => {
       setCoins(p.coins);
       if (!params.level) setLevelId(p.currentLevel);
+      // Show tutorial on first play
+      if (p.currentLevel === 1) setShowTutorial(true);
     });
   }, []);
+
+  // Shake animation
+  const triggerShake = useCallback((slotIdx) => {
+    setShakeSlotIdx(slotIdx);
+    shakeAnim.setValue(0);
+    Animated.sequence([
+      Animated.timing(shakeAnim, { toValue: 8, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -8, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 6, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -6, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
+    ]).start(() => setShakeSlotIdx(-1));
+  }, [shakeAnim]);
 
   // Auto-save game state
   useEffect(() => {
@@ -345,6 +363,7 @@ export default function GameScreen() {
         if (card.categoryIndex !== target.category.categoryIndex) {
           Vibration.vibrate(100);
           playHaptic('wrong');
+          triggerShake(slotIndex);
           setFeedback('❌ Yanlış! (-1 hamle)');
           return { ...prev, moves: prev.moves - 1, isFailed: prev.moves - 1 <= 0 };
         }
@@ -655,9 +674,9 @@ export default function GameScreen() {
 
         <View style={st.slotsRow}>
           {gs.slots.map((slot, i) => (
-            <View key={i} style={{ flex: 1 }}>
+            <Animated.View key={i} style={{ flex: 1, transform: [{ translateX: shakeSlotIdx === i ? shakeAnim : 0 }] }}>
               <FoundationSlot slot={slot} onPress={() => handleSlotTap(i)} hinted={hintSlot === i} />
-            </View>
+            </Animated.View>
           ))}
         </View>
 
@@ -687,6 +706,28 @@ export default function GameScreen() {
       </View>
 
       <BottomNav activeTab="home" />
+
+      {/* Tutorial */}
+      {showTutorial && (
+        <View style={ov.overlay}>
+          <LinearGradient colors={['rgba(21,6,41,0.92)', 'rgba(61,53,96,0.92)']} style={StyleSheet.absoluteFillObject} />
+          <View style={ov.card}>
+            <Image source={OWL_HAPPY} style={{ width: 100, height: 100, borderRadius: 16, marginBottom: 12 }} />
+            <Text style={[ov.title, { fontSize: 24 }]}>Nasıl Oynanır?</Text>
+            <View style={s_tut.steps}>
+              <TutStep n="1" text="Sütundaki kartlara dokun. Sadece en alttaki kart seçilebilir." icon="touch-app" />
+              <TutStep n="2" text="Kategori kartını bul ve üst slota yerleştir. Bu, o kategoriyi açar." icon="style" />
+              <TutStep n="3" text="Kelime kartlarını doğru kategoriye yerleştir. Aynı kategorideki kartları sütunlarda üst üste koyabilirsin." icon="category" />
+              <TutStep n="4" text="Tüm kartları kategorilerine yerleştir. Hamlelerin bitmeden bitir!" icon="emoji-events" />
+            </View>
+            <TouchableOpacity onPress={() => setShowTutorial(false)} activeOpacity={0.85}>
+              <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={[ov.nextBtn, { paddingHorizontal: 48 }]}>
+                <Text style={ov.nextBtnText}>Başla!</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {/* Pause Menu */}
       {paused && (
@@ -731,6 +772,29 @@ export default function GameScreen() {
     </View>
   );
 }
+
+function TutStep({ n, text, icon }) {
+  return (
+    <View style={s_tut.step}>
+      <View style={s_tut.stepIcon}>
+        <MaterialIcons name={icon} size={18} color={COLORS.secondary} />
+      </View>
+      <View style={s_tut.stepContent}>
+        <Text style={s_tut.stepNum}>ADIM {n}</Text>
+        <Text style={s_tut.stepText}>{text}</Text>
+      </View>
+    </View>
+  );
+}
+
+const s_tut = StyleSheet.create({
+  steps: { width: '100%', gap: 10, marginVertical: 16 },
+  step: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+  stepIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: COLORS.secondary + '22', alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  stepContent: { flex: 1 },
+  stepNum: { fontFamily: FONTS.headlineBlack, fontSize: 9, color: COLORS.secondary, letterSpacing: 1, marginBottom: 2 },
+  stepText: { fontFamily: FONTS.body, fontSize: 12, color: COLORS.onSurfaceVariant, lineHeight: 17 },
+});
 
 function ToolBtn({ icon, label, badge, badgeColor, onPress, big }) {
   return (
