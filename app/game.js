@@ -353,27 +353,22 @@ export default function GameScreen() {
 
         if (source === 'column' && sourceIndex !== null && sourceIndex !== undefined) {
           const col = prev.columns[sourceIndex];
-          if (col && col.cards.length > 0) {
-            // Get all cards in column, find selected card's position
+          if (col && col.cards.length > 1) {
             const cardIdx = col.cards.findIndex((c) => c.id === card.id);
-            if (cardIdx >= 0) {
-              // Look ABOVE the selected card (lower index = higher in stack)
-              // Cards below selected are at higher indices — but selected is the last one
-              // Actually: look at cards ABOVE in the visual stack (index < cardIdx)
-              // that are faceUp and same category
-              for (let k = cardIdx - 1; k >= 0; k--) {
-                const above = col.cards[k];
-                if (above.faceUp && above.type === 'word' && above.categoryIndex === card.categoryIndex) {
-                  if (cardsToPlace.length + target.placedCards.length < target.category.totalWords) {
-                    cardsToPlace.push(above);
-                  }
-                } else {
-                  break; // stop at first non-matching card
-                }
-              }
+            // Scan upward from selected card, collect consecutive same-category
+            for (let k = cardIdx - 1; k >= 0; k--) {
+              const above = col.cards[k];
+              if (!above.faceUp) break;
+              if (above.type !== 'word') break;
+              if (above.categoryIndex !== card.categoryIndex) break;
+              if (cardsToPlace.length + target.placedCards.length >= target.category.totalWords) break;
+              cardsToPlace.push(above);
             }
           }
         }
+
+        // Debug: show what we found
+        const names = cardsToPlace.map((c) => c.word).join(', ');
 
         // Place all collected cards
         cardsToPlace.forEach((c) => target.placedCards.push(c));
@@ -405,9 +400,9 @@ export default function GameScreen() {
         const isComplete = done && catsPlaced >= level.categories.length;
         setHistory((h) => [...h, prev]);
         if (totalPlaced > 1) {
-          setFeedback('✅ ' + totalPlaced + ' kart yerleşti! (+' + (totalPlaced * 10) + ')');
+          setFeedback('✅ ' + totalPlaced + 'x: ' + names + ' (+' + (totalPlaced * 10) + ')');
         } else {
-          setFeedback('✅ Doğru! (+10)');
+          setFeedback('✅ ' + card.word + ' (+10)');
         }
         playHaptic('correct');
         return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + (totalPlaced * 10), isComplete, isFailed: prev.moves - 1 <= 0 && !isComplete };
