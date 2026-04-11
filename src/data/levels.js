@@ -226,3 +226,8 @@ export function generateGameState(level) {
     coins: 310, score: 0, isComplete: false, isFailed: false,
   };
 }
+
+// Generate levels 11-50
+import { generateLevels } from './levelGenerator';
+const GENERATED = generateLevels(11, 40);
+LEVELS.push(...GENERATED);

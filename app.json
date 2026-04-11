@@ -7,30 +7,44 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
-    "scheme": "tilsim",
+    "scheme": "tilsim-solitaire",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#001019"
+      "backgroundColor": "#150629"
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.edavank.tilsimsolitaire"
+      "bundleIdentifier": "com.edavank.tilsimsolitaire",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#001019"
+        "backgroundColor": "#150629"
       },
-      "edgeToEdgeEnabled": true,
-      "package": "com.edavank.tilsimsolitaire"
+      "package": "com.edavank.tilsimsolitaire",
+      "versionCode": 1
     },
     "web": {
+      "bundler": "metro",
+      "output": "static",
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-router",
       "expo-font"
-    ]
+    ],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
+    }
   }
 }

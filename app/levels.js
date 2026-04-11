@@ -13,6 +13,14 @@ const OWL = require('../assets/bilge-happy.png');
 const CHAPTER_NAMES = [
   'Başlangıç', 'Keşif', 'Uyanış', 'Yolculuk', 'Gökyüzü',
   'Fırtına', 'Denge', 'Gizem', 'Takımyıldız', 'Efsane',
+  'Yıldız', 'Bulut', 'Rüzgâr', 'Dalga', 'Ateş',
+  'Toprak', 'Kristal', 'Şafak', 'Gölge', 'Işık',
+  'Yağmur', 'Gökkuşağı', 'Okyanus', 'Volkan', 'Buzul',
+  'Orman', 'Çöl', 'Nehir', 'Dağ', 'Vadi',
+  'Ay', 'Güneş', 'Yıldızlar', 'Galaksi', 'Nebula',
+  'Kuark', 'Foton', 'Plazma', 'Kuantum', 'Sonsuzluk',
+  'Zaman', 'Uzay', 'Boyut', 'Evren', 'Kaos',
+  'Düzen', 'Dönüşüm', 'Aşkın', 'Tılsım', 'Nirvana',
 ];
 
 export default function LevelsScreen() {
