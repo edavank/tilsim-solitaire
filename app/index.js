@@ -95,6 +95,13 @@ export default function HomeScreen() {
           </LinearGradient>
         </TouchableOpacity>
 
+        {/* Level select button */}
+        <TouchableOpacity style={s.levelSelectBtn} activeOpacity={0.7} onPress={() => router.push('/levels')}>
+          <MaterialIcons name="grid-view" size={20} color={COLORS.secondary} />
+          <Text style={s.levelSelectText}>Bölüm Seç</Text>
+          <MaterialIcons name="chevron-right" size={20} color={COLORS.onSurfaceVariant} />
+        </TouchableOpacity>
+
         {/* Watch ad button */}
         <TouchableOpacity style={s.adBtn} activeOpacity={0.7}>
           <View style={s.adLeft}>
@@ -178,6 +185,13 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 20, paddingVertical: 14,
     borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
   },
+  levelSelectBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    width: '100%', maxWidth: 340, paddingVertical: 12, marginBottom: 12,
+    backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 16,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+  },
+  levelSelectText: { fontFamily: FONTS.headline, fontSize: 14, color: COLORS.onSurface },
   adLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   adText: { fontFamily: FONTS.headline, fontSize: 15, color: COLORS.onSurface },
   adBadge: { backgroundColor: COLORS.tertiary, paddingHorizontal: 12, paddingVertical: 4, borderRadius: SIZES.radiusFull },

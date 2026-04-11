@@ -281,6 +281,7 @@ export default function GameScreen() {
   const [hintSlot, setHintSlot] = useState(null);
   const [sparkle, setSparkle] = useState(null);
   const [coins, setCoins] = useState(310);
+  const [paused, setPaused] = useState(false);
 
   // Load progress
   useEffect(() => {
@@ -601,7 +602,7 @@ export default function GameScreen() {
           <Text style={st.coinText}>{coins}</Text>
         </View>
         <Text style={st.headerTitle}>Bölüm {gs.levelId}</Text>
-        <TouchableOpacity style={st.settingsBtn} onPress={() => router.push('/settings')}>
+        <TouchableOpacity style={st.settingsBtn} onPress={() => setPaused(true)}>
           <MaterialIcons name="settings" size={20} color={COLORS.onSurfaceVariant} />
         </TouchableOpacity>
       </View>
@@ -687,6 +688,39 @@ export default function GameScreen() {
 
       <BottomNav activeTab="home" />
 
+      {/* Pause Menu */}
+      {paused && (
+        <View style={ov.overlay}>
+          <LinearGradient colors={['rgba(21,6,41,0.95)', 'rgba(61,53,96,0.95)']} style={StyleSheet.absoluteFillObject} />
+          <View style={ov.card}>
+            <Text style={[ov.title, { fontSize: 28, marginBottom: 4 }]}>Duraklatıldı</Text>
+            <Text style={[ov.subtitle, { marginBottom: 24 }]}>BÖLÜM {gs.levelId}</Text>
+
+            <TouchableOpacity style={ov.pauseBtn} onPress={() => setPaused(false)} activeOpacity={0.7}>
+              <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={ov.pauseBtnInner}>
+                <MaterialIcons name="play-arrow" size={24} color="#fff" />
+                <Text style={ov.pauseBtnText}>Devam Et</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={ov.pauseSecBtn} onPress={() => { setPaused(false); resetGame(); }} activeOpacity={0.7}>
+              <MaterialIcons name="refresh" size={20} color={COLORS.secondary} />
+              <Text style={ov.pauseSecText}>Tekrar Başla</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={ov.pauseSecBtn} onPress={() => router.push('/settings')} activeOpacity={0.7}>
+              <MaterialIcons name="settings" size={20} color={COLORS.onSurfaceVariant} />
+              <Text style={ov.pauseSecText}>Ayarlar</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={ov.pauseSecBtn} onPress={() => router.back()} activeOpacity={0.7}>
+              <MaterialIcons name="home" size={20} color={COLORS.onSurfaceVariant} />
+              <Text style={ov.pauseSecText}>Ana Sayfa</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
       {/* Overlays */}
       {gs.isComplete && (
         <LevelCompleteOverlay score={gs.score} coins={250} onNext={handleNextLevel} onReplay={handleReplay} onHome={handleHome} />
@@ -735,6 +769,11 @@ const ov = StyleSheet.create({
   addMovesText: { fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff' },
   freeBadge: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 3, borderRadius: SIZES.radiusFull },
   freeText: { fontFamily: FONTS.headlineBlack, fontSize: 9, color: '#fff', letterSpacing: 1 },
+  pauseBtn: { width: '100%', marginBottom: 12 },
+  pauseBtnInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, borderRadius: SIZES.radiusFull },
+  pauseBtnText: { fontFamily: FONTS.headlineBlack, fontSize: 18, color: '#fff' },
+  pauseSecBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%', paddingVertical: 14, borderRadius: 16, backgroundColor: COLORS.panelBg, borderWidth: 1, borderColor: COLORS.panelBorder, marginBottom: 8 },
+  pauseSecText: { fontFamily: FONTS.headline, fontSize: 15, color: COLORS.onSurface },
 });
 
 /* ── Game Styles ── */
