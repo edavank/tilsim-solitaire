@@ -419,6 +419,9 @@ export default function GameScreen() {
       if (targetCol.cards.length > 0) {
         const bottomCard = targetCol.cards[targetCol.cards.length - 1];
         if (!bottomCard.faceUp) { setFeedback('⚠️ Buraya koyamazsın!'); return prev; }
+        // Category cards can't be stacking targets — only word on word
+        if (bottomCard.type === 'category') { setFeedback('⚠️ Kategori kartının üstüne konamazsın!'); return prev; }
+        if (card.type === 'category') { setFeedback('⚠️ Kategori kartı sütuna taşınamaz!'); return prev; }
         if (card.categoryIndex !== bottomCard.categoryIndex) {
           setFeedback('⚠️ Aynı kategori kartları üst üste konabilir!');
           return prev;
