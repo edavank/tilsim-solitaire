@@ -356,27 +356,18 @@ export default function GameScreen() {
           const colCards = col ? col.cards : [];
           const cardIdx = colCards.findIndex((c) => c.id === card.id);
           
-          console.log('=== BATCH DEBUG ===');
-          console.log('Selected:', card.word, 'catIdx:', card.categoryIndex, 'at position:', cardIdx);
-          console.log('Column', sourceIndex, 'has', colCards.length, 'cards:');
-          colCards.forEach((c, i) => console.log('  [' + i + ']', c.word, 'faceUp:', c.faceUp, 'type:', c.type, 'catIdx:', c.categoryIndex));
-          
           if (cardIdx > 0) {
             for (let k = cardIdx - 1; k >= 0; k--) {
               const above = colCards[k];
-              console.log('Checking [' + k + ']:', above.word, 'faceUp:', above.faceUp, 'type:', above.type, 'catIdx:', above.categoryIndex);
-              if (!above.faceUp) { console.log('  → STOP: face down'); break; }
-              if (above.type !== 'word') { console.log('  → STOP: not word type'); break; }
-              if (above.categoryIndex !== card.categoryIndex) { console.log('  → STOP: different category'); break; }
-              if (cardsToPlace.length + target.placedCards.length >= target.category.totalWords) { console.log('  → STOP: slot full'); break; }
-              console.log('  → COLLECTED!');
+              if (!above.faceUp) break;
+              if (above.type !== 'word') break;
+              if (above.categoryIndex !== card.categoryIndex) break;
+              if (cardsToPlace.length + target.placedCards.length >= target.category.totalWords) break;
               cardsToPlace.push(above);
             }
           }
-          console.log('Total to place:', cardsToPlace.length, cardsToPlace.map(c => c.word));
         }
 
-        // Debug: show what we found
         const names = cardsToPlace.map((c) => c.word).join(', ');
 
         // Place all collected cards
@@ -409,12 +400,9 @@ export default function GameScreen() {
         const isComplete = done && catsPlaced >= level.categories.length;
         setHistory((h) => [...h, prev]);
         if (totalPlaced > 1) {
-          setFeedback('✅ ' + totalPlaced + 'x: ' + names + ' (+' + (totalPlaced * 10) + ')');
+          setFeedback('✅ ' + totalPlaced + ' kart: ' + names + ' (+' + (totalPlaced * 10) + ')');
         } else {
-          // Debug: show what was in the column
-          const col = prev.columns[sourceIndex];
-          const colInfo = col ? col.cards.map(c => (c.faceUp ? c.word : '?')).join('→') : 'drawn';
-          setFeedback('✅ ' + card.word + ' (+10) [sütun: ' + colInfo + ']');
+          setFeedback('✅ Doğru! (+10)');
         }
         playHaptic('correct');
         return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + (totalPlaced * 10), isComplete, isFailed: prev.moves - 1 <= 0 && !isComplete };

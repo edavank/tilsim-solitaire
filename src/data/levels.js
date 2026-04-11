@@ -74,8 +74,8 @@ export const LEVELS = [
       { name: 'Hayvanlar', words: ['Kedi', 'Köpek', 'Kuş', 'Balık'] },
       { name: 'Renkler', words: ['Kırmızı', 'Mavi', 'Yeşil', 'Sarı'] },
     ],
-    totalSlots: 4, lockedSlots: 0,
-    columns: [{ depth: 3 }, { depth: 3 }, { depth: 3 }, { depth: 3 }, { depth: 3 }],
+    totalSlots: 5, lockedSlots: 1,
+    columns: [{ locked: true }, { depth: 3 }, { depth: 3 }, { depth: 3 }, { depth: 2 }],
   },
   {
     id: 2, moves: 55, hints: 5, undos: 1,
