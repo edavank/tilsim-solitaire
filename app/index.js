@@ -42,11 +42,16 @@ export default function HomeScreen() {
           <Image source={OWL_IMAGE} style={s.headerAvatar} />
           <Text style={s.headerTitle}>Tılsım Solitaire</Text>
         </View>
-        <TouchableOpacity style={s.coinBadge} onPress={() => router.push('/store')}>
-          <MaterialIcons name="monetization-on" size={18} color={COLORS.coin} />
-          <Text style={s.coinText}>1,250</Text>
-          <Text style={s.coinPlus}>+</Text>
-        </TouchableOpacity>
+        <View style={s.headerRight}>
+          <TouchableOpacity style={s.coinBadge} onPress={() => router.push('/store')}>
+            <MaterialIcons name="monetization-on" size={18} color={COLORS.coin} />
+            <Text style={s.coinText}>1,250</Text>
+            <Text style={s.coinPlus}>+</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.settingsBtn} onPress={() => router.push('/settings')}>
+            <MaterialIcons name="settings" size={22} color={COLORS.onSurfaceVariant} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Main content */}
@@ -108,8 +113,10 @@ const s = StyleSheet.create({
     paddingHorizontal: 16, paddingTop: 54, paddingBottom: 8, zIndex: 50,
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerAvatar: { width: 36, height: 36, borderRadius: 18 },
   headerTitle: { fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff', fontStyle: 'italic' },
+  settingsBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.panelBg, alignItems: 'center', justifyContent: 'center' },
   coinBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: COLORS.panelBg, paddingHorizontal: 14, paddingVertical: 6,
