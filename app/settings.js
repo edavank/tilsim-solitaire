@@ -45,7 +45,7 @@ export default function SettingsScreen() {
         <Text style={s.headerTitle}>Ayarlar</Text>
         <View style={s.coinBadge}>
           <MaterialIcons name="monetization-on" size={16} color={COLORS.coin} />
-          <Text style={s.coinText}>1,250</Text>
+          <Text style={s.coinText}>{coins.toLocaleString()}</Text>
         </View>
       </View>
 

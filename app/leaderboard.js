@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SIZES } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
+import { loadProgress } from '../src/utils/storage';
 
 const OWL = require('../assets/bilge-happy.png');
 
@@ -24,6 +25,17 @@ const OTHERS = [
 
 export default function LeaderboardScreen() {
   const [activeTab, setActiveTab] = useState(0);
+  const [userScore, setUserScore] = useState(0);
+  const [userLevel, setUserLevel] = useState(1);
+  const [coins, setCoins] = useState(0);
+
+  useEffect(() => {
+    loadProgress().then((p) => {
+      setUserScore(p.bestScore || 0);
+      setUserLevel(p.currentLevel || 1);
+      setCoins(p.coins || 0);
+    });
+  }, []);
 
   return (
     <View style={s.container}>
@@ -36,7 +48,7 @@ export default function LeaderboardScreen() {
           <Text style={s.headerTitle}>Tılsım Solitaire</Text>
         </View>
         <View style={s.coinBadge}>
-          <Text style={s.coinText}>1,250</Text>
+          <Text style={s.coinText}>{coins.toLocaleString()}</Text>
           <Text style={s.coinPlus}>+</Text>
           <MaterialIcons name="monetization-on" size={16} color={COLORS.coin} />
         </View>
@@ -123,8 +135,8 @@ export default function LeaderboardScreen() {
             </View>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
-            <Text style={s.userScore}>1,250</Text>
-            <Text style={s.userHint}>Keep playing!</Text>
+            <Text style={s.userScore}>{userScore.toLocaleString()}</Text>
+            <Text style={s.userHint}>Bölüm {userLevel}</Text>
           </View>
         </View>
 
