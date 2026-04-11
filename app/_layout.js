@@ -16,7 +16,6 @@ import {
   Fondamento_400Regular,
   Fondamento_400Regular_Italic,
 } from '@expo-google-fonts/fondamento';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { COLORS } from '../src/constants/theme';
 
 export default function RootLayout() {
@@ -39,7 +38,7 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <View style={{ flex: 1 }}>
       <StatusBar style="light" />
       <Stack
         screenOptions={{
@@ -48,7 +47,7 @@ export default function RootLayout() {
           animation: 'fade',
         }}
       />
-    </GestureHandlerRootView>
+    </View>
   );
 }
 
