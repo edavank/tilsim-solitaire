@@ -347,35 +347,56 @@ export default function GameScreen() {
           setFeedback('❌ Yanlış! (-1 hamle)');
           return { ...prev, moves: prev.moves - 1, isFailed: prev.moves - 1 <= 0 };
         }
-        // Place the selected card
-        target.placedCards.push(card);
-        let ns = removeFromSource(prev, source, sourceIndex, card.id);
-        let extraCount = 0;
 
-        // Auto-collect: if source was a column, grab consecutive same-category cards from bottom
-        if (source === 'column' && sourceIndex !== null) {
-          let keepGoing = true;
-          while (keepGoing) {
-            const col = ns.columns[sourceIndex];
-            if (!col || col.cards.length === 0) break;
-            const bottom = col.cards[col.cards.length - 1];
-            if (bottom.faceUp && bottom.type === 'word' && bottom.categoryIndex === card.categoryIndex) {
-              // Check if slot still has room
-              if (target.placedCards.length < target.category.totalWords) {
-                target.placedCards.push(bottom);
-                ns = removeFromSource(ns, 'column', sourceIndex, bottom.id);
-                extraCount++;
-              } else { keepGoing = false; }
-            } else { keepGoing = false; }
+        // Collect ALL same-category cards from bottom of source column
+        const cardsToPlace = [card];
+
+        if (source === 'column' && sourceIndex !== null && sourceIndex !== undefined) {
+          const col = prev.columns[sourceIndex];
+          if (col && col.cards.length > 0) {
+            // Get all cards in column, find selected card's position
+            const cardIdx = col.cards.findIndex((c) => c.id === card.id);
+            if (cardIdx >= 0) {
+              // Look ABOVE the selected card (lower index = higher in stack)
+              // Cards below selected are at higher indices — but selected is the last one
+              // Actually: look at cards ABOVE in the visual stack (index < cardIdx)
+              // that are faceUp and same category
+              for (let k = cardIdx - 1; k >= 0; k--) {
+                const above = col.cards[k];
+                if (above.faceUp && above.type === 'word' && above.categoryIndex === card.categoryIndex) {
+                  if (cardsToPlace.length + target.placedCards.length < target.category.totalWords) {
+                    cardsToPlace.push(above);
+                  }
+                } else {
+                  break; // stop at first non-matching card
+                }
+              }
+            }
           }
         }
 
-        // Also check drawn cards top
-        if (source === 'drawn' || extraCount === 0) {
-          // Don't auto-grab from drawn, just the single card
+        // Place all collected cards
+        cardsToPlace.forEach((c) => target.placedCards.push(c));
+
+        // Remove all placed cards from source
+        let ns = { ...prev };
+        const placedIds = new Set(cardsToPlace.map((c) => c.id));
+
+        if (source === 'column') {
+          ns.columns = prev.columns.map((col, i) => {
+            if (i !== sourceIndex) return col;
+            const remaining = col.cards.filter((c) => !placedIds.has(c.id));
+            // Flip the new bottom card if face down
+            if (remaining.length > 0 && !remaining[remaining.length - 1].faceUp) {
+              remaining[remaining.length - 1] = { ...remaining[remaining.length - 1], faceUp: true };
+            }
+            return { ...col, cards: remaining };
+          });
+        } else if (source === 'drawn') {
+          ns.drawnCards = prev.drawnCards.filter((c) => !placedIds.has(c.id));
         }
 
-        const totalPlaced = 1 + extraCount;
+        const totalPlaced = cardsToPlace.length;
         setSparkle({ x: SW / 2, y: 200 });
         setTimeout(() => setSparkle(null), 700);
         let done = true;
@@ -383,7 +404,7 @@ export default function GameScreen() {
         const catsPlaced = newSlots.filter((sl) => sl.category).length;
         const isComplete = done && catsPlaced >= level.categories.length;
         setHistory((h) => [...h, prev]);
-        if (extraCount > 0) {
+        if (totalPlaced > 1) {
           setFeedback('✅ ' + totalPlaced + ' kart yerleşti! (+' + (totalPlaced * 10) + ')');
         } else {
           setFeedback('✅ Doğru! (+10)');
