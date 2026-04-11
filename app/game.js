@@ -10,6 +10,7 @@ import { COLORS, FONTS, SIZES, CATEGORY_COLORS } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { LEVELS, generateGameState } from '../src/data/levels';
 import { loadProgress, updateProgress, clearSavedGame, saveSavedGame } from '../src/utils/storage';
+import { playHaptic } from '../src/utils/sounds';
 
 const { width: SW } = Dimensions.get('window');
 const COL_COUNT = 5;
@@ -334,6 +335,7 @@ export default function GameScreen() {
         const ns = removeFromSource(prev, source, sourceIndex, card.id);
         setHistory((h) => [...h, prev]);
         setFeedback('✅ ' + card.word + ' açıldı!');
+        playHaptic('flip');
         return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + 5, isFailed: prev.moves - 1 <= 0 };
       }
       if (!target.category && card.type === 'word') { setFeedback('⚠️ Önce kategori koy!'); return prev; }
@@ -341,6 +343,7 @@ export default function GameScreen() {
       if (target.category && card.type === 'word') {
         if (card.categoryIndex !== target.category.categoryIndex) {
           Vibration.vibrate(100);
+          playHaptic('wrong');
           setFeedback('❌ Yanlış! (-1 hamle)');
           return { ...prev, moves: prev.moves - 1, isFailed: prev.moves - 1 <= 0 };
         }
@@ -355,6 +358,7 @@ export default function GameScreen() {
         const isComplete = done && catsPlaced >= level.categories.length;
         setHistory((h) => [...h, prev]);
         setFeedback('✅ Doğru! (+10)');
+        playHaptic('correct');
         return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + 10, isComplete, isFailed: prev.moves - 1 <= 0 && !isComplete };
       }
       return prev;
@@ -411,9 +415,22 @@ export default function GameScreen() {
 
   const drawCard = useCallback(() => {
     setGs((p) => {
-      if (p.deck.length === 0) { setFeedback('Deste boş!'); return p; }
+      if (p.deck.length === 0 && p.drawnCards.length === 0) { setFeedback('Tüm kartlar kullanıldı!'); return p; }
+      if (p.deck.length === 0) {
+        // Recycle: drawn cards go back to deck (shuffled, face down)
+        const recycled = [...p.drawnCards].reverse().map((c) => ({ ...c, faceUp: false }));
+        // Shuffle recycled
+        for (let i = recycled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [recycled[i], recycled[j]] = [recycled[j], recycled[i]];
+        }
+        setFeedback('🔄 Deste karıştırıldı!');
+        playHaptic('draw');
+        return { ...p, deck: recycled, drawnCards: [] };
+      }
       const d = [...p.deck]; const card = { ...d.pop(), faceUp: true };
       setFeedback('🎴 ' + card.word + ' çekildi!');
+      playHaptic('draw');
       return { ...p, deck: d, drawnCards: [...p.drawnCards, card] };
     });
     setSelected(null);
@@ -575,7 +592,13 @@ export default function GameScreen() {
                 <View style={st.deckBadge}><Text style={st.deckBadgeText}>{gs.deck.length}</Text></View>
               </View>
             ) : (
-              <View style={[st.emptyCard, { width: DCW, height: DCH }]}><MaterialIcons name="block" size={18} color="rgba(255,255,255,0.12)" /></View>
+              <View style={[st.emptyCard, { width: DCW, height: DCH }]}>
+                {gs.drawnCards.length > 0 ? (
+                  <MaterialIcons name="refresh" size={22} color={COLORS.secondary} />
+                ) : (
+                  <MaterialIcons name="block" size={18} color="rgba(255,255,255,0.12)" />
+                )}
+              </View>
             )}
           </TouchableOpacity>
         </View>

@@ -1,10 +1,11 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
+import { loadProgress, updateProgress } from '../src/utils/storage';
 
 const OWL = require('../assets/bilge-happy.png');
 
@@ -15,11 +16,32 @@ const GOLD_PACKS = [
 ];
 
 const BOOSTERS = [
-  { name: 'İpucu', desc: 'Tıkanınca yolunu bul', icon: 'lightbulb', price: 50, color: COLORS.secondary },
-  { name: 'Geri Al', desc: 'Hatalı hamleyi düzelt', icon: 'undo', price: 30, color: COLORS.secondary },
+  { name: 'İpucu', desc: 'Tıkanınca yolunu bul', icon: 'lightbulb', coinCost: 50, color: COLORS.secondary, key: 'hints' },
+  { name: 'Geri Al', desc: 'Hatalı hamleyi düzelt', icon: 'undo', coinCost: 30, color: COLORS.secondary, key: 'undos' },
 ];
 
 export default function StoreScreen() {
+  const [coins, setCoins] = useState(0);
+
+  useEffect(() => {
+    loadProgress().then((p) => setCoins(p.coins));
+  }, []);
+
+  const buyBooster = async (booster) => {
+    if (coins < booster.coinCost) {
+      Alert.alert('Yetersiz Altın', `${booster.name} almak için ${booster.coinCost} altın gerekli. Şu an ${coins} altının var.`);
+      return;
+    }
+    const newCoins = coins - booster.coinCost;
+    setCoins(newCoins);
+    await updateProgress({ coins: newCoins });
+    Alert.alert('Satın Alındı!', `${booster.name} eklendi. Oyunda kullanabilirsin.`);
+  };
+
+  const buyGold = (pack) => {
+    Alert.alert('Yakında!', `${pack.amount} Altın paketi yakında satışa sunulacak. (IAP entegrasyonu gerekli)`);
+  };
+
   return (
     <View style={s.container}>
       <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
@@ -32,7 +54,7 @@ export default function StoreScreen() {
         </View>
         <View style={s.coinBadge}>
           <MaterialIcons name="monetization-on" size={16} color={COLORS.coin} />
-          <Text style={s.coinText}>1,250</Text>
+          <Text style={s.coinText}>{coins.toLocaleString()}</Text>
           <Text style={s.coinPlus}>+</Text>
         </View>
       </View>
@@ -44,7 +66,7 @@ export default function StoreScreen() {
           <View style={s.premiumBadge}><Text style={s.premiumBadgeText}>PREMİUM</Text></View>
           <Text style={s.premiumTitle}>Reklamsız Deneyim</Text>
           <Text style={s.premiumDesc}>Kesintisiz bir solitaire keyfi için reklamları kaldırın.</Text>
-          <TouchableOpacity activeOpacity={0.8}>
+          <TouchableOpacity activeOpacity={0.8} onPress={() => Alert.alert('Yakında!', 'IAP entegrasyonu gerekli.')}>
             <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={s.premiumBtn}>
               <Text style={s.premiumBtnText}>₺89,99</Text>
             </LinearGradient>
@@ -59,7 +81,7 @@ export default function StoreScreen() {
             <MaterialIcons name={pack.icon} size={36} color={COLORS.coin} style={{ marginBottom: 6 }} />
             <Text style={s.goldAmount}>{pack.amount} Altın</Text>
             <Text style={s.goldDesc}>{pack.desc}</Text>
-            <TouchableOpacity activeOpacity={0.8} style={{ width: '100%', marginTop: 12 }}>
+            <TouchableOpacity activeOpacity={0.8} style={{ width: '100%', marginTop: 12 }} onPress={() => buyGold(pack)}>
               <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={s.goldBtn}>
                 <Text style={s.goldBtnText}>{pack.price}</Text>
               </LinearGradient>
@@ -71,7 +93,7 @@ export default function StoreScreen() {
         <Text style={s.sectionTitle}>Güçlendiriciler</Text>
         <View style={s.boosterRow}>
           {BOOSTERS.map((b, i) => (
-            <View key={i} style={s.boosterCard}>
+            <TouchableOpacity key={i} style={s.boosterCard} onPress={() => buyBooster(b)} activeOpacity={0.7}>
               <View style={[s.boosterIcon, { backgroundColor: b.color + '22' }]}>
                 <MaterialIcons name={b.icon} size={22} color={b.color} />
               </View>
@@ -79,9 +101,9 @@ export default function StoreScreen() {
               <Text style={s.boosterDesc}>{b.desc}</Text>
               <View style={s.boosterPrice}>
                 <MaterialIcons name="monetization-on" size={14} color={COLORS.coin} />
-                <Text style={s.boosterPriceText}>{b.price}</Text>
+                <Text style={s.boosterPriceText}>{b.coinCost}</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
 
