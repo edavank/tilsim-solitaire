@@ -1,15 +1,11 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Dimensions,
-  ScrollView, Alert, Vibration, Image,
+  ScrollView, Animated, Alert, Vibration, Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-import Animated, {
-  useSharedValue, useAnimatedStyle, withSpring, runOnJS,
-} from 'react-native-reanimated';
 import { COLORS, FONTS, SIZES, CATEGORY_COLORS } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { LEVELS, generateGameState } from '../src/data/levels';
@@ -21,7 +17,6 @@ const CARD_W = Math.floor((SW - 20 - (COL_COUNT - 1) * COL_GAP) / COL_COUNT);
 const CARD_H = Math.floor(CARD_W * 1.35);
 const OVERLAP = -Math.floor(CARD_H * 0.72);
 
-// ═══ FACE DOWN ═══
 function FaceDownCard() {
   return (
     <LinearGradient colors={[COLORS.cardBackTop, COLORS.cardBackBottom]}
@@ -32,12 +27,11 @@ function FaceDownCard() {
   );
 }
 
-// ═══ FACE UP (static) ═══
-function FaceUpCard({ card, selected, w, h, style }) {
+function FaceUpCard({ card, selected, w, h }) {
   const cw = w || CARD_W; const ch = h || CARD_H;
   const isCat = card.type === 'category';
   return (
-    <View style={[st.faceUp, { width: cw, height: ch }, selected && st.cardSelected, isCat && st.catCardBorder, style]}>
+    <View style={[st.faceUp, { width: cw, height: ch }, selected && st.cardSelected, isCat && st.catCardBorder]}>
       {isCat ? (
         <>
           <View style={st.catBadge}><Text style={st.catBadgeText}>0/{card.totalWords}</Text></View>
@@ -54,65 +48,11 @@ function FaceUpCard({ card, selected, w, h, style }) {
   );
 }
 
-// ═══ DRAGGABLE CARD (gesture-handler) ═══
-function DraggableCard({ card, selected, onTap, onDrop }) {
-  const translateX = useSharedValue(0);
-  const translateY = useSharedValue(0);
-  const isDragging = useSharedValue(false);
-  const zIdx = useSharedValue(10);
-
-  const gesture = Gesture.Pan()
-    .activateAfterLongPress(150)
-    .onStart(() => {
-      isDragging.value = true;
-      zIdx.value = 9999;
-    })
-    .onUpdate((e) => {
-      translateX.value = e.translationX;
-      translateY.value = e.translationY;
-    })
-    .onEnd((e) => {
-      isDragging.value = false;
-      zIdx.value = 10;
-      const dropX = e.absoluteX;
-      const dropY = e.absoluteY;
-      runOnJS(onDrop)(dropX, dropY);
-      translateX.value = withSpring(0, { damping: 15, stiffness: 150 });
-      translateY.value = withSpring(0, { damping: 15, stiffness: 150 });
-    });
-
-  const tapGesture = Gesture.Tap().onEnd(() => {
-    runOnJS(onTap)();
-  });
-
-  const composed = Gesture.Race(gesture, tapGesture);
-
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: translateX.value },
-      { translateY: translateY.value },
-      { scale: isDragging.value ? 1.1 : 1 },
-    ],
-    zIndex: zIdx.value,
-    elevation: isDragging.value ? 20 : 2,
-    shadowOpacity: isDragging.value ? 0.4 : 0.1,
-  }));
-
-  return (
-    <GestureDetector gesture={composed}>
-      <Animated.View style={animStyle}>
-        <FaceUpCard card={card} selected={selected} />
-      </Animated.View>
-    </GestureDetector>
-  );
-}
-
-// ═══ FOUNDATION SLOT ═══
-function FoundationSlot({ slot, onPress, slotRef }) {
+function FoundationSlot({ slot, onPress }) {
   const h = CARD_H * 0.85;
   if (slot.locked) {
     return (
-      <View ref={slotRef} style={[st.slotBox, st.slotDashed, { height: h }]}>
+      <View style={[st.slotBox, st.slotDashed, { height: h }]}>
         <Text style={st.lockedText}>KİLİDİ AÇ</Text>
         <MaterialIcons name="style" size={18} color="rgba(255,255,255,0.15)" />
         <TouchableOpacity style={st.adBadge}><Text style={st.adText}>▶ AD</Text></TouchableOpacity>
@@ -123,7 +63,7 @@ function FoundationSlot({ slot, onPress, slotRef }) {
     const clr = CATEGORY_COLORS[slot.category.categoryIndex % CATEGORY_COLORS.length];
     const p = slot.placedCards.length; const t = slot.category.totalWords;
     return (
-      <TouchableOpacity ref={slotRef} style={[st.slotBox, { height: h, borderColor: clr, borderStyle: 'solid', backgroundColor: '#fff' }]} onPress={onPress} activeOpacity={0.7}>
+      <TouchableOpacity style={[st.slotBox, { height: h, borderColor: clr, borderStyle: 'solid', backgroundColor: '#fff' }]} onPress={onPress} activeOpacity={0.7}>
         <View style={[st.slotTag, { backgroundColor: clr }]}><Text style={st.slotTagText}>{p}/{t}</Text></View>
         <MaterialIcons name="style" size={14} color={clr} style={{ marginTop: 8 }} />
         <Text style={[st.word, { fontSize: 7, marginTop: 2 }]} numberOfLines={2}>{slot.category.word}</Text>
@@ -131,15 +71,14 @@ function FoundationSlot({ slot, onPress, slotRef }) {
     );
   }
   return (
-    <TouchableOpacity ref={slotRef} style={[st.slotBox, st.slotDashed, { height: h }]} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity style={[st.slotBox, st.slotDashed, { height: h }]} onPress={onPress} activeOpacity={0.7}>
       <MaterialIcons name="style" size={20} color="rgba(255,255,255,0.12)" />
       <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 7, color: 'rgba(255,255,255,0.15)' }}>0/6</Text>
     </TouchableOpacity>
   );
 }
 
-// ═══ COLUMN ═══
-function TableauColumn({ column, colIndex, selectedId, onCardTap, onCardDrop }) {
+function TableauColumn({ column, colIndex, selectedId, onCardTap }) {
   if (column.locked) {
     return (
       <View style={[st.slotBox, st.slotDashed, { height: CARD_H }]}>
@@ -157,15 +96,14 @@ function TableauColumn({ column, colIndex, selectedId, onCardTap, onCardDrop }) 
         const isLast = ci === column.cards.length - 1;
         return (
           <View key={card.id} style={{ marginTop: ci === 0 ? 0 : OVERLAP, zIndex: ci }}>
-            {card.faceUp && isLast ? (
-              <DraggableCard
-                card={card}
-                selected={selectedId === card.id}
-                onTap={() => onCardTap(card, 'column', colIndex)}
-                onDrop={(x, y) => onCardDrop(card, 'column', colIndex, x, y)}
-              />
-            ) : card.faceUp ? (
-              <FaceUpCard card={card} />
+            {card.faceUp ? (
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => { if (isLast) onCardTap(card, 'column', colIndex); }}
+                disabled={!isLast}
+              >
+                <FaceUpCard card={card} selected={isLast && selectedId === card.id} />
+              </TouchableOpacity>
             ) : (
               <FaceDownCard />
             )}
@@ -176,42 +114,14 @@ function TableauColumn({ column, colIndex, selectedId, onCardTap, onCardDrop }) 
   );
 }
 
-// ═══ GAME SCREEN ═══
 export default function GameScreen() {
   const level = LEVELS.find((l) => l.id === 23) || LEVELS[0];
   const [gs, setGs] = useState(() => generateGameState(level));
   const [selected, setSelected] = useState(null);
-  const [feedback, setFeedback] = useState('Kartı sürükle veya dokun!');
+  const [feedback, setFeedback] = useState('Karta dokun, sonra slot\'a dokun!');
   const [history, setHistory] = useState([]);
-  const slotRefs = useRef([]);
 
-  useEffect(() => { if (feedback) { const t = setTimeout(() => setFeedback(''), 2000); return () => clearTimeout(t); } }, [feedback]);
-
-  // Slot pozisyonlarını ölç
-  const slotPositions = useRef([]);
-  const measureSlots = useCallback(() => {
-    slotRefs.current.forEach((ref, i) => {
-      if (ref) {
-        ref.measureInWindow((x, y, w, h) => {
-          slotPositions.current[i] = { x, y, w, h };
-        });
-      }
-    });
-  }, []);
-
-  // Her render sonrası slotları ölç
-  useEffect(() => {
-    setTimeout(measureSlots, 300);
-  }, [gs.slots]);
-
-  function findDropSlot(dropX, dropY) {
-    for (let i = 0; i < slotPositions.current.length; i++) {
-      const s = slotPositions.current[i];
-      if (!s) continue;
-      if (dropX >= s.x && dropX <= s.x + s.w && dropY >= s.y && dropY <= s.y + s.h) return i;
-    }
-    return -1;
-  }
+  useEffect(() => { if (feedback) { const t = setTimeout(() => setFeedback(''), 2500); return () => clearTimeout(t); } }, [feedback]);
 
   function removeFromSource(state, source, sourceIndex, cardId) {
     const ns = { ...state };
@@ -229,10 +139,9 @@ export default function GameScreen() {
   }
 
   const placeCard = useCallback((card, source, sourceIndex, slotIndex) => {
-    if (slotIndex < 0 || slotIndex >= gs.slots.length) return false;
-    if (gs.slots[slotIndex].locked) { setFeedback('🔒 Kilitli!'); return false; }
+    if (slotIndex < 0 || slotIndex >= gs.slots.length) return;
+    if (gs.slots[slotIndex].locked) { setFeedback('🔒 Kilitli!'); return; }
 
-    let placed = false;
     setGs((prev) => {
       const newSlots = prev.slots.map((sl) => ({ ...sl, placedCards: [...sl.placedCards] }));
       const target = newSlots[slotIndex];
@@ -242,7 +151,6 @@ export default function GameScreen() {
         const ns = removeFromSource(prev, source, sourceIndex, card.id);
         setHistory((h) => [...h, prev]);
         setFeedback('✅ ' + card.word + ' açıldı!');
-        placed = true;
         return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + 5, isFailed: prev.moves - 1 <= 0 };
       }
       if (!target.category && card.type === 'word') { setFeedback('⚠️ Önce kategori koy!'); return prev; }
@@ -260,41 +168,27 @@ export default function GameScreen() {
         const catsPlaced = newSlots.filter((sl) => sl.category).length;
         const isComplete = done && catsPlaced >= level.categories.length;
         setHistory((h) => [...h, prev]);
-        setFeedback('✅ ' + card.word + ' doğru! (+10)');
-        placed = true;
+        setFeedback('✅ Doğru! (+10)');
         return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + 10, isComplete, isFailed: prev.moves - 1 <= 0 && !isComplete };
       }
       return prev;
     });
-    return placed;
   }, [gs.slots, level.categories.length]);
 
-  // ─── DROP ───
-  const handleCardDrop = useCallback((card, source, sourceIndex, dropX, dropY) => {
-    const slotIdx = findDropSlot(dropX, dropY);
-    if (slotIdx >= 0) {
-      placeCard(card, source, sourceIndex, slotIdx);
-    }
-    setSelected(null);
-  }, [placeCard]);
-
-  // ─── TAP SELECT ───
   const handleCardTap = useCallback((card, source, sourceIndex) => {
     setSelected((prev) => {
       if (prev && prev.card.id === card.id) { setFeedback(''); return null; }
-      setFeedback('✋ ' + card.word + ' → Slot\'a dokun');
+      setFeedback('✋ ' + card.word + ' seçildi → Slot\'a dokun');
       return { card, source, sourceIndex };
     });
   }, []);
 
-  // ─── SLOT TAP ───
   const handleSlotTap = useCallback((slotIndex) => {
     if (!selected) { setFeedback('Önce kart seç!'); return; }
     placeCard(selected.card, selected.source, selected.sourceIndex, slotIndex);
     setSelected(null);
   }, [selected, placeCard]);
 
-  // ─── DRAW ───
   const drawCard = useCallback(() => {
     setGs((p) => {
       if (p.deck.length === 0) { setFeedback('Deste boş!'); return p; }
@@ -351,7 +245,6 @@ export default function GameScreen() {
       {!!feedback && <View style={st.feedbackBar}><Text style={st.feedbackText}>{feedback}</Text></View>}
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={st.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* DECK ROW */}
         <View style={st.deckRow}>
           <View style={st.movesPanel}>
             <Text style={st.movesLabel}>HAMLE</Text>
@@ -389,20 +282,18 @@ export default function GameScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* FOUNDATION */}
-        <View style={st.slotsRow} onLayout={() => setTimeout(measureSlots, 100)}>
+        <View style={st.slotsRow}>
           {gs.slots.map((slot, i) => (
-            <View key={i} style={{ flex: 1 }} ref={(r) => { slotRefs.current[i] = r; }}>
+            <View key={i} style={{ flex: 1 }}>
               <FoundationSlot slot={slot} onPress={() => handleSlotTap(i)} />
             </View>
           ))}
         </View>
 
-        {/* TABLEAU */}
         <View style={st.tableauRow}>
           {gs.columns.map((col, i) => (
             <View key={i} style={{ flex: 1 }}>
-              <TableauColumn column={col} colIndex={i} selectedId={selId} onCardTap={handleCardTap} onCardDrop={handleCardDrop} />
+              <TableauColumn column={col} colIndex={i} selectedId={selId} onCardTap={handleCardTap} />
             </View>
           ))}
         </View>
@@ -410,7 +301,6 @@ export default function GameScreen() {
         <View style={{ height: 140 }} />
       </ScrollView>
 
-      {/* TOOLBAR */}
       <View style={st.toolbar}>
         <ToolBtn icon="bolt" label="İPUCU" badge={gs.hints} badgeColor={COLORS.fail} onPress={() => { setGs(p => ({ ...p, hints: Math.max(0, p.hints - 1) })); setFeedback('💡 İpucu!'); }} />
         <ToolBtn icon="undo" label="GERİ AL" badge="+" badgeColor={COLORS.success} onPress={useUndo} />
@@ -442,8 +332,8 @@ const st = StyleSheet.create({
   coinText: { fontFamily: FONTS.headline, fontSize: 13, color: COLORS.onSurface },
   headerTitle: { fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff', letterSpacing: 2 },
   settingsBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: COLORS.panelBg, alignItems: 'center', justifyContent: 'center' },
-  feedbackBar: { backgroundColor: 'rgba(0,0,0,0.5)', paddingVertical: 6, paddingHorizontal: 16, zIndex: 50 },
-  feedbackText: { fontFamily: FONTS.headline, fontSize: 12, color: '#fff', textAlign: 'center' },
+  feedbackBar: { backgroundColor: 'rgba(0,0,0,0.55)', paddingVertical: 8, paddingHorizontal: 16, zIndex: 50 },
+  feedbackText: { fontFamily: FONTS.headline, fontSize: 13, color: '#fff', textAlign: 'center' },
   scrollContent: { paddingHorizontal: 10, paddingTop: 10, gap: 10 },
   deckRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   movesPanel: { backgroundColor: COLORS.panelBg, borderWidth: 1.5, borderColor: COLORS.panelBorder, borderRadius: 14, paddingHorizontal: 10, paddingVertical: 8, alignItems: 'center', minWidth: 72 },
@@ -459,7 +349,7 @@ const st = StyleSheet.create({
   innerFrame: { flex: 1, margin: 3, borderRadius: 7, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center' },
   innerFrameInner: { width: '60%', height: '60%', borderRadius: 5, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
   faceUp: { borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.cardBorder, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2, paddingVertical: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3, elevation: 2 },
-  cardSelected: { borderColor: COLORS.primary, borderWidth: 2.5, shadowColor: COLORS.primary, shadowOpacity: 0.7, shadowRadius: 10, elevation: 8, transform: [{ scale: 1.03 }] },
+  cardSelected: { borderColor: COLORS.primary, borderWidth: 2.5, shadowColor: COLORS.primary, shadowOpacity: 0.7, shadowRadius: 10, elevation: 8, transform: [{ scale: 1.05 }] },
   catCardBorder: { borderColor: COLORS.cardBackBorder, borderWidth: 2 },
   word: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: '#1e293b', textAlign: 'center', lineHeight: 9 },
   catBadge: { position: 'absolute', top: 2, right: 3 },
