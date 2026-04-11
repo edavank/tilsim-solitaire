@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Dimensions,
-  ScrollView, Animated, Alert, Vibration, Image, PanResponder,
+  ScrollView, Animated, Alert, Vibration, Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -82,47 +82,18 @@ function FoundationSlot({ slot, onPress, onLayout }) {
 }
 
 // ═══ DRAGGABLE CARD (sütundaki en alttaki açık kart) ═══
-function DraggableCard({ card, onDragEnd, selected, onTap }) {
-  const pan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
-  const dragging = useRef(false);
-
-  const panResponder = useRef(PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 5 || Math.abs(g.dy) > 5,
-    onPanResponderGrant: () => {
-      dragging.current = false;
-    },
-    onPanResponderMove: (_, g) => {
-      if (Math.abs(g.dx) > 8 || Math.abs(g.dy) > 8) dragging.current = true;
-      if (dragging.current) {
-        pan.setValue({ x: g.dx, y: g.dy });
-      }
-    },
-    onPanResponderRelease: (evt) => {
-      if (!dragging.current) {
-        onTap();
-        return;
-      }
-      const dropX = evt.nativeEvent.pageX;
-      const dropY = evt.nativeEvent.pageY;
-      onDragEnd(dropX, dropY, () => {});
-      Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false, tension: 50, friction: 7 }).start();
-      dragging.current = false;
-    },
-  })).current;
-
+// Basit tıklanabilir kart (sürükle-bırak sonra eklenecek)
+function TappableCard({ card, selected, onTap }) {
   return (
-    <Animated.View
-      style={{ transform: [{ translateX: pan.x }, { translateY: pan.y }], zIndex: 999 }}
-      {...panResponder.panHandlers}
-    >
+    <TouchableOpacity activeOpacity={0.7} onPress={onTap}>
       <FaceUpCard card={card} selected={selected} />
-    </Animated.View>
+    </TouchableOpacity>
   );
 }
 
+
 // ═══ COLUMN ═══
-function TableauColumn({ column, colIndex, selectedId, onCardTap, onDragEnd }) {
+function TableauColumn({ column, colIndex, selectedId, onCardTap }) {
   if (column.locked) {
     return (
       <View style={[st.slotBox, st.slotDashed, { height: CARD_H }]}>
@@ -141,16 +112,11 @@ function TableauColumn({ column, colIndex, selectedId, onCardTap, onDragEnd }) {
         return (
           <View key={card.id} style={{ marginTop: ci === 0 ? 0 : OVERLAP, zIndex: ci }}>
             {card.faceUp ? (
-              isLast ? (
-                <DraggableCard
+              <TappableCard
                   card={card}
-                  selected={selectedId === card.id}
-                  onTap={() => onCardTap(card, 'column', colIndex)}
-                  onDragEnd={(x, y, snapBack) => onDragEnd(card, 'column', colIndex, x, y, snapBack)}
+                  selected={isLast && selectedId === card.id}
+                  onTap={() => { if (isLast) onCardTap(card, 'column', colIndex); }}
                 />
-              ) : (
-                <FaceUpCard card={card} />
-              )
             ) : (
               <FaceDownCard />
             )}
@@ -398,7 +364,7 @@ export default function GameScreen() {
         <View style={st.tableauRow}>
           {gs.columns.map((col, i) => (
             <View key={i} style={{ flex: 1 }}>
-              <TableauColumn column={col} colIndex={i} selectedId={selId} onCardTap={handleCardTap} onDragEnd={handleDragEnd} />
+              <TableauColumn column={col} colIndex={i} selectedId={selId} onCardTap={handleCardTap} />
             </View>
           ))}
         </View>
