@@ -119,52 +119,6 @@ function DraggableCard({ card, onDragEnd, selected, onTap }) {
       <FaceUpCard card={card} selected={selected} />
     </Animated.View>
   );
-}) {
-  const pan = useRef(new Animated.ValueXY()).current;
-  const isDragging = useRef(false);
-  const startPos = useRef({ x: 0, y: 0 });
-
-  const panResponder = useRef(PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 5 || Math.abs(g.dy) > 5,
-    onPanResponderGrant: (evt) => {
-      isDragging.current = false;
-      startPos.current = { x: evt.nativeEvent.pageX, y: evt.nativeEvent.pageY };
-      pan.setOffset({ x: pan.x._value, y: pan.y._value });
-      pan.setValue({ x: 0, y: 0 });
-    },
-    onPanResponderMove: (_, g) => {
-      if (Math.abs(g.dx) > 8 || Math.abs(g.dy) > 8) isDragging.current = true;
-      if (isDragging.current) {
-        Animated.event([null, { dx: pan.x, dy: pan.y }], { useNativeDriver: false })(_, g);
-      }
-    },
-    onPanResponderRelease: (evt) => {
-      pan.flattenOffset();
-      if (!isDragging.current) {
-        // Tap — sadece seç
-        onTap();
-        pan.setValue({ x: 0, y: 0 });
-        return;
-      }
-      // Drag bitti — drop pozisyonunu bildir
-      const dropX = evt.nativeEvent.pageX;
-      const dropY = evt.nativeEvent.pageY;
-      onDragEnd(dropX, dropY, () => {
-        // Snap back
-        Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false, tension: 40, friction: 5 }).start();
-      });
-    },
-  })).current;
-
-  return (
-    <Animated.View
-      style={[{ transform: pan.getTranslateTransform(), zIndex: isDragging.current ? 999 : 10 }]}
-      {...panResponder.panHandlers}
-    >
-      <FaceUpCard card={card} selected={selected} />
-    </Animated.View>
-  );
 }
 
 // ═══ COLUMN ═══
