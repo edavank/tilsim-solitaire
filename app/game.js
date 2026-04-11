@@ -79,7 +79,7 @@ function FoundationSlot({ slot, onPress }) {
   );
 }
 
-function TableauColumn({ column, colIndex, selectedId, onCardTap }) {
+function TableauColumn({ column, colIndex, selectedId, onCardTap, onColumnTap }) {
   if (column.locked) {
     return (
       <View style={[st.slotBox, st.slotDashed, { height: CARD_H }]}>
@@ -88,7 +88,15 @@ function TableauColumn({ column, colIndex, selectedId, onCardTap }) {
       </View>
     );
   }
-  if (column.cards.length === 0) return <View style={[st.slotBox, st.slotDashed, { height: CARD_H, borderColor: 'rgba(255,255,255,0.04)' }]} />;
+  if (column.cards.length === 0) {
+    return (
+      <TouchableOpacity
+        style={[st.slotBox, st.slotDashed, { height: CARD_H, borderColor: 'rgba(255,255,255,0.08)' }]}
+        onPress={() => onColumnTap(colIndex)}
+        activeOpacity={0.7}
+      />
+    );
+  }
 
   return (
     <View>
@@ -272,13 +280,53 @@ export default function GameScreen() {
     });
   }, [gs.slots, level.categories.length]);
 
+  const moveToColumn = useCallback((card, source, sourceIndex, targetColIndex) => {
+    if (source === 'column' && sourceIndex === targetColIndex) return; // same column
+    setGs((prev) => {
+      const targetCol = prev.columns[targetColIndex];
+      if (targetCol.locked) { setFeedback('🔒 Kilitli!'); return prev; }
+
+      // Rule: empty column = always OK, non-empty = same categoryIndex as bottom card
+      if (targetCol.cards.length > 0) {
+        const bottomCard = targetCol.cards[targetCol.cards.length - 1];
+        if (!bottomCard.faceUp) { setFeedback('⚠️ Buraya koyamazsın!'); return prev; }
+        if (card.categoryIndex !== bottomCard.categoryIndex) {
+          setFeedback('⚠️ Aynı kategori kartları üst üste konabilir!');
+          return prev;
+        }
+      }
+
+      const ns = removeFromSource(prev, source, sourceIndex, card.id);
+      ns.columns = ns.columns.map((col, i) => {
+        if (i !== targetColIndex) return col;
+        return { ...col, cards: [...col.cards, { ...card, faceUp: true }] };
+      });
+      setHistory((h) => [...h, prev]);
+      setFeedback('📋 ' + card.word + ' taşındı');
+      return ns; // column-to-column move is FREE (no move cost)
+    });
+    setSelected(null);
+  }, []);
+
   const handleCardTap = useCallback((card, source, sourceIndex) => {
     setSelected((prev) => {
+      // If a card is already selected and we tap a DIFFERENT card in a column...
+      if (prev && prev.card.id !== card.id && source === 'column') {
+        // Try to stack: selected card → this card's column
+        moveToColumn(prev.card, prev.source, prev.sourceIndex, sourceIndex);
+        return null;
+      }
+      // Toggle selection
       if (prev && prev.card.id === card.id) { setFeedback(''); return null; }
-      setFeedback('✋ ' + card.word + ' seçildi → Slot\'a dokun');
+      setFeedback('✋ ' + card.word + ' → Slot veya sütuna dokun');
       return { card, source, sourceIndex };
     });
-  }, []);
+  }, [moveToColumn]);
+
+  const handleColumnTap = useCallback((colIndex) => {
+    if (!selected) return;
+    moveToColumn(selected.card, selected.source, selected.sourceIndex, colIndex);
+  }, [selected, moveToColumn]);
 
   const handleSlotTap = useCallback((slotIndex) => {
     if (!selected) { setFeedback('Önce kart seç!'); return; }
@@ -389,7 +437,7 @@ export default function GameScreen() {
         <View style={st.tableauRow}>
           {gs.columns.map((col, i) => (
             <View key={i} style={{ flex: 1 }}>
-              <TableauColumn column={col} colIndex={i} selectedId={selId} onCardTap={handleCardTap} />
+              <TableauColumn column={col} colIndex={i} selectedId={selId} onCardTap={handleCardTap} onColumnTap={handleColumnTap} />
             </View>
           ))}
         </View>
