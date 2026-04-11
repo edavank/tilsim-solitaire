@@ -1,350 +1,171 @@
 import React, { useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Animated,
-  Dimensions,
-  Image,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 
-const { width, height } = Dimensions.get('window');
-
-// Baykuş maskot — local asset
+const { width: SW } = Dimensions.get('window');
 const OWL_IMAGE = require('../assets/bilge-happy.png');
-// Baykuş avatar — aynı görseli kullan (sonra ayrı avatar eklenebilir)
-const OWL_AVATAR = require('../assets/bilge-happy.png');
 
 export default function HomeScreen() {
-  // Owl bounce animation
   const owlBounce = useRef(new Animated.Value(0)).current;
-  // Glow pulse animation
   const glowPulse = useRef(new Animated.Value(0)).current;
-  // Screen fade in
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(12)).current;
 
   useEffect(() => {
-    // Screen entry
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
       Animated.timing(slideAnim, { toValue: 0, duration: 800, useNativeDriver: true }),
     ]).start();
-
-    // Owl bounce loop
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(owlBounce, { toValue: -15, duration: 2000, useNativeDriver: true }),
-        Animated.timing(owlBounce, { toValue: 0, duration: 2000, useNativeDriver: true }),
-      ])
-    ).start();
-
-    // Glow pulse loop
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowPulse, { toValue: 1, duration: 1000, useNativeDriver: true }),
-        Animated.timing(glowPulse, { toValue: 0, duration: 1000, useNativeDriver: true }),
-      ])
-    ).start();
+    Animated.loop(Animated.sequence([
+      Animated.timing(owlBounce, { toValue: -15, duration: 2000, useNativeDriver: true }),
+      Animated.timing(owlBounce, { toValue: 0, duration: 2000, useNativeDriver: true }),
+    ])).start();
+    Animated.loop(Animated.sequence([
+      Animated.timing(glowPulse, { toValue: 1, duration: 1000, useNativeDriver: true }),
+      Animated.timing(glowPulse, { toValue: 0, duration: 1000, useNativeDriver: true }),
+    ])).start();
   }, []);
 
-  const glowOpacity = glowPulse.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.3, 0.7],
-  });
+  const glowOpacity = glowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
 
   return (
-    <View style={styles.container}>
-      {/* Background gradient */}
-      <LinearGradient
-        colors={[COLORS.gradientTop, COLORS.gradientBottom]}
-        style={StyleSheet.absoluteFillObject}
-      />
-
-      {/* Atmospheric glow blobs */}
-      <View style={styles.glowBlobLeft} />
-      <View style={styles.glowBlobRight} />
+    <View style={s.container}>
+      <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
 
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.avatarContainer}>
-          <Image source={OWL_AVATAR} style={styles.avatar} />
+      <View style={s.header}>
+        <View style={s.headerLeft}>
+          <Image source={OWL_IMAGE} style={s.headerAvatar} />
+          <Text style={s.headerTitle}>Tılsım Solitaire</Text>
         </View>
-        <View style={styles.coinBadge}>
-          <MaterialIcons name="monetization-on" size={20} color={COLORS.tertiaryFixed} />
-          <Text style={styles.coinText}>226</Text>
-          <MaterialIcons name="add-circle" size={16} color={COLORS.primary} />
-        </View>
-        <TouchableOpacity>
-          <MaterialIcons name="settings" size={24} color="#cbd5e1" />
+        <TouchableOpacity style={s.coinBadge} onPress={() => router.push('/store')}>
+          <MaterialIcons name="monetization-on" size={18} color={COLORS.coin} />
+          <Text style={s.coinText}>1,250</Text>
+          <Text style={s.coinPlus}>+</Text>
         </TouchableOpacity>
       </View>
 
       {/* Main content */}
-      <Animated.View
-        style={[
-          styles.mainContent,
-          { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
-        ]}
-      >
-        {/* Owl mascot */}
-        <Animated.View style={[styles.owlContainer, { transform: [{ translateY: owlBounce }] }]}>
-          <View style={styles.owlGlow} />
-          <Image source={OWL_IMAGE} style={styles.owlImage} />
-        </Animated.View>
-
-        {/* Branding */}
-        <View style={styles.branding}>
-          <Text style={styles.titleMain}>Tılsım</Text>
-          <Text style={styles.titleSub}>SOLITAIRE</Text>
-        </View>
+      <Animated.View style={[s.main, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
 
         {/* Language picker */}
-        <TouchableOpacity style={styles.langPicker}>
-          <Text style={styles.langText}>TÜRKÇE</Text>
+        <TouchableOpacity style={s.langPicker}>
+          <MaterialIcons name="language" size={16} color={COLORS.onSurface} />
+          <Text style={s.langText}>TÜRKÇE</Text>
           <MaterialIcons name="keyboard-arrow-down" size={16} color={COLORS.onSurface} />
         </TouchableOpacity>
 
-        {/* Main CTA - Bölüm butonu */}
-        <TouchableOpacity style={styles.ctaOuter} activeOpacity={0.85} onPress={() => router.push('/game')}>
-          <Animated.View style={[styles.ctaGlow, { opacity: glowOpacity }]} />
-          <LinearGradient
-            colors={[COLORS.primary, COLORS.primaryContainer]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.ctaButton}
-          >
-            <Text style={styles.ctaText}>Bölüm 12</Text>
+        {/* Logo */}
+        <Text style={s.logoMain}>Tılsım</Text>
+        <Text style={s.logoSub}>S O L İ T A İ R E</Text>
+
+        {/* Speech bubble */}
+        <View style={s.speechBubble}>
+          <Text style={s.speechText}>Hoş geldin! Bugün harika bir gün.</Text>
+          <View style={s.speechArrow} />
+        </View>
+
+        {/* Owl */}
+        <Animated.View style={[s.owlWrap, { transform: [{ translateY: owlBounce }] }]}>
+          <Image source={OWL_IMAGE} style={s.owlImage} />
+        </Animated.View>
+
+        {/* CTA Button */}
+        <TouchableOpacity style={s.ctaOuter} activeOpacity={0.85} onPress={() => router.push('/game')}>
+          <Animated.View style={[s.ctaGlow, { opacity: glowOpacity }]} />
+          <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.ctaBtn}>
+            <Text style={s.ctaTitle}>BÖLÜM 42</Text>
+            <Text style={s.ctaSub}>MACERA DEVAM EDİYOR</Text>
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* ADS button */}
-        <TouchableOpacity style={styles.adsButton} activeOpacity={0.7}>
-          <MaterialIcons name="smart-display" size={24} color={COLORS.tertiaryFixed} />
-          <View>
-            <Text style={styles.adsLabel}>İZLE VE KAZAN</Text>
-            <View style={styles.adsRow}>
-              <Text style={styles.adsText}>ADS</Text>
-              <MaterialIcons name="monetization-on" size={14} color={COLORS.tertiaryFixed} />
-            </View>
+        {/* Watch ad button */}
+        <TouchableOpacity style={s.adBtn} activeOpacity={0.7}>
+          <View style={s.adLeft}>
+            <MaterialIcons name="play-circle-filled" size={28} color={COLORS.secondary} />
+            <Text style={s.adText}>Reklam İzle</Text>
+          </View>
+          <View style={s.adBadge}>
+            <Text style={s.adBadgeText}>+50 Altın</Text>
           </View>
         </TouchableOpacity>
+
       </Animated.View>
 
-      {/* Bottom Nav */}
-      <BottomNav activeTab="home" onTabPress={(tab) => console.log(tab)} />
+      <BottomNav activeTab="home" />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.surface,
-  },
-
-  // Atmospheric
-  glowBlobLeft: {
-    position: 'absolute',
-    top: height * 0.25,
-    left: -50,
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: 'rgba(0, 110, 44, 0.12)',
-    // No blur in RN, using opacity
-  },
-  glowBlobRight: {
-    position: 'absolute',
-    bottom: height * 0.25,
-    right: -50,
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: 'rgba(243, 130, 57, 0.08)',
-  },
-
-  // Header
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: COLORS.surface },
   header: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 50,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 56,
-    paddingBottom: 12,
-    backgroundColor: COLORS.headerBg,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 16, paddingTop: 54, paddingBottom: 8, zIndex: 50,
   },
-  avatarContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  avatar: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  headerAvatar: { width: 36, height: 36, borderRadius: 18 },
+  headerTitle: { fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff', fontStyle: 'italic' },
   coinBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(0, 41, 58, 0.8)',
-    borderRadius: SIZES.radiusFull,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(21, 77, 102, 0.2)',
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: COLORS.panelBg, paddingHorizontal: 14, paddingVertical: 6,
+    borderRadius: SIZES.radiusFull, borderWidth: 1, borderColor: COLORS.panelBorder,
   },
-  coinText: {
-    fontFamily: FONTS.headline,
-    fontSize: 14,
-    color: COLORS.onSurface,
-  },
+  coinText: { fontFamily: FONTS.headline, fontSize: 14, color: COLORS.coin },
+  coinPlus: { fontFamily: FONTS.headline, fontSize: 14, color: COLORS.coin },
 
-  // Main content
-  mainContent: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 80,
-    paddingBottom: 120,
-    paddingHorizontal: 24,
-  },
+  main: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 100, paddingHorizontal: 24 },
 
-  // Owl
-  owlContainer: {
-    width: 280,
-    height: 280,
-    marginBottom: 16,
-  },
-  owlGlow: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    right: 10,
-    bottom: 10,
-    borderRadius: 140,
-    backgroundColor: 'rgba(111, 162, 186, 0.15)',
-  },
-  owlImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'contain',
-  },
-
-  // Branding
-  branding: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  titleMain: {
-    fontFamily: 'Fondamento_400Regular_Italic',
-    fontSize: 56,
-    color: '#ffffff',
-    letterSpacing: -1,
-    includeFontPadding: false,
-  },
-  titleSub: {
-    fontFamily: FONTS.headline,
-    fontSize: 20,
-    color: COLORS.primary,
-    letterSpacing: 10,
-    textTransform: 'uppercase',
-    marginTop: -4,
-  },
-
-  // Language picker
   langPicker: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(0, 22, 32, 0.4)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: SIZES.radiusFull,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    marginBottom: 24,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.08)', paddingHorizontal: 16, paddingVertical: 8,
+    borderRadius: SIZES.radiusFull, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+    marginBottom: 8,
   },
-  langText: {
-    fontFamily: FONTS.bodyBold,
-    fontSize: 12,
-    color: COLORS.onSurface,
-    letterSpacing: 3,
-    textTransform: 'uppercase',
+  langText: { fontFamily: FONTS.bodyBold, fontSize: 12, color: COLORS.onSurface, letterSpacing: 3 },
+
+  logoMain: { fontFamily: FONTS.logo, fontSize: 60, color: '#fff', includeFontPadding: false },
+  logoSub: { fontFamily: FONTS.headline, fontSize: 18, color: COLORS.primary, letterSpacing: 6, marginTop: -4, marginBottom: 8 },
+
+  speechBubble: {
+    backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 20, paddingVertical: 10,
+    borderRadius: 16, marginBottom: 4, alignSelf: 'center',
+  },
+  speechText: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.onSurface },
+  speechArrow: {
+    position: 'absolute', bottom: -8, left: '50%', marginLeft: -8,
+    width: 0, height: 0, borderLeftWidth: 8, borderRightWidth: 8, borderTopWidth: 8,
+    borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: 'rgba(255,255,255,0.1)',
   },
 
-  // CTA
-  ctaOuter: {
-    width: '100%',
-    maxWidth: 320,
-    marginBottom: 20,
-  },
+  owlWrap: { width: SW * 0.55, height: SW * 0.55, marginBottom: 16 },
+  owlImage: { width: '100%', height: '100%', resizeMode: 'contain', borderRadius: 16 },
+
+  ctaOuter: { width: '100%', maxWidth: 340, marginBottom: 16 },
   ctaGlow: {
-    position: 'absolute',
-    top: -4,
-    left: -4,
-    right: -4,
-    bottom: -4,
+    position: 'absolute', top: -4, left: -4, right: -4, bottom: -4,
+    borderRadius: SIZES.radiusFull, backgroundColor: COLORS.primary,
+  },
+  ctaBtn: {
+    alignItems: 'center', justifyContent: 'center', paddingVertical: 18,
     borderRadius: SIZES.radiusFull,
-    backgroundColor: COLORS.primary,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8,
   },
-  ctaButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 20,
-    borderRadius: SIZES.radiusFull,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  ctaText: {
-    fontFamily: FONTS.headlineBlack,
-    fontSize: 24,
-    color: COLORS.onPrimary,
-  },
+  ctaTitle: { fontFamily: FONTS.headlineBlack, fontSize: 26, color: '#fff', letterSpacing: 2 },
+  ctaSub: { fontFamily: FONTS.bodyMedium, fontSize: 11, color: 'rgba(255,255,255,0.7)', letterSpacing: 2, marginTop: 2 },
 
-  // ADS
-  adsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: 'rgba(0, 41, 58, 0.6)',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: SIZES.radiusLg,
-    borderWidth: 1,
-    borderColor: 'rgba(21, 77, 102, 0.3)',
+  adBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    width: '100%', maxWidth: 340,
+    backgroundColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 20, paddingVertical: 14,
+    borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
   },
-  adsLabel: {
-    fontFamily: FONTS.bodyBold,
-    fontSize: 9,
-    color: 'rgba(201, 234, 255, 0.7)',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  adsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  adsText: {
-    fontFamily: FONTS.headline,
-    fontSize: 14,
-    color: COLORS.onSurface,
-  },
+  adLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  adText: { fontFamily: FONTS.headline, fontSize: 15, color: COLORS.onSurface },
+  adBadge: { backgroundColor: COLORS.tertiary, paddingHorizontal: 12, paddingVertical: 4, borderRadius: SIZES.radiusFull },
+  adBadgeText: { fontFamily: FONTS.headlineBlack, fontSize: 11, color: '#fff' },
 });

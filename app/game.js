@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Dimensions,
-  ScrollView, Animated, Alert, Vibration, Image,
+  ScrollView, Vibration, Image, Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -16,7 +16,9 @@ const COL_GAP = 5;
 const CARD_W = Math.floor((SW - 20 - (COL_COUNT - 1) * COL_GAP) / COL_COUNT);
 const CARD_H = Math.floor(CARD_W * 1.35);
 const OVERLAP = -Math.floor(CARD_H * 0.72);
+const OWL_HAPPY = require('../assets/bilge-happy.png');
 
+/* ── Card Components ── */
 function FaceDownCard() {
   return (
     <LinearGradient colors={[COLORS.cardBackTop, COLORS.cardBackBottom]}
@@ -73,7 +75,6 @@ function FoundationSlot({ slot, onPress }) {
   return (
     <TouchableOpacity style={[st.slotBox, st.slotDashed, { height: h }]} onPress={onPress} activeOpacity={0.7}>
       <MaterialIcons name="style" size={20} color="rgba(255,255,255,0.12)" />
-      <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 7, color: 'rgba(255,255,255,0.15)' }}>0/6</Text>
     </TouchableOpacity>
   );
 }
@@ -82,8 +83,7 @@ function TableauColumn({ column, colIndex, selectedId, onCardTap }) {
   if (column.locked) {
     return (
       <View style={[st.slotBox, st.slotDashed, { height: CARD_H }]}>
-        <Text style={st.lockedText}>KİLİDİ AÇ</Text>
-        <MaterialIcons name="add" size={14} color="rgba(255,255,255,0.2)" />
+        <MaterialIcons name="lock" size={16} color="rgba(255,255,255,0.2)" />
         <TouchableOpacity style={st.adBadge}><Text style={st.adText}>▶ AD</Text></TouchableOpacity>
       </View>
     );
@@ -97,11 +97,7 @@ function TableauColumn({ column, colIndex, selectedId, onCardTap }) {
         return (
           <View key={card.id} style={{ marginTop: ci === 0 ? 0 : OVERLAP, zIndex: ci }}>
             {card.faceUp ? (
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => { if (isLast) onCardTap(card, 'column', colIndex); }}
-                disabled={!isLast}
-              >
+              <TouchableOpacity activeOpacity={0.7} onPress={() => { if (isLast) onCardTap(card, 'column', colIndex); }} disabled={!isLast}>
                 <FaceUpCard card={card} selected={isLast && selectedId === card.id} />
               </TouchableOpacity>
             ) : (
@@ -114,8 +110,109 @@ function TableauColumn({ column, colIndex, selectedId, onCardTap }) {
   );
 }
 
+/* ── Win Overlay ── */
+function LevelCompleteOverlay({ score, coins, onNext, onReplay, onHome }) {
+  return (
+    <View style={ov.overlay}>
+      <LinearGradient colors={['rgba(21,6,41,0.95)', 'rgba(61,53,96,0.95)']} style={StyleSheet.absoluteFillObject} />
+      <View style={ov.card}>
+        <Image source={OWL_HAPPY} style={ov.owl} />
+        <Text style={ov.title}>Tebrikler!</Text>
+        <Text style={ov.subtitle}>BÖLÜM TAMAMLANDI</Text>
+
+        <View style={ov.statsRow}>
+          <View style={ov.statBox}>
+            <Text style={ov.statLabel}>SKOR</Text>
+            <Text style={ov.statValue}>{score.toLocaleString()}</Text>
+          </View>
+          <View style={ov.statBox}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <MaterialIcons name="monetization-on" size={14} color={COLORS.coin} />
+              <Text style={ov.statLabel}>ALTIN</Text>
+            </View>
+            <Text style={[ov.statValue, { color: COLORS.coin }]}>+{coins}</Text>
+          </View>
+        </View>
+
+        <TouchableOpacity style={ov.rewardRow} activeOpacity={0.7}>
+          <MaterialIcons name="card-giftcard" size={22} color={COLORS.primary} />
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={ov.rewardLabel}>YENİ ÖDÜL</Text>
+            <Text style={ov.rewardName}>Mistik Kart Arkalığı</Text>
+          </View>
+          <MaterialIcons name="chevron-right" size={22} color={COLORS.onSurfaceVariant} />
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={onNext} activeOpacity={0.85}>
+          <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={ov.nextBtn}>
+            <Text style={ov.nextBtnText}>Sonraki Bölüm</Text>
+            <MaterialIcons name="arrow-forward" size={20} color="#fff" />
+          </LinearGradient>
+        </TouchableOpacity>
+
+        <View style={ov.bottomRow}>
+          <TouchableOpacity style={ov.replayBtn} onPress={onReplay} activeOpacity={0.7}>
+            <MaterialIcons name="refresh" size={18} color={COLORS.secondary} />
+            <Text style={ov.replayText}>Tekrar Oyna</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={ov.homeBtn} onPress={onHome} activeOpacity={0.7}>
+            <MaterialIcons name="home" size={20} color={COLORS.onSurface} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/* ── Fail Overlay ── */
+function LevelFailedOverlay({ levelId, onAddMoves, onReplay, onHome }) {
+  return (
+    <View style={ov.overlay}>
+      <LinearGradient colors={['rgba(21,6,41,0.95)', 'rgba(61,53,96,0.95)']} style={StyleSheet.absoluteFillObject} />
+      <View style={ov.card}>
+        {/* Broken heart */}
+        <View style={ov.heartWrap}>
+          <MaterialIcons name="heart-broken" size={64} color={COLORS.primary} />
+          <TouchableOpacity style={ov.closeBtn} onPress={onHome}>
+            <MaterialIcons name="close" size={16} color="#fff" />
+          </TouchableOpacity>
+        </View>
+
+        <Image source={OWL_HAPPY} style={[ov.owl, { width: 160, height: 160 }]} />
+
+        <View style={ov.speechBubble}>
+          <Text style={ov.speechText}>Bazen kaybetmek de öğretir...</Text>
+        </View>
+
+        <Text style={ov.failTitle}>Hamlen Bitti!</Text>
+        <Text style={ov.failSub}>Üzülme, yıldızlar her zaman parlamaz.</Text>
+
+        <TouchableOpacity onPress={onAddMoves} activeOpacity={0.85}>
+          <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={ov.addMovesBtn}>
+            <MaterialIcons name="play-circle-filled" size={22} color="#fff" />
+            <Text style={ov.addMovesText}>+20 Hamle (Ad)</Text>
+            <View style={ov.freeBadge}><Text style={ov.freeText}>ÜCRETSİZ</Text></View>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        <View style={ov.failBottom}>
+          <TouchableOpacity style={ov.failInfoBox} activeOpacity={0.7}>
+            <Text style={ov.failInfoLabel}>MEVCUT BÖLÜM</Text>
+            <Text style={ov.failInfoValue}>{levelId}. Takımyıldız</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={ov.failInfoBox} onPress={onReplay} activeOpacity={0.7}>
+            <Text style={[ov.failInfoLabel, { color: COLORS.primary }]}>32%</Text>
+            <MaterialIcons name="trending-up" size={18} color={COLORS.primary} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/* ── Main Game Screen ── */
 export default function GameScreen() {
-  const level = LEVELS.find((l) => l.id === 23) || LEVELS[0];
+  const level = LEVELS.find((l) => l.id === 1) || LEVELS[0];
   const [gs, setGs] = useState(() => generateGameState(level));
   const [selected, setSelected] = useState(null);
   const [feedback, setFeedback] = useState('Karta dokun, sonra slot\'a dokun!');
@@ -216,13 +313,12 @@ export default function GameScreen() {
     setGs((p) => ({ ...p, drawnCards: p.drawnCards.slice(0, -1), moves: p.moves - 1 })); setSelected(null);
   }, [gs.drawnCards]);
 
-  useEffect(() => {
-    if (gs.isComplete) setTimeout(() => Alert.alert('🎉 Tebrikler!', 'Puan: ' + gs.score, [{ text: 'Tamam', onPress: () => router.back() }]), 600);
-    if (gs.isFailed) setTimeout(() => Alert.alert('😔 Bitti!', '', [
-      { text: 'Tekrar', onPress: () => { setGs(generateGameState(level)); setHistory([]); } },
-      { text: 'Çık', onPress: () => router.back() },
-    ]), 600);
-  }, [gs.isComplete, gs.isFailed]);
+  const resetGame = useCallback(() => { setGs(generateGameState(level)); setHistory([]); setSelected(null); }, [level]);
+
+  const addMoves = useCallback(() => {
+    setGs((p) => ({ ...p, moves: p.moves + 20, isFailed: false }));
+    setFeedback('⚡ +20 hamle eklendi!');
+  }, []);
 
   const selId = selected?.card?.id;
   const DCW = Math.floor(CARD_W * 1.1); const DCH = Math.floor(CARD_H * 1.1);
@@ -236,8 +332,8 @@ export default function GameScreen() {
           <MaterialIcons name="monetization-on" size={16} color={COLORS.coin} />
           <Text style={st.coinText}>{gs.coins}</Text>
         </View>
-        <Text style={st.headerTitle}>BÖLÜM {gs.levelId}</Text>
-        <TouchableOpacity style={st.settingsBtn} onPress={() => router.back()}>
+        <Text style={st.headerTitle}>Bölüm {gs.levelId}</Text>
+        <TouchableOpacity style={st.settingsBtn} onPress={() => router.push('/settings')}>
           <MaterialIcons name="settings" size={20} color={COLORS.onSurfaceVariant} />
         </TouchableOpacity>
       </View>
@@ -249,7 +345,7 @@ export default function GameScreen() {
           <View style={st.movesPanel}>
             <Text style={st.movesLabel}>HAMLE</Text>
             <Text style={st.movesNum}>{gs.moves}</Text>
-            <TouchableOpacity style={st.addBtn}><Text style={st.addBtnText}>+20 ▶</Text></TouchableOpacity>
+            <TouchableOpacity style={st.addBtn} onPress={addMoves}><Text style={st.addBtnText}>+20 ▶</Text></TouchableOpacity>
           </View>
 
           <TouchableOpacity style={st.drawnArea} onPress={handleDrawnTap} activeOpacity={0.7}>
@@ -301,23 +397,49 @@ export default function GameScreen() {
         <View style={{ height: 140 }} />
       </ScrollView>
 
+      {/* Toolbar */}
       <View style={st.toolbar}>
-        <ToolBtn icon="bolt" label="İPUCU" badge={gs.hints} badgeColor={COLORS.fail} onPress={() => { setGs(p => ({ ...p, hints: Math.max(0, p.hints - 1) })); setFeedback('💡 İpucu!'); }} />
+        <ToolBtn icon="lightbulb" label="İPUCU" badge={gs.hints} badgeColor={COLORS.fail} onPress={() => { setGs(p => ({ ...p, hints: Math.max(0, p.hints - 1) })); setFeedback('💡 İpucu!'); }} />
         <ToolBtn icon="undo" label="GERİ AL" badge="+" badgeColor={COLORS.success} onPress={useUndo} />
-        <ToolBtn icon="auto-fix-normal" label="SİL" badge="+" badgeColor={COLORS.success} onPress={useDelete} />
-        <ToolBtn icon="search" label="ARA" small onPress={() => setFeedback('🔍 Yakında!')} />
+        <ToolBtn icon="auto-fix-normal" label="SİL" badge="+" badgeColor={COLORS.success} onPress={useDelete} big />
+        <View style={st.toolOwlWrap}>
+          <Image source={OWL_HAPPY} style={st.toolOwl} />
+          <TouchableOpacity style={st.searchBtn} onPress={() => setFeedback('🔍 Yakında!')}>
+            <MaterialIcons name="search" size={18} color="#fff" />
+          </TouchableOpacity>
+          <Text style={st.toolLabel}>ARAMA</Text>
+        </View>
       </View>
 
-      <BottomNav activeTab="home" onTabPress={(t) => { if (t === 'home') router.back(); }} />
+      <BottomNav activeTab="home" />
+
+      {/* Overlays */}
+      {gs.isComplete && (
+        <LevelCompleteOverlay
+          score={gs.score}
+          coins={250}
+          onNext={() => router.back()}
+          onReplay={resetGame}
+          onHome={() => router.back()}
+        />
+      )}
+      {gs.isFailed && !gs.isComplete && (
+        <LevelFailedOverlay
+          levelId={gs.levelId}
+          onAddMoves={addMoves}
+          onReplay={resetGame}
+          onHome={() => router.back()}
+        />
+      )}
     </View>
   );
 }
 
-function ToolBtn({ icon, label, badge, badgeColor, onPress, small }) {
+function ToolBtn({ icon, label, badge, badgeColor, onPress, big }) {
   return (
     <View style={st.toolWrap}>
-      <TouchableOpacity style={[st.toolBtn, small && st.toolBtnSm]} onPress={onPress} activeOpacity={0.6}>
-        <MaterialIcons name={icon} size={small ? 16 : 20} color="#fff" />
+      <TouchableOpacity style={[st.toolBtn, big && st.toolBtnBig]} onPress={onPress} activeOpacity={0.6}>
+        <MaterialIcons name={icon} size={big ? 22 : 20} color="#fff" />
         {badge !== undefined && <View style={[st.toolBdg, { backgroundColor: badgeColor }]}><Text style={st.toolBdgText}>{badge}</Text></View>}
       </TouchableOpacity>
       {!!label && <Text style={st.toolLabel}>{label}</Text>}
@@ -325,12 +447,51 @@ function ToolBtn({ icon, label, badge, badgeColor, onPress, small }) {
   );
 }
 
+/* ── Overlay Styles ── */
+const ov = StyleSheet.create({
+  overlay: { ...StyleSheet.absoluteFillObject, zIndex: 999, justifyContent: 'center', alignItems: 'center' },
+  card: { width: SW - 48, backgroundColor: COLORS.surfaceContainerHigh, borderRadius: 28, padding: 24, alignItems: 'center', borderWidth: 1, borderColor: COLORS.panelBorder },
+  owl: { width: 200, height: 200, borderRadius: 20, marginTop: -60, marginBottom: 8 },
+  title: { fontFamily: FONTS.headlineBlack, fontSize: 36, color: COLORS.onSurface, fontStyle: 'italic' },
+  subtitle: { fontFamily: FONTS.headlineBlack, fontSize: 13, color: COLORS.secondary, letterSpacing: 3, marginBottom: 16 },
+  statsRow: { flexDirection: 'row', gap: 12, marginBottom: 16, width: '100%' },
+  statBox: { flex: 1, backgroundColor: COLORS.panelBg, borderRadius: 16, padding: 16, alignItems: 'center' },
+  statLabel: { fontFamily: FONTS.headlineBlack, fontSize: 10, color: COLORS.onSurfaceVariant, letterSpacing: 1 },
+  statValue: { fontFamily: FONTS.headlineBlack, fontSize: 28, color: COLORS.onSurface, marginTop: 4 },
+  rewardRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.panelBg, borderRadius: 16, padding: 14, width: '100%', marginBottom: 16, borderWidth: 1, borderColor: COLORS.panelBorder },
+  rewardLabel: { fontFamily: FONTS.headlineBlack, fontSize: 9, color: COLORS.onSurfaceVariant, letterSpacing: 1 },
+  rewardName: { fontFamily: FONTS.headline, fontSize: 14, color: COLORS.onSurface, marginTop: 2 },
+  nextBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, paddingHorizontal: 40, borderRadius: SIZES.radiusFull },
+  nextBtnText: { fontFamily: FONTS.headlineBlack, fontSize: 18, color: '#fff' },
+  bottomRow: { flexDirection: 'row', gap: 10, marginTop: 12, width: '100%' },
+  replayBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: SIZES.radiusFull, borderWidth: 1.5, borderColor: COLORS.secondary },
+  replayText: { fontFamily: FONTS.headline, fontSize: 14, color: COLORS.secondary },
+  homeBtn: { width: 50, height: 50, borderRadius: 16, backgroundColor: COLORS.panelBg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.panelBorder },
+
+  // Fail-specific
+  heartWrap: { alignItems: 'center', marginBottom: 8 },
+  closeBtn: { position: 'absolute', top: 0, right: -80, width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.error, alignItems: 'center', justifyContent: 'center' },
+  speechBubble: { backgroundColor: 'rgba(255,255,255,0.08)', paddingHorizontal: 20, paddingVertical: 8, borderRadius: 12, marginBottom: 12 },
+  speechText: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.onSurfaceVariant, fontStyle: 'italic' },
+  failTitle: { fontFamily: FONTS.headlineBlack, fontSize: 32, color: COLORS.onSurface, marginBottom: 4 },
+  failSub: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.onSurfaceVariant, marginBottom: 20, textAlign: 'center' },
+  addMovesBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 16, paddingHorizontal: 24, borderRadius: SIZES.radiusFull },
+  addMovesText: { fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff' },
+  freeBadge: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 3, borderRadius: SIZES.radiusFull },
+  freeText: { fontFamily: FONTS.headlineBlack, fontSize: 9, color: '#fff', letterSpacing: 1 },
+  failBottom: { flexDirection: 'row', gap: 10, marginTop: 16, width: '100%' },
+  failInfoBox: { flex: 1, backgroundColor: COLORS.panelBg, borderRadius: 16, padding: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.panelBorder },
+  failInfoLabel: { fontFamily: FONTS.headlineBlack, fontSize: 9, color: COLORS.onSurfaceVariant, letterSpacing: 1 },
+  failInfoValue: { fontFamily: FONTS.headline, fontSize: 14, color: COLORS.onSurface, marginTop: 2 },
+});
+
+/* ── Game Styles ── */
 const st = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.surface },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 14, paddingTop: 52, paddingBottom: 6, backgroundColor: COLORS.headerBg, zIndex: 50 },
   coinBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: COLORS.panelBg, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 9999, borderWidth: 1, borderColor: COLORS.panelBorder },
   coinText: { fontFamily: FONTS.headline, fontSize: 13, color: COLORS.onSurface },
-  headerTitle: { fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff', letterSpacing: 2 },
+  headerTitle: { fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff', letterSpacing: 1 },
   settingsBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: COLORS.panelBg, alignItems: 'center', justifyContent: 'center' },
   feedbackBar: { backgroundColor: 'rgba(0,0,0,0.55)', paddingVertical: 8, paddingHorizontal: 16, zIndex: 50 },
   feedbackText: { fontFamily: FONTS.headline, fontSize: 13, color: '#fff', textAlign: 'center' },
@@ -364,11 +525,14 @@ const st = StyleSheet.create({
   slotTag: { position: 'absolute', top: 0, left: 0, right: 0, paddingVertical: 2, alignItems: 'center', borderTopLeftRadius: 8, borderTopRightRadius: 8 },
   slotTagText: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: '#fff' },
   tableauRow: { flexDirection: 'row', gap: COL_GAP, alignItems: 'flex-start' },
-  toolbar: { position: 'absolute', bottom: 94, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: 12, paddingVertical: 6, zIndex: 100 },
+  toolbar: { position: 'absolute', bottom: 94, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end', gap: 12, paddingVertical: 6, paddingHorizontal: 16, zIndex: 100 },
   toolWrap: { alignItems: 'center', gap: 3 },
   toolBtn: { width: 46, height: 46, borderRadius: 13, backgroundColor: COLORS.buttonBlue, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.1)', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 5, elevation: 5 },
-  toolBtnSm: { width: 36, height: 36, borderRadius: 10 },
+  toolBtnBig: { width: 54, height: 54, borderRadius: 27, backgroundColor: COLORS.primary },
   toolBdg: { position: 'absolute', top: -4, right: -4, minWidth: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff', paddingHorizontal: 2 },
   toolBdgText: { fontFamily: FONTS.headlineBlack, fontSize: 8, color: '#fff' },
   toolLabel: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: COLORS.onSurfaceVariant, letterSpacing: 1 },
+  toolOwlWrap: { alignItems: 'center', gap: 3 },
+  toolOwl: { width: 56, height: 56, borderRadius: 12 },
+  searchBtn: { position: 'absolute', bottom: 0, right: -4, width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.buttonBlue, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.2)' },
 });
