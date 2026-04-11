@@ -83,6 +83,43 @@ function FoundationSlot({ slot, onPress, onLayout }) {
 
 // ═══ DRAGGABLE CARD (sütundaki en alttaki açık kart) ═══
 function DraggableCard({ card, onDragEnd, selected, onTap }) {
+  const pan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  const dragging = useRef(false);
+
+  const panResponder = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 5 || Math.abs(g.dy) > 5,
+    onPanResponderGrant: () => {
+      dragging.current = false;
+    },
+    onPanResponderMove: (_, g) => {
+      if (Math.abs(g.dx) > 8 || Math.abs(g.dy) > 8) dragging.current = true;
+      if (dragging.current) {
+        pan.setValue({ x: g.dx, y: g.dy });
+      }
+    },
+    onPanResponderRelease: (evt) => {
+      if (!dragging.current) {
+        onTap();
+        return;
+      }
+      const dropX = evt.nativeEvent.pageX;
+      const dropY = evt.nativeEvent.pageY;
+      onDragEnd(dropX, dropY, () => {});
+      Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false, tension: 50, friction: 7 }).start();
+      dragging.current = false;
+    },
+  })).current;
+
+  return (
+    <Animated.View
+      style={{ transform: [{ translateX: pan.x }, { translateY: pan.y }], zIndex: 999 }}
+      {...panResponder.panHandlers}
+    >
+      <FaceUpCard card={card} selected={selected} />
+    </Animated.View>
+  );
+}) {
   const pan = useRef(new Animated.ValueXY()).current;
   const isDragging = useRef(false);
   const startPos = useRef({ x: 0, y: 0 });
