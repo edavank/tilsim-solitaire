@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView, Image, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
+import { loadSettings, saveSettings, loadProgress, resetAll } from '../src/utils/storage';
 
 const OWL = require('../assets/bilge-happy.png');
 
@@ -12,6 +13,23 @@ export default function SettingsScreen() {
   const [sound, setSound] = useState(true);
   const [music, setMusic] = useState(true);
   const [vibration, setVibration] = useState(false);
+  const [coins, setCoins] = useState(0);
+
+  useEffect(() => {
+    loadSettings().then((s) => { setSound(s.sound); setMusic(s.music); setVibration(s.vibration); });
+    loadProgress().then((p) => setCoins(p.coins));
+  }, []);
+
+  const toggleSound = (v) => { setSound(v); saveSettings({ sound: v, music, vibration }); };
+  const toggleMusic = (v) => { setMusic(v); saveSettings({ sound, music: v, vibration }); };
+  const toggleVibration = (v) => { setVibration(v); saveSettings({ sound, music, vibration: v }); };
+
+  const handleReset = () => {
+    Alert.alert('İlerlemeyi Sıfırla', 'Tüm ilerleme ve kayıtlı veriler silinecek. Emin misin?', [
+      { text: 'İptal', style: 'cancel' },
+      { text: 'Sıfırla', style: 'destructive', onPress: async () => { await resetAll(); router.replace('/'); } },
+    ]);
+  };
 
   const trackColor = { false: COLORS.outlineVariant, true: COLORS.primary };
 
@@ -39,11 +57,11 @@ export default function SettingsScreen() {
           <Text style={s.sectionTitle}>Oyun Tercihleri</Text>
         </View>
         <View style={s.card}>
-          <SettingRow icon="volume-up" iconColor={COLORS.primary} label="Ses" right={<Switch value={sound} onValueChange={setSound} trackColor={trackColor} thumbColor="#fff" />} />
+          <SettingRow icon="volume-up" iconColor={COLORS.primary} label="Ses" right={<Switch value={sound} onValueChange={toggleSound} trackColor={trackColor} thumbColor="#fff" />} />
           <View style={s.divider} />
-          <SettingRow icon="music-note" iconColor={COLORS.primary} label="Müzik" right={<Switch value={music} onValueChange={setMusic} trackColor={trackColor} thumbColor="#fff" />} />
+          <SettingRow icon="music-note" iconColor={COLORS.primary} label="Müzik" right={<Switch value={music} onValueChange={toggleMusic} trackColor={trackColor} thumbColor="#fff" />} />
           <View style={s.divider} />
-          <SettingRow icon="vibration" iconColor={COLORS.primary} label="Titreşim" right={<Switch value={vibration} onValueChange={setVibration} trackColor={trackColor} thumbColor="#fff" />} />
+          <SettingRow icon="vibration" iconColor={COLORS.primary} label="Titreşim" right={<Switch value={vibration} onValueChange={toggleVibration} trackColor={trackColor} thumbColor="#fff" />} />
         </View>
 
         {/* Genel */}
@@ -63,7 +81,7 @@ export default function SettingsScreen() {
           <Text style={s.googleText}>Google ile Bağla</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={s.resetBtn} activeOpacity={0.8}>
+        <TouchableOpacity style={s.resetBtn} activeOpacity={0.8} onPress={handleReset}>
           <MaterialIcons name="refresh" size={20} color={COLORS.primary} />
           <Text style={s.resetText}>İlerlemeyi Sıfırla</Text>
         </TouchableOpacity>
@@ -125,7 +143,7 @@ const s = StyleSheet.create({
     backgroundColor: COLORS.panelBg, paddingHorizontal: 12, paddingVertical: 5,
     borderRadius: SIZES.radiusFull, borderWidth: 1, borderColor: COLORS.panelBorder,
   },
-  coinText: { fontFamily: FONTS.headline, fontSize: 13, color: COLORS.onSurface },
+  coinText: { fontFamily: FONTS.headline, fontSize: 13, color: COLORS.coin },
 
   scroll: { paddingHorizontal: 20, paddingTop: 12 },
 

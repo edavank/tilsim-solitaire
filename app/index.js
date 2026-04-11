@@ -1,15 +1,22 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
+import { loadProgress } from '../src/utils/storage';
 
 const { width: SW } = Dimensions.get('window');
 const OWL_IMAGE = require('../assets/bilge-happy.png');
 
 export default function HomeScreen() {
+  const [currentLevel, setCurrentLevel] = useState(1);
+  const [coins, setCoins] = useState(310);
+
+  useEffect(() => {
+    loadProgress().then((p) => { setCurrentLevel(p.currentLevel); setCoins(p.coins); });
+  }, []);
   const owlBounce = useRef(new Animated.Value(0)).current;
   const glowPulse = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -45,7 +52,7 @@ export default function HomeScreen() {
         <View style={s.headerRight}>
           <TouchableOpacity style={s.coinBadge} onPress={() => router.push('/store')}>
             <MaterialIcons name="monetization-on" size={18} color={COLORS.coin} />
-            <Text style={s.coinText}>1,250</Text>
+            <Text style={s.coinText}>{coins.toLocaleString()}</Text>
             <Text style={s.coinPlus}>+</Text>
           </TouchableOpacity>
           <TouchableOpacity style={s.settingsBtn} onPress={() => router.push('/settings')}>
@@ -80,10 +87,10 @@ export default function HomeScreen() {
         </Animated.View>
 
         {/* CTA Button */}
-        <TouchableOpacity style={s.ctaOuter} activeOpacity={0.85} onPress={() => router.push('/game')}>
+        <TouchableOpacity style={s.ctaOuter} activeOpacity={0.85} onPress={() => router.push({ pathname: '/game', params: { level: currentLevel } })}>
           <Animated.View style={[s.ctaGlow, { opacity: glowOpacity }]} />
           <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.ctaBtn}>
-            <Text style={s.ctaTitle}>BÖLÜM 42</Text>
+            <Text style={s.ctaTitle}>BÖLÜM {currentLevel}</Text>
             <Text style={s.ctaSub}>MACERA DEVAM EDİYOR</Text>
           </LinearGradient>
         </TouchableOpacity>
