@@ -104,11 +104,11 @@ function FaceDownCard() {
   );
 }
 
-function FaceUpCard({ card, selected, w, h, hinted }) {
+function FaceUpCard({ card, selected, w, h, hinted, isDragging }) {
   const cw = w || CARD_W; const ch = h || CARD_H;
   const isCat = card.type === 'category';
   return (
-    <View style={[st.faceUp, { width: cw, height: ch }, selected && st.cardSelected, isCat && st.catCardBorder, hinted && st.cardHinted]}>
+    <View style={[st.faceUp, { width: cw, height: ch }, selected && st.cardSelected, isCat && st.catCardBorder, hinted && st.cardHinted, isDragging && { opacity: 0.3 }]}>
       {isCat ? (
         <>
           <View style={st.catBadge}><Text style={st.catBadgeText}>0/{card.totalWords}</Text></View>
@@ -157,7 +157,7 @@ function FoundationSlot({ slot, onPress, hinted }) {
   );
 }
 
-function TableauColumn({ column, colIndex, selectedId, hintedId, onCardTap, onColumnTap, onCardLongPress }) {
+function TableauColumn({ column, colIndex, selectedId, hintedId, dragCardId, onCardTap, onColumnTap, onCardLongPress }) {
   if (column.locked) {
     return (
       <View style={[st.slotBox, st.slotDashed, { height: CARD_H }]}>
@@ -190,7 +190,7 @@ function TableauColumn({ column, colIndex, selectedId, hintedId, onCardTap, onCo
                 onLongPress={(e) => onCardLongPress?.(card, 'column', colIndex, isLast, e)}
                 delayLongPress={200}
               >
-                <FaceUpCard card={card} selected={selectedId === card.id} hinted={isHinted} />
+                <FaceUpCard card={card} selected={selectedId === card.id} hinted={isHinted} isDragging={card.id === dragCardId} />
               </TouchableOpacity>
             ) : (
               <FaceDownCard />
@@ -761,7 +761,7 @@ export default function GameScreen() {
 
       {!!feedback && <View style={st.feedbackBar}><Text style={st.feedbackText}>{feedback}</Text></View>}
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={st.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={st.scrollContent} showsVerticalScrollIndicator={false} scrollEnabled={!dragCard} ref={scrollRef}>
         <View style={st.deckRow}>
           <View style={st.movesPanel}>
             <Text style={st.movesLabel}>HAMLE</Text>
@@ -789,7 +789,7 @@ export default function GameScreen() {
               <View style={{ width: DCW + 28, height: DCH, justifyContent: 'center', alignItems: 'center' }}>
                 {gs.drawnCards.slice(-3).map((card, i, arr) => (
                   <View key={card.id} style={{ position: 'absolute', transform: [{ translateX: (i - (arr.length - 1)) * 14 }], zIndex: i, opacity: i === arr.length - 1 ? 1 : 0.35 + i * 0.2 }}>
-                    <FaceUpCard card={card} selected={i === arr.length - 1 && selId === card.id} hinted={card.id === hintCard} w={DCW} h={DCH} />
+                    <FaceUpCard card={card} selected={i === arr.length - 1 && selId === card.id} hinted={card.id === hintCard} isDragging={card.id === dragCard?.card?.id} w={DCW} h={DCH} />
                   </View>
                 ))}
               </View>
@@ -827,7 +827,7 @@ export default function GameScreen() {
         <View style={st.tableauRow}>
           {gs.columns.map((col, i) => (
             <View key={i} style={{ flex: 1 }}>
-              <TableauColumn column={col} colIndex={i} selectedId={selId} hintedId={hintCard} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onCardLongPress={handleCardLongPress} />
+              <TableauColumn column={col} colIndex={i} selectedId={selId} hintedId={hintCard} dragCardId={dragCard?.card?.id} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onCardLongPress={handleCardLongPress} />
             </View>
           ))}
         </View>
