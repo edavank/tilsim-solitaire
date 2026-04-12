@@ -551,7 +551,7 @@ export default function GameScreen() {
               });
               return { ...g, slots: cleared };
             });
-          }, 1200); // 1.2s delay for celebration
+          }, 300); // Hızlı boşalt
         }
 
         const isComplete = newCompletedCats >= level.categories.length;
