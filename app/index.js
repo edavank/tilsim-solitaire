@@ -5,7 +5,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
-import { loadProgress } from '../src/utils/storage';
+import { loadProgress, updateProgress } from '../src/utils/storage';
+import { showRewarded } from '../src/utils/ads';
 
 const { width: SW } = Dimensions.get('window');
 const OWL_IMAGE = require('../assets/bilge-happy.png');
@@ -51,6 +52,15 @@ export default function HomeScreen() {
   }, []);
 
   const glowOpacity = glowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
+
+  const watchAd = async () => {
+    const result = await showRewarded();
+    if (result.success) {
+      const newCoins = coins + 50;
+      setCoins(newCoins);
+      await updateProgress({ coins: newCoins });
+    }
+  };
 
   return (
     <View style={s.container}>
@@ -116,7 +126,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         {/* Watch ad button */}
-        <TouchableOpacity style={s.adBtn} activeOpacity={0.7}>
+        <TouchableOpacity style={s.adBtn} activeOpacity={0.7} onPress={watchAd}>
           <View style={s.adLeft}>
             <MaterialIcons name="play-circle-filled" size={28} color={COLORS.secondary} />
             <Text style={s.adText}>Reklam İzle</Text>

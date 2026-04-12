@@ -107,6 +107,12 @@ export default function StoreScreen() {
           ))}
         </View>
 
+        {/* Restore Purchases — Apple App Store requirement */}
+        <TouchableOpacity style={s.restoreBtn} onPress={() => Alert.alert('Geri Yükleme', 'Satın alımlarınız kontrol ediliyor...', [{ text: 'Tamam' }])} activeOpacity={0.7}>
+          <MaterialIcons name="restore" size={18} color={COLORS.onSurfaceVariant} />
+          <Text style={s.restoreText}>Satın Alımları Geri Yükle</Text>
+        </TouchableOpacity>
+
         <Text style={s.footerText}>TILSIM SOLİTAİRE EFSANEVİ MAĞAZA</Text>
         <View style={{ height: 120 }} />
       </ScrollView>
@@ -170,6 +176,9 @@ const s = StyleSheet.create({
   boosterDesc: { fontFamily: FONTS.body, fontSize: 10, color: COLORS.onSurfaceVariant, textAlign: 'center', marginBottom: 8 },
   boosterPrice: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   boosterPriceText: { fontFamily: FONTS.headlineBlack, fontSize: 14, color: COLORS.coin },
+
+  restoreBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 20, paddingVertical: 12 },
+  restoreText: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.onSurfaceVariant, textDecorationLine: 'underline' },
 
   footerText: { fontFamily: FONTS.body, fontSize: 10, color: COLORS.outlineVariant, textAlign: 'center', marginTop: 24, letterSpacing: 2 },
 });

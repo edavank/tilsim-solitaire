@@ -11,6 +11,7 @@ import BottomNav from '../src/components/BottomNav';
 import { LEVELS, generateGameState } from '../src/data/levels';
 import { loadProgress, updateProgress, clearSavedGame, saveSavedGame } from '../src/utils/storage';
 import { playHaptic } from '../src/utils/sounds';
+import { showRewarded, showInterstitial } from '../src/utils/ads';
 
 const { width: SW } = Dimensions.get('window');
 const COL_COUNT = 5;
@@ -570,9 +571,16 @@ export default function GameScreen() {
     setHintCard(null); setHintSlot(null);
   }, [levelId]);
 
-  const addMoves = useCallback(() => {
-    setGs((p) => ({ ...p, moves: p.moves + 20, isFailed: false }));
-    setFeedback('⚡ +20 hamle eklendi!');
+  const addMoves = useCallback(async () => {
+    const result = await showRewarded();
+    if (result.success) {
+      setGs((p) => ({ ...p, moves: p.moves + 20, isFailed: false }));
+      setFeedback('⚡ +20 hamle eklendi!');
+    } else {
+      // Fallback: give moves anyway (ad might not be available in Expo Go)
+      setGs((p) => ({ ...p, moves: p.moves + 20, isFailed: false }));
+      setFeedback('⚡ +20 hamle eklendi!');
+    }
   }, []);
 
   // ── Level Complete → save & advance ──
@@ -588,6 +596,8 @@ export default function GameScreen() {
       bestScore: Math.max((await loadProgress()).bestScore, gs.score),
     });
     await clearSavedGame();
+    // Show interstitial ad every 3 levels (not on every level — Better Ads Standards)
+    if (nextId % 3 === 0) await showInterstitial();
     setLevelId(nextId);
     setGs(generateGameState(nextLevel));
     setHistory([]); setSelected(null);

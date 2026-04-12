@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -17,6 +17,7 @@ import {
   Fondamento_400Regular_Italic,
 } from '@expo-google-fonts/fondamento';
 import { COLORS } from '../src/constants/theme';
+import { initAds } from '../src/utils/ads';
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -28,6 +29,9 @@ export default function RootLayout() {
     Fondamento_400Regular,
     Fondamento_400Regular_Italic,
   });
+
+  // Initialize AdMob (fails silently in Expo Go)
+  useEffect(() => { initAds(); }, []);
 
   if (!fontsLoaded) {
     return (
