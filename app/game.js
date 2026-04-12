@@ -9,7 +9,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { COLORS, FONTS, SIZES, CATEGORY_COLORS } from '../src/constants/theme';
 import { LEVELS, generateGameState } from '../src/data/levels';
 import { loadProgress, updateProgress, clearSavedGame, saveSavedGame } from '../src/utils/storage';
-import { playHaptic } from '../src/utils/sounds';
+import { playHaptic, playSound } from '../src/utils/sounds';
 import { showRewarded, showInterstitial } from '../src/utils/ads';
 
 const { width: SW } = Dimensions.get('window');
@@ -336,7 +336,7 @@ export default function GameScreen() {
     dragY.setValue(pageY - CARD_H / 2);
     dragOpacity.setValue(1);
     Animated.spring(dragScale, { toValue: 1.15, friction: 6, useNativeDriver: true }).start();
-    playHaptic('tap');
+    playSound('tap');
     setSelected(null);
   }, [gs.columns]);
 
@@ -467,7 +467,7 @@ export default function GameScreen() {
         const ns = removeFromSource(prev, source, sourceIndex, card.id);
         setHistory((h) => [...h, prev]);
         setFeedback('✅ ' + card.word + ' açıldı!');
-        playHaptic('flip');
+        playSound('flip');
         return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + 5, isFailed: prev.moves - 1 <= 0 };
       }
       if (!target.category && card.type === 'word') { setFeedback('⚠️ Önce kategori koy!'); return prev; }
@@ -475,7 +475,7 @@ export default function GameScreen() {
       if (target.category && card.type === 'word') {
         if (card.categoryIndex !== target.category.categoryIndex) {
           Vibration.vibrate(100);
-          playHaptic('wrong');
+          playSound('wrong');
           triggerShake(slotIndex);
           setFeedback('❌ Yanlış! (-1 hamle)');
           return { ...prev, moves: prev.moves - 1, isFailed: prev.moves - 1 <= 0 };
@@ -553,13 +553,13 @@ export default function GameScreen() {
 
         if (catCompleted && !isComplete) {
           setFeedback('🎉 ' + target.category.word + ' tamamlandı! Slot boşalıyor...');
-          playHaptic('complete');
+          playSound('complete');
         } else if (totalPlaced > 1) {
           setFeedback('✅ ' + totalPlaced + ' kart: ' + names + ' (+' + (totalPlaced * 10) + ')');
         } else {
           setFeedback('✅ Doğru! (+10)');
         }
-        playHaptic('correct');
+        playSound('correct');
         const catBonus = catCompleted ? 25 : 0;
         return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + (totalPlaced * 10) + catBonus, completedCats: newCompletedCats, isComplete, isFailed: prev.moves - 1 <= 0 && !isComplete };
       }
@@ -696,12 +696,12 @@ export default function GameScreen() {
           [recycled[i], recycled[j]] = [recycled[j], recycled[i]];
         }
         setFeedback('🔄 Deste karıştırıldı! (-1 hamle)');
-        playHaptic('draw');
+        playSound('draw');
         return { ...p, deck: recycled, drawnCards: [], moves: p.moves - 1, isFailed: p.moves - 1 <= 0 };
       }
       const d = [...p.deck]; const card = { ...d.pop(), faceUp: true };
       setFeedback('🎴 ' + card.word + ' çekildi (-1 hamle)');
-      playHaptic('draw');
+      playSound('draw');
       return { ...p, deck: d, drawnCards: [...p.drawnCards, card], moves: p.moves - 1, isFailed: p.moves - 1 <= 0 };
     });
     setSelected(null);
@@ -843,7 +843,7 @@ export default function GameScreen() {
         return prev;
       });
       setFeedback('🔓 Kilit açıldı!');
-      playHaptic('correct');
+      playSound('correct');
     }
   }, []);
 

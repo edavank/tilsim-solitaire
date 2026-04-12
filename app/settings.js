@@ -6,23 +6,33 @@ import { router } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { loadSettings, saveSettings, loadProgress, resetAll } from '../src/utils/storage';
-import { setVibrationEnabled } from '../src/utils/sounds';
+import { setVibrationEnabled, setSoundEnabled } from '../src/utils/sounds';
 
 const OWL = require('../assets/bilge-happy.png');
 
 export default function SettingsScreen() {
+  const [sound, setSound] = useState(true);
   const [vibration, setVibration] = useState(true);
   const [coins, setCoins] = useState(0);
 
   useEffect(() => {
-    loadSettings().then((s) => { setVibration(s.vibration !== false); });
+    loadSettings().then((s) => {
+      setVibration(s.vibration !== false);
+      setSound(s.sound !== false);
+    });
     loadProgress().then((p) => setCoins(p.coins));
   }, []);
+
+  const toggleSound = (v) => {
+    setSound(v);
+    setSoundEnabled(v);
+    saveSettings({ sound: v, vibration });
+  };
 
   const toggleVibration = (v) => {
     setVibration(v);
     setVibrationEnabled(v);
-    saveSettings({ vibration: v });
+    saveSettings({ sound, vibration: v });
   };
 
   const handleReset = () => {
@@ -58,6 +68,8 @@ export default function SettingsScreen() {
           <Text style={s.sectionTitle}>Oyun Tercihleri</Text>
         </View>
         <View style={s.card}>
+          <SettingRow icon="volume-up" iconColor={COLORS.primary} label="Ses Efektleri" right={<Switch value={sound} onValueChange={toggleSound} trackColor={trackColor} thumbColor="#fff" />} />
+          <View style={s.divider} />
           <SettingRow icon="vibration" iconColor={COLORS.primary} label="Titreşim" right={<Switch value={vibration} onValueChange={toggleVibration} trackColor={trackColor} thumbColor="#fff" />} />
         </View>
 
