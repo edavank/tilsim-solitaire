@@ -1,12 +1,7 @@
-import { makeRedirectUri } from 'expo-auth-session';
-import * as WebBrowser from 'expo-web-browser';
-import supabase from './supabase';
-
-WebBrowser.maybeCompleteAuthSession();
-
-// Auth state
+// Google Auth — safe for Expo Go (lazy imports)
 let currentUser = null;
 let authListeners = [];
+let supabase = null;
 
 export function getUser() { return currentUser; }
 
@@ -19,10 +14,10 @@ function notifyListeners() {
   authListeners.forEach((cb) => cb(currentUser));
 }
 
-// Initialize auth — check existing session
 export async function initAuth() {
-  if (!supabase) return null;
   try {
+    supabase = require('./supabase').default;
+    if (!supabase) return null;
     const { data } = await supabase.auth.getSession();
     if (data?.session?.user) {
       currentUser = {
@@ -33,8 +28,6 @@ export async function initAuth() {
       };
       notifyListeners();
     }
-
-    // Listen to auth changes
     supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         currentUser = {
@@ -54,36 +47,29 @@ export async function initAuth() {
   return currentUser;
 }
 
-// Google Sign-In
 export async function signInWithGoogle() {
-  if (!supabase) {
-    return { error: 'Supabase henüz yapılandırılmadı' };
-  }
   try {
+    if (!supabase) return { error: 'Supabase henüz yapılandırılmadı' };
+    const { makeRedirectUri } = require('expo-auth-session');
+    const WebBrowser = require('expo-web-browser');
+    WebBrowser.maybeCompleteAuthSession();
+
     const redirectUrl = makeRedirectUri({ scheme: 'tilsim-solitaire' });
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: redirectUrl,
-        skipBrowserRedirect: true,
-      },
+      options: { redirectTo: redirectUrl, skipBrowserRedirect: true },
     });
 
     if (error) return { error: error.message };
     if (data?.url) {
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
       if (result.type === 'success' && result.url) {
-        // Extract tokens from URL
         const url = new URL(result.url);
         const params = new URLSearchParams(url.hash.substring(1));
         const access_token = params.get('access_token');
         const refresh_token = params.get('refresh_token');
-
         if (access_token) {
-          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-            access_token,
-            refresh_token,
-          });
+          const { error: sessionError } = await supabase.auth.setSession({ access_token, refresh_token });
           if (sessionError) return { error: sessionError.message };
           return { user: currentUser };
         }
@@ -92,21 +78,18 @@ export async function signInWithGoogle() {
     }
     return { error: 'OAuth URL alınamadı' };
   } catch (e) {
-    return { error: e.message };
+    return { error: e.message || 'Auth kullanılamıyor' };
   }
 }
 
-// Sign Out
 export async function signOut() {
-  if (!supabase) return;
   try {
-    await supabase.auth.signOut();
+    if (supabase) await supabase.auth.signOut();
     currentUser = null;
     notifyListeners();
   } catch (e) {}
 }
 
-// Cloud Sync — save progress to Supabase
 export async function syncProgressToCloud(progress) {
   if (!supabase || !currentUser) return;
   try {
@@ -123,7 +106,6 @@ export async function syncProgressToCloud(progress) {
   } catch (e) {}
 }
 
-// Cloud Sync — load progress from Supabase
 export async function loadProgressFromCloud() {
   if (!supabase || !currentUser) return null;
   try {

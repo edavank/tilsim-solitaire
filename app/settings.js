@@ -7,7 +7,20 @@ import { COLORS, FONTS, SIZES } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { loadSettings, saveSettings, loadProgress, resetAll } from '../src/utils/storage';
 import { setVibrationEnabled, setSoundEnabled } from '../src/utils/sounds';
-import { signInWithGoogle, signOut, getUser, onAuthChange } from '../src/utils/auth';
+
+let signInWithGoogle, signOut, getUser, onAuthChange;
+try {
+  const auth = require('../src/utils/auth');
+  signInWithGoogle = auth.signInWithGoogle;
+  signOut = auth.signOut;
+  getUser = auth.getUser;
+  onAuthChange = auth.onAuthChange;
+} catch (e) {
+  getUser = () => null;
+  onAuthChange = () => () => {};
+  signInWithGoogle = async () => ({ error: 'Auth kullanılamıyor' });
+  signOut = async () => {};
+}
 
 const OWL = require('../assets/bilge-happy.png');
 
