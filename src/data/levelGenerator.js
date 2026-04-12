@@ -38,10 +38,6 @@ export function generateLevels(startId, count) {
     // Words per category: 4 → 6 (more words = harder)
     const wordsPerCat = Math.min(4 + Math.floor(diff / 3), 6);
     
-    // Moves: total cards × 1.4 (tight but fair)
-    const totalCards = categories.reduce((sum, c) => sum + c.words.length, 0) + numCats;
-    const moves = Math.max(Math.floor(totalCards * 1.4) - diff, 18);
-    
     // Hints: fewer hints = harder
     const hints = Math.max(5 - Math.floor(diff / 2), 1);
     
@@ -68,6 +64,10 @@ export function generateLevels(startId, count) {
       name: pool.name,
       words: pickRandom(pool.words, Math.min(wordsPerCat, pool.words.length)),
     }));
+
+    // Moves: total cards × 1.4 (tight but fair)
+    const totalCards = categories.reduce((sum, c) => sum + c.words.length, 0) + numCats;
+    const moves = Math.max(Math.floor(totalCards * 1.4) - diff, 18);
 
     levels.push({
       id, moves, hints, undos, categories,
