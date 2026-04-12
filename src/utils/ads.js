@@ -1,20 +1,13 @@
-// AdMob integration for Tılsım Solitaire
-// Requires EAS Build (development/production) — won't work in Expo Go
-// 
-// Setup:
-// 1. Create AdMob account: https://admob.google.com
-// 2. Create app (iOS + Android)
-// 3. Create ad units: banner, interstitial, rewarded
-// 4. Replace TEST IDs below with real IDs before production build
+// AdMob integration — 100% safe for Expo Go
+// All native imports are lazy (require inside try-catch)
+// In Expo Go: ads simply don't show, no crashes
 
 import { Platform } from 'react-native';
 
-// ── Ad Unit IDs ──
-// Using Google's test ad IDs — REPLACE WITH REAL IDs FOR PRODUCTION
 const AD_IDS = {
   banner: Platform.select({
-    ios: 'ca-app-pub-3940256099942544/2934735716',     // iOS test
-    android: 'ca-app-pub-3940256099942544/6300978111',  // Android test
+    ios: 'ca-app-pub-3940256099942544/2934735716',
+    android: 'ca-app-pub-3940256099942544/6300978111',
   }),
   interstitial: Platform.select({
     ios: 'ca-app-pub-3940256099942544/4411468910',
@@ -26,94 +19,52 @@ const AD_IDS = {
   }),
 };
 
-let MobileAds, BannerAd, BannerAdSize, InterstitialAd, RewardedAd, AdEventType, RewardedAdEventType;
-let adsLoaded = false;
-let interstitialAd = null;
-let rewardedAd = null;
+let adsAvailable = false;
 
-// ── Initialize ──
 export async function initAds() {
+  // Skip in Expo Go — will work in EAS Build
   try {
     const admob = require('react-native-google-mobile-ads');
-    MobileAds = admob.default;
-    BannerAd = admob.BannerAd;
-    BannerAdSize = admob.BannerAdSize;
-    InterstitialAd = admob.InterstitialAd;
-    RewardedAd = admob.RewardedAd;
-    AdEventType = admob.AdEventType;
-    RewardedAdEventType = admob.RewardedAdEventType;
-
-    await MobileAds().initialize();
-    adsLoaded = true;
-    console.log('AdMob initialized');
-    
-    // Pre-load ads
-    loadInterstitial();
-    loadRewarded();
+    if (admob && admob.default) {
+      await admob.default().initialize();
+      adsAvailable = true;
+    }
   } catch (e) {
-    console.log('AdMob not available (Expo Go?):', e.message);
-    adsLoaded = false;
+    adsAvailable = false;
   }
 }
 
-// ── Interstitial (between levels) ──
-function loadInterstitial() {
-  if (!adsLoaded || !InterstitialAd) return;
-  interstitialAd = InterstitialAd.createForAdRequest(AD_IDS.interstitial);
-  interstitialAd.load();
-}
-
 export async function showInterstitial() {
-  if (!adsLoaded || !interstitialAd) return false;
-  return new Promise((resolve) => {
-    const unsubClose = interstitialAd.addAdEventListener(AdEventType.CLOSED, () => {
-      unsubClose();
-      loadInterstitial(); // pre-load next
-      resolve(true);
+  if (!adsAvailable) return false;
+  try {
+    const { InterstitialAd, AdEventType } = require('react-native-google-mobile-ads');
+    const ad = InterstitialAd.createForAdRequest(AD_IDS.interstitial);
+    return new Promise((resolve) => {
+      ad.addAdEventListener(AdEventType.LOADED, () => ad.show().catch(() => resolve(false)));
+      ad.addAdEventListener(AdEventType.CLOSED, () => resolve(true));
+      ad.addAdEventListener(AdEventType.ERROR, () => resolve(false));
+      ad.load();
+      setTimeout(() => resolve(false), 10000);
     });
-    const unsubError = interstitialAd.addAdEventListener(AdEventType.ERROR, () => {
-      unsubError();
-      loadInterstitial();
-      resolve(false);
-    });
-    interstitialAd.show().catch(() => resolve(false));
-  });
-}
-
-// ── Rewarded (watch ad for coins/moves) ──
-function loadRewarded() {
-  if (!adsLoaded || !RewardedAd) return;
-  rewardedAd = RewardedAd.createForAdRequest(AD_IDS.rewarded);
-  rewardedAd.load();
+  } catch (e) { return false; }
 }
 
 export async function showRewarded() {
-  if (!adsLoaded || !rewardedAd) return { success: false, reward: null };
-  return new Promise((resolve) => {
-    const unsubReward = rewardedAd.addAdEventListener(RewardedAdEventType.EARNED_REWARD, (reward) => {
-      unsubReward();
-      resolve({ success: true, reward });
+  if (!adsAvailable) return { success: false, reward: null };
+  try {
+    const { RewardedAd, RewardedAdEventType, AdEventType } = require('react-native-google-mobile-ads');
+    const ad = RewardedAd.createForAdRequest(AD_IDS.rewarded);
+    return new Promise((resolve) => {
+      let rewarded = false;
+      ad.addAdEventListener(RewardedAdEventType.EARNED_REWARD, (reward) => { rewarded = true; });
+      ad.addAdEventListener(AdEventType.CLOSED, () => resolve({ success: rewarded, reward: rewarded ? { amount: 1 } : null }));
+      ad.addAdEventListener(AdEventType.ERROR, () => resolve({ success: false, reward: null }));
+      ad.addAdEventListener(AdEventType.LOADED, () => ad.show().catch(() => resolve({ success: false, reward: null })));
+      ad.load();
+      setTimeout(() => resolve({ success: false, reward: null }), 10000);
     });
-    const unsubClose = rewardedAd.addAdEventListener(AdEventType.CLOSED, () => {
-      unsubClose();
-      loadRewarded(); // pre-load next
-    });
-    const unsubError = rewardedAd.addAdEventListener(AdEventType.ERROR, () => {
-      unsubError();
-      loadRewarded();
-      resolve({ success: false, reward: null });
-    });
-    rewardedAd.show().catch(() => resolve({ success: false, reward: null }));
-  });
+  } catch (e) { return { success: false, reward: null }; }
 }
 
-// ── Banner component helper ──
-export function getBannerComponent() {
-  if (!adsLoaded || !BannerAd) return null;
-  return { BannerAd, BannerAdSize, unitId: AD_IDS.banner };
-}
-
-// ── Check availability ──
-export function isAdsAvailable() { return adsLoaded; }
-
+export function isAdsAvailable() { return adsAvailable; }
 export { AD_IDS };
