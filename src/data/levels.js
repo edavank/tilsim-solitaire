@@ -77,7 +77,7 @@ function shuffle(arr) {
 }
 
 export const LEVELS = [
-  // Bölüm 1-3: 3 kat × 4 kel = 15 kart. Sütun derinliği 3-4
+  // Bölüm 1-3: 3 kat × 4 kel = 15 kart. Kısa sütunlar, deste büyük
   {
     id: 1, moves: 25, hints: 3, undos: 1,
     categories: [
@@ -86,7 +86,7 @@ export const LEVELS = [
       { name: 'Renkler', words: ['Kırmızı', 'Mavi', 'Yeşil', 'Sarı'] },
     ],
     totalSlots: 3, lockedSlots: 1,
-    columns: [{ locked: true }, { depth: 3 }, { depth: 4 }, { depth: 4 }, { depth: 3 }],
+    columns: [{ locked: true }, { depth: 3 }, { depth: 3 }, { depth: 2 }, { depth: 2 }],
   },
   {
     id: 2, moves: 24, hints: 3, undos: 1,
@@ -96,21 +96,21 @@ export const LEVELS = [
       { name: 'Mevsimler', words: ['İlkbahar', 'Yaz', 'Sonbahar', 'Kış'] },
     ],
     totalSlots: 3, lockedSlots: 1,
-    columns: [{ locked: true }, { depth: 4 }, { depth: 4 }, { depth: 3 }, { depth: 3 }],
+    columns: [{ locked: true }, { depth: 3 }, { depth: 3 }, { depth: 3 }, { depth: 2 }],
   },
   {
-    id: 3, moves: 22, hints: 2, undos: 1,
+    id: 3, moves: 24, hints: 2, undos: 1,
     categories: [
       { name: 'Sebzeler', words: ['Domates', 'Biber', 'Havuç', 'Patates'] },
       { name: 'Okul', words: ['Kalem', 'Defter', 'Silgi', 'Cetvel'] },
       { name: 'Duygular', words: ['Mutluluk', 'Üzüntü', 'Şaşkınlık', 'Korku'] },
     ],
     totalSlots: 3, lockedSlots: 1,
-    columns: [{ locked: true }, { depth: 4 }, { depth: 4 }, { depth: 4 }, { depth: 3 }],
+    columns: [{ locked: true }, { depth: 3 }, { depth: 3 }, { depth: 3 }, { depth: 3 }],
   },
-  // Bölüm 4-6: 4 kat × 4-5 kel = 20-24 kart. Sütun 4-5
+  // Bölüm 4-6: 4 kat. Sütun max 4, fazlası desteye
   {
-    id: 4, moves: 30, hints: 2, undos: 1,
+    id: 4, moves: 32, hints: 2, undos: 1,
     categories: [
       { name: 'Meyveler', words: ['Çilek', 'Muz', 'Karpuz', 'Üzüm', 'Şeftali'] },
       { name: 'Hayvanlar', words: ['Tavşan', 'At', 'Kaplumbağa', 'Kurbağa'] },
@@ -118,10 +118,10 @@ export const LEVELS = [
       { name: 'Renkler', words: ['Turuncu', 'Mor', 'Pembe', 'Beyaz'] },
     ],
     totalSlots: 4, lockedSlots: 1,
-    columns: [{ locked: true }, { depth: 5 }, { depth: 5 }, { depth: 4 }, { depth: 4 }],
+    columns: [{ locked: true }, { depth: 4 }, { depth: 3 }, { depth: 3 }, { depth: 3 }],
   },
   {
-    id: 5, moves: 28, hints: 2, undos: 1,
+    id: 5, moves: 30, hints: 2, undos: 1,
     categories: [
       { name: 'Ülkeler', words: ['Türkiye', 'Japonya', 'Brezilya', 'İtalya'] },
       { name: 'Yiyecekler', words: ['Pizza', 'Hamburger', 'Sushi', 'Makarna'] },
@@ -129,10 +129,10 @@ export const LEVELS = [
       { name: 'Kuşlar', words: ['Papağan', 'Serçe', 'Kartal', 'Martı'] },
     ],
     totalSlots: 4, lockedSlots: 1,
-    columns: [{ locked: true }, { depth: 5 }, { depth: 5 }, { depth: 5 }, { depth: 4 }],
+    columns: [{ locked: true }, { depth: 4 }, { depth: 4 }, { depth: 3 }, { depth: 3 }],
   },
   {
-    id: 6, moves: 26, hints: 2, undos: 0,
+    id: 6, moves: 30, hints: 2, undos: 0,
     categories: [
       { name: 'Ağaçlar', words: ['Çam', 'Meşe', 'Kavak', 'Ceviz', 'Zeytin'] },
       { name: 'Giysiler', words: ['Gömlek', 'Pantolon', 'Şapka', 'Ayakkabı'] },
@@ -140,11 +140,11 @@ export const LEVELS = [
       { name: 'Sporlar', words: ['Voleybol', 'Boks', 'Bisiklet', 'Koşu'] },
     ],
     totalSlots: 4, lockedSlots: 1,
-    columns: [{ locked: true }, { depth: 5 }, { depth: 5 }, { depth: 5 }, { depth: 5 }],
+    columns: [{ locked: true }, { depth: 4 }, { depth: 4 }, { depth: 3 }, { depth: 3 }],
   },
-  // Bölüm 7-8: 4-5 kat × 4-5 kel. Derin sütunlar
+  // Bölüm 7-8: 5 kat. Sütun max 4, bol deste
   {
-    id: 7, moves: 32, hints: 2, undos: 0,
+    id: 7, moves: 36, hints: 2, undos: 0,
     categories: [
       { name: 'Hava durumu', words: ['Güneşli', 'Yağmurlu', 'Karlı', 'Bulutlu', 'Fırtınalı'] },
       { name: 'Sebzeler', words: ['Soğan', 'Patlıcan', 'Brokoli', 'Mısır'] },
@@ -153,10 +153,10 @@ export const LEVELS = [
       { name: 'Mevsimler', words: ['İlkbahar', 'Yaz', 'Sonbahar', 'Kış'] },
     ],
     totalSlots: 5, lockedSlots: 1,
-    columns: [{ locked: true }, { depth: 5 }, { depth: 5 }, { depth: 5 }, { depth: 5 }],
+    columns: [{ locked: true }, { depth: 4 }, { depth: 4 }, { depth: 4 }, { depth: 4 }],
   },
   {
-    id: 8, moves: 30, hints: 1, undos: 0,
+    id: 8, moves: 34, hints: 1, undos: 0,
     categories: [
       { name: 'İçecekler', words: ['Limonata', 'Ayran', 'Meyve suyu', 'Smoothie'] },
       { name: 'Yiyecekler', words: ['Dondurma', 'Kek', 'Pizza', 'Sushi'] },
@@ -165,11 +165,11 @@ export const LEVELS = [
       { name: 'Kuşlar', words: ['Baykuş', 'Flamingo', 'Kartal', 'Martı'] },
     ],
     totalSlots: 5, lockedSlots: 1,
-    columns: [{ locked: true }, { depth: 5 }, { depth: 5 }, { depth: 5 }, { depth: 5 }],
+    columns: [{ locked: true }, { depth: 4 }, { depth: 4 }, { depth: 4 }, { depth: 4 }],
   },
-  // Bölüm 9-10: 5 kat × 4-5 kel. Çok derin, çok az hamle
+  // Bölüm 9-10: 5 kat × 4-5 kel. Deste ağırlıklı
   {
-    id: 9, moves: 28, hints: 1, undos: 0,
+    id: 9, moves: 34, hints: 1, undos: 0,
     categories: [
       { name: 'Hayvanlar', words: ['Aslan', 'Fil', 'Zürafa', 'Penguen', 'Kedi'] },
       { name: 'Ağaçlar', words: ['Palmiye', 'Çam', 'Meşe', 'Kavak', 'Ceviz'] },
@@ -178,10 +178,10 @@ export const LEVELS = [
       { name: 'Gezegenler', words: ['Merkür', 'Neptün', 'Mars', 'Venüs'] },
     ],
     totalSlots: 5, lockedSlots: 1,
-    columns: [{ locked: true }, { depth: 6 }, { depth: 5 }, { depth: 5 }, { depth: 5 }],
+    columns: [{ locked: true }, { depth: 4 }, { depth: 4 }, { depth: 4 }, { depth: 4 }],
   },
   {
-    id: 10, moves: 28, hints: 1, undos: 0,
+    id: 10, moves: 34, hints: 1, undos: 0,
     categories: [
       { name: 'Hava durumu', words: ['Sisli', 'Güneşli', 'Yağmurlu', 'Karlı', 'Bulutlu'] },
       { name: 'Duygular', words: ['Şaşkınlık', 'Korku', 'Öfke', 'Heyecan', 'Üzüntü'] },
@@ -190,7 +190,7 @@ export const LEVELS = [
       { name: 'Sebzeler', words: ['Domates', 'Biber', 'Havuç', 'Patates', 'Soğan'] },
     ],
     totalSlots: 5, lockedSlots: 1,
-    columns: [{ locked: true }, { depth: 6 }, { depth: 6 }, { depth: 5 }, { depth: 5 }],
+    columns: [{ locked: true }, { depth: 5 }, { depth: 4 }, { depth: 4 }, { depth: 4 }],
   },
 ];
 

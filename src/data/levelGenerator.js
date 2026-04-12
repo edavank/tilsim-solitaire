@@ -47,13 +47,13 @@ export function generateLevels(startId, count) {
     // Locked slots: always at least 1 (monetization + strategy)
     const lockedSlots = diff >= 6 ? 2 : 1;
     
-    // Columns: always 1 locked + 4 active, depth increases with difficulty
-    const baseDepth = Math.min(3 + Math.floor(diff / 2), 6);
+    // Columns: always 1 locked + 4 active. Max depth 4 (like real solitaire: çoğu kart destede)
+    const baseDepth = Math.min(3 + Math.floor(diff / 3), 4);
     const columns = [
       { locked: true },
-      { depth: baseDepth + 1 },
       { depth: baseDepth },
       { depth: baseDepth },
+      { depth: Math.max(baseDepth - 1, 2) },
       { depth: Math.max(baseDepth - 1, 2) },
     ];
 
@@ -65,9 +65,11 @@ export function generateLevels(startId, count) {
       words: pickRandom(pool.words, Math.min(wordsPerCat, pool.words.length)),
     }));
 
-    // Moves: total cards × 1.4 (tight but fair)
+    // Moves: deste çekim + yerleştirme için yeterli olmalı
     const totalCards = categories.reduce((sum, c) => sum + c.words.length, 0) + numCats;
-    const moves = Math.max(Math.floor(totalCards * 1.4) - diff, 18);
+    const colCards = columns.reduce((s, c) => c.locked ? s : s + (c.depth || 0), 0);
+    const deckCards = Math.max(0, totalCards - colCards);
+    const moves = Math.max(deckCards + totalCards + 5 - diff, 22);
 
     levels.push({
       id, moves, hints, undos, categories,
