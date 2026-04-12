@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
+import { loadProgress } from '../src/utils/storage';
 
 const OWL = require('../assets/bilge-happy.png');
 
@@ -22,6 +23,9 @@ const THEMES = [
 export default function ThemesScreen() {
   const [activeTabIdx, setActiveTabIdx] = useState(0);
   const [selectedTheme, setSelectedTheme] = useState('cosmic');
+  const [coins, setCoins] = useState(0);
+
+  useEffect(() => { loadProgress().then((p) => setCoins(p.coins || 0)); }, []);
 
   return (
     <View style={s.container}>
@@ -35,7 +39,7 @@ export default function ThemesScreen() {
         <Text style={s.headerTitle}>Görünüm Seçici</Text>
         <View style={s.coinBadge}>
           <MaterialIcons name="monetization-on" size={16} color={COLORS.coin} />
-          <Text style={s.coinText}>1,250</Text>
+          <Text style={s.coinText}>{coins.toLocaleString()}</Text>
         </View>
       </View>
 
