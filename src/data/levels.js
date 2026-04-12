@@ -34,8 +34,8 @@ export const WORD_EMOJIS = {
   'Türkiye': '🇹🇷', 'Japonya': '🇯🇵', 'Brezilya': '🇧🇷', 'İtalya': '🇮🇹',
   'Fransa': '🇫🇷', 'Almanya': '🇩🇪',
   // Gezegenler
-  'Mars': '🔴', 'Jüpiter': '🟤', 'Satürn': '💫', 'Venüs': '🌟',
-  'Merkür': '⚫', 'Neptün': '🔵',
+  'Mars': '🪨', 'Jüpiter': '🌕', 'Satürn': '🪐', 'Venüs': '⭐',
+  'Merkür': '🌑', 'Neptün': '🌊',
   // Mevsimler
   'İlkbahar': '🌸', 'Yaz': '☀️', 'Sonbahar': '🍂', 'Kış': '❄️',
   // Duygular
@@ -143,7 +143,7 @@ export const LEVELS = [
       { name: 'Müzik', words: ['Flüt', 'Saz', 'Gitar', 'Davul'] },
       { name: 'Mevsimler', words: ['İlkbahar', 'Yaz', 'Sonbahar', 'Kış'] },
     ],
-    totalSlots: 5, lockedSlots: 2,
+    totalSlots: 5, lockedSlots: 1,
     columns: [{ locked: true }, { depth: 6 }, { depth: 5 }, { depth: 5 }, { depth: 5 }],
   },
   {
@@ -155,7 +155,7 @@ export const LEVELS = [
       { name: 'Okul', words: ['Kitap', 'Sırt çantası', 'Kalem', 'Defter'] },
       { name: 'Kuşlar', words: ['Baykuş', 'Flamingo', 'Kartal', 'Martı'] },
     ],
-    totalSlots: 5, lockedSlots: 2,
+    totalSlots: 5, lockedSlots: 1,
     columns: [{ locked: true }, { depth: 6 }, { depth: 6 }, { depth: 5 }, { depth: 5 }],
   },
   // Bölüm 9-10: 5 kat × 4-5 kel. Çok derin, çok az hamle

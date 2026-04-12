@@ -486,7 +486,7 @@ export default function GameScreen() {
           return { ...prev, moves: prev.moves - 1, isFailed: prev.moves - 1 <= 0 };
         }
 
-        // Collect ALL same-category cards from bottom of source column
+        // Collect ALL same-category cards from source column (both directions)
         const cardsToPlace = [card];
 
         if (source === 'column' && sourceIndex !== null && sourceIndex !== undefined) {
@@ -494,6 +494,7 @@ export default function GameScreen() {
           const colCards = col ? col.cards : [];
           const cardIdx = colCards.findIndex((c) => c.id === card.id);
           
+          // Scan UPWARD (cards above selected)
           if (cardIdx > 0) {
             for (let k = cardIdx - 1; k >= 0; k--) {
               const above = colCards[k];
@@ -502,6 +503,17 @@ export default function GameScreen() {
               if (above.categoryIndex !== card.categoryIndex) break;
               if (cardsToPlace.length + target.placedCards.length >= target.category.totalWords) break;
               cardsToPlace.push(above);
+            }
+          }
+          // Scan DOWNWARD (cards below selected)
+          if (cardIdx < colCards.length - 1) {
+            for (let k = cardIdx + 1; k < colCards.length; k++) {
+              const below = colCards[k];
+              if (!below.faceUp) break;
+              if (below.type !== 'word') break;
+              if (below.categoryIndex !== card.categoryIndex) break;
+              if (cardsToPlace.length + target.placedCards.length >= target.category.totalWords) break;
+              cardsToPlace.push(below);
             }
           }
         }
@@ -581,6 +593,11 @@ export default function GameScreen() {
       if (targetCol.cards.length > 0) {
         const bottomCard = targetCol.cards[targetCol.cards.length - 1];
         if (!bottomCard.faceUp) { setFeedback('⚠️ Buraya koyamazsın!'); return prev; }
+        // Kategori kartları sütunda gruplanamaz
+        if (card.type === 'category' || bottomCard.type === 'category') {
+          setFeedback('⚠️ Kategori kartları gruplanamaz!');
+          return prev;
+        }
         // Aynı kategorideki kartlar üst üste konabilir
         if (card.categoryIndex !== undefined && bottomCard.categoryIndex !== undefined && card.categoryIndex !== bottomCard.categoryIndex) {
           setFeedback('⚠️ Farklı kategori! Sadece aynı kategoriler üst üste konabilir.');
@@ -643,6 +660,11 @@ export default function GameScreen() {
       if (targetCol.cards.length > 0) {
         const bottomCard = targetCol.cards[targetCol.cards.length - 1];
         if (!bottomCard.faceUp) { setFeedback('⚠️ Buraya koyamazsın!'); return prev; }
+        // Kategori kartları sütunda gruplanamaz
+        if (stackCards[0].type === 'category' || bottomCard.type === 'category') {
+          setFeedback('⚠️ Kategori kartları gruplanamaz!');
+          return prev;
+        }
         if (stackCards[0].categoryIndex !== undefined && bottomCard.categoryIndex !== undefined && stackCards[0].categoryIndex !== bottomCard.categoryIndex) {
           setFeedback('⚠️ Farklı kategori! Sadece aynı kategoriler üst üste konabilir.');
           return prev;
