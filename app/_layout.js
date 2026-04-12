@@ -76,8 +76,6 @@ const lang = StyleSheet.create({
   check: { width: 24, height: 24, borderRadius: 12, backgroundColor: COLORS.success, alignItems: 'center', justifyContent: 'center' },
 });
 
-const OWL = require('../assets/bilge-happy.png');
-
 function AnimatedSplash({ onFinish }) {
   const fadeIn = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.8)).current;
