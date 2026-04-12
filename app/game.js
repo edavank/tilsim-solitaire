@@ -125,14 +125,16 @@ function FaceUpCard({ card, selected, w, h, hinted, isDragging }) {
   );
 }
 
-function FoundationSlot({ slot, onPress, hinted }) {
+function FoundationSlot({ slot, slotIndex, onPress, onUnlock, hinted }) {
   const h = CARD_H * 0.85;
   if (slot.locked) {
     return (
       <View style={[st.slotBox, st.slotDashed, { height: h }]}>
         <Text style={st.lockedText}>KİLİDİ AÇ</Text>
         <MaterialIcons name="style" size={18} color="rgba(255,255,255,0.15)" />
-        <TouchableOpacity style={st.adBadge}><Text style={st.adText}>▶ AD</Text></TouchableOpacity>
+        <TouchableOpacity style={st.adBadge} onPress={() => onUnlock?.('slot', slotIndex)}>
+          <Text style={st.adText}>▶ AD</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -157,12 +159,14 @@ function FoundationSlot({ slot, onPress, hinted }) {
   );
 }
 
-function TableauColumn({ column, colIndex, selectedId, hintedId, dragCardId, dragStackIds, onCardTap, onColumnTap, onCardLongPress }) {
+function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedId, dragCardId, dragStackIds, onCardTap, onColumnTap, onCardLongPress, onUnlock }) {
   if (column.locked) {
     return (
       <View style={[st.slotBox, st.slotDashed, { height: CARD_H }]}>
         <MaterialIcons name="lock" size={16} color="rgba(255,255,255,0.2)" />
-        <TouchableOpacity style={st.adBadge}><Text style={st.adText}>▶ AD</Text></TouchableOpacity>
+        <TouchableOpacity style={st.adBadge} onPress={() => onUnlock?.('column', colIndex)}>
+          <Text style={st.adText}>▶ AD</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -190,7 +194,7 @@ function TableauColumn({ column, colIndex, selectedId, hintedId, dragCardId, dra
                 onLongPress={(e) => onCardLongPress?.(card, 'column', colIndex, isLast, e)}
                 delayLongPress={200}
               >
-                <FaceUpCard card={card} selected={selectedId === card.id} hinted={isHinted} isDragging={dragCardId && dragCardId === card.id || (dragStackIds && dragStackIds.has(card.id))} />
+                <FaceUpCard card={card} selected={selectedId === card.id || (selectedStackIds && selectedStackIds.has(card.id))} hinted={isHinted} isDragging={dragStackIds && dragStackIds.has(card.id)} />
               </TouchableOpacity>
             ) : (
               <FaceDownCard />
@@ -810,8 +814,30 @@ export default function GameScreen() {
   }, []);
 
   const selId = selected?.card?.id;
+  const selectedStackIds = selected?.stackCards ? new Set(selected.stackCards.map((c) => c.id)) : null;
   const DCW = Math.floor(CARD_W * 1.1); const DCH = Math.floor(CARD_H * 1.1);
   const dragStackIds = dragCard?.stackCards ? new Set(dragCard.stackCards.map((c) => c.id)) : null;
+
+  // Unlock slot or column (via ad or free)
+  const handleUnlock = useCallback(async (type, index) => {
+    const result = await showRewarded();
+    // Always unlock (rewarded returns success:true in stub)
+    if (result.success) {
+      setGs((prev) => {
+        if (type === 'slot') {
+          const newSlots = prev.slots.map((sl, i) => i === index ? { ...sl, locked: false } : sl);
+          return { ...prev, slots: newSlots };
+        }
+        if (type === 'column') {
+          const newCols = prev.columns.map((col, i) => i === index ? { ...col, locked: false } : col);
+          return { ...prev, columns: newCols };
+        }
+        return prev;
+      });
+      setFeedback('🔓 Kilit açıldı!');
+      playHaptic('correct');
+    }
+  }, []);
 
   return (
     <View style={st.container} {...panResponder.panHandlers}>
@@ -891,7 +917,7 @@ export default function GameScreen() {
         <View style={st.slotsRow}>
           {gs.slots.map((slot, i) => (
             <Animated.View key={i} style={{ flex: 1, transform: [{ translateX: shakeSlotIdx === i ? shakeAnim : 0 }] }}>
-              <FoundationSlot slot={slot} onPress={() => handleSlotTap(i)} hinted={hintSlot === i} />
+              <FoundationSlot slot={slot} slotIndex={i} onPress={() => handleSlotTap(i)} onUnlock={handleUnlock} hinted={hintSlot === i} />
             </Animated.View>
           ))}
         </View>
@@ -899,7 +925,7 @@ export default function GameScreen() {
         <View style={st.tableauRow}>
           {gs.columns.map((col, i) => (
             <View key={i} style={{ flex: 1 }}>
-              <TableauColumn column={col} colIndex={i} selectedId={selId} hintedId={hintCard} dragCardId={dragCard?.card?.id} dragStackIds={dragStackIds} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onCardLongPress={handleCardLongPress} />
+              <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard} dragCardId={dragCard?.card?.id} dragStackIds={dragStackIds} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onCardLongPress={handleCardLongPress} onUnlock={handleUnlock} />
             </View>
           ))}
         </View>
