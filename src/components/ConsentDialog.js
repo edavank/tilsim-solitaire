@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, FONTS, SIZES } from '../constants/theme';
+
+let AsyncStorage;
+try { AsyncStorage = require('@react-native-async-storage/async-storage').default; } catch (e) {}
 
 const CONSENT_KEY = '@tilsim_ad_consent';
 
@@ -11,13 +13,14 @@ export default function ConsentDialog({ onComplete }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
+    if (!AsyncStorage) return;
     AsyncStorage.getItem(CONSENT_KEY).then((val) => {
       if (!val) setVisible(true);
-    });
+    }).catch(() => {});
   }, []);
 
   const respond = async (accepted) => {
-    await AsyncStorage.setItem(CONSENT_KEY, accepted ? 'accepted' : 'declined');
+    try { if (AsyncStorage) await AsyncStorage.setItem(CONSENT_KEY, accepted ? 'accepted' : 'declined'); } catch (e) {}
     setVisible(false);
     onComplete?.(accepted);
   };
@@ -31,22 +34,14 @@ export default function ConsentDialog({ onComplete }) {
           <MaterialIcons name="privacy-tip" size={36} color={COLORS.secondary} style={{ marginBottom: 12 }} />
           <Text style={s.title}>Reklam Tercihleri</Text>
           <Text style={s.body}>
-            Tılsım Solitaire, ücretsiz içerik sunmak için reklam göstermektedir. 
-            Size daha uygun reklamlar göstermek için cihaz tanımlayıcınızı kullanmamıza izin verir misiniz?
+            Tılsım Solitaire, ücretsiz içerik sunmak için reklam göstermektedir. Size daha uygun reklamlar göstermek için izninizi istiyoruz.
           </Text>
-          <Text style={s.sub}>
-            İzin vermezseniz yine de uygulamamızı kullanabilirsiniz, ancak reklamlar kişiselleştirilmeyecektir.
-          </Text>
-          <Text style={s.sub}>
-            Detaylar için Ayarlar → Gizlilik Politikası'nı inceleyebilirsiniz.
-          </Text>
-
+          <Text style={s.sub}>İzin vermezseniz yine de uygulamamızı kullanabilirsiniz.</Text>
           <TouchableOpacity onPress={() => respond(true)} activeOpacity={0.85} style={{ width: '100%', marginTop: 16 }}>
             <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={s.acceptBtn}>
               <Text style={s.acceptText}>Kabul Et</Text>
             </LinearGradient>
           </TouchableOpacity>
-
           <TouchableOpacity style={s.declineBtn} onPress={() => respond(false)} activeOpacity={0.7}>
             <Text style={s.declineText}>Kişiselleştirme Olmadan Devam Et</Text>
           </TouchableOpacity>
@@ -61,7 +56,7 @@ const s = StyleSheet.create({
   card: { backgroundColor: COLORS.surfaceContainerHigh, borderRadius: 24, padding: 24, alignItems: 'center', width: '100%', borderWidth: 1, borderColor: COLORS.panelBorder },
   title: { fontFamily: FONTS.headlineBlack, fontSize: 20, color: COLORS.onSurface, marginBottom: 12 },
   body: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.onSurface, lineHeight: 19, textAlign: 'center', marginBottom: 8 },
-  sub: { fontFamily: FONTS.body, fontSize: 11, color: COLORS.onSurfaceVariant, lineHeight: 16, textAlign: 'center', marginBottom: 4 },
+  sub: { fontFamily: FONTS.body, fontSize: 11, color: COLORS.onSurfaceVariant, lineHeight: 16, textAlign: 'center' },
   acceptBtn: { paddingVertical: 14, borderRadius: SIZES.radiusFull, alignItems: 'center' },
   acceptText: { fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff' },
   declineBtn: { paddingVertical: 12, marginTop: 8 },

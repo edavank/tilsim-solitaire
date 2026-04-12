@@ -37,15 +37,7 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font",
-      "expo-tracking-transparency",
-      [
-        "react-native-google-mobile-ads",
-        {
-          "androidAppId": "ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY",
-          "iosAppId": "ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY"
-        }
-      ]
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": false

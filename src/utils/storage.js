@@ -1,4 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+let AsyncStorage;
+try { AsyncStorage = require('@react-native-async-storage/async-storage').default; } catch (e) {}
 
 const KEYS = {
   PROGRESS: '@tilsim_progress',
@@ -7,36 +8,41 @@ const KEYS = {
 };
 
 const DEFAULT_PROGRESS = {
-  currentLevel: 1,
-  coins: 310,
-  totalGames: 0,
-  totalWins: 0,
-  bestScore: 0,
-  streak: 0,
-  unlockedThemes: ['cosmic'],
+  currentLevel: 1, coins: 310, totalGames: 0, totalWins: 0, bestScore: 0, streak: 0, unlockedThemes: ['cosmic'],
 };
 
-const DEFAULT_SETTINGS = {
-  sound: true,
-  music: true,
-  vibration: true,
-  language: 'tr',
-  difficulty: 'normal',
-};
+const DEFAULT_SETTINGS = { sound: true, music: true, vibration: true, language: 'tr', difficulty: 'normal' };
 
-// ── Progress ──
+// In-memory fallback when AsyncStorage is unavailable
+let memStore = {};
+
+async function getItem(key) {
+  if (!AsyncStorage) return memStore[key] || null;
+  try { return await AsyncStorage.getItem(key); } catch (e) { return memStore[key] || null; }
+}
+
+async function setItem(key, value) {
+  memStore[key] = value;
+  if (!AsyncStorage) return;
+  try { await AsyncStorage.setItem(key, value); } catch (e) {}
+}
+
+async function removeItem(key) {
+  delete memStore[key];
+  if (!AsyncStorage) return;
+  try { await AsyncStorage.removeItem(key); } catch (e) {}
+}
+
 export async function loadProgress() {
   try {
-    const raw = await AsyncStorage.getItem(KEYS.PROGRESS);
+    const raw = await getItem(KEYS.PROGRESS);
     if (raw) return { ...DEFAULT_PROGRESS, ...JSON.parse(raw) };
-  } catch (e) { console.warn('loadProgress error:', e); }
+  } catch (e) {}
   return { ...DEFAULT_PROGRESS };
 }
 
 export async function saveProgress(progress) {
-  try {
-    await AsyncStorage.setItem(KEYS.PROGRESS, JSON.stringify(progress));
-  } catch (e) { console.warn('saveProgress error:', e); }
+  try { await setItem(KEYS.PROGRESS, JSON.stringify(progress)); } catch (e) {}
 }
 
 export async function updateProgress(updates) {
@@ -46,45 +52,39 @@ export async function updateProgress(updates) {
   return next;
 }
 
-// ── Settings ──
 export async function loadSettings() {
   try {
-    const raw = await AsyncStorage.getItem(KEYS.SETTINGS);
+    const raw = await getItem(KEYS.SETTINGS);
     if (raw) return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
-  } catch (e) { console.warn('loadSettings error:', e); }
+  } catch (e) {}
   return { ...DEFAULT_SETTINGS };
 }
 
 export async function saveSettings(settings) {
-  try {
-    await AsyncStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
-  } catch (e) { console.warn('saveSettings error:', e); }
+  try { await setItem(KEYS.SETTINGS, JSON.stringify(settings)); } catch (e) {}
 }
 
-// ── Saved Game (resume interrupted game) ──
 export async function loadSavedGame() {
   try {
-    const raw = await AsyncStorage.getItem(KEYS.SAVED_GAME);
+    const raw = await getItem(KEYS.SAVED_GAME);
     if (raw) return JSON.parse(raw);
-  } catch (e) { console.warn('loadSavedGame error:', e); }
+  } catch (e) {}
   return null;
 }
 
 export async function saveSavedGame(gameState) {
-  try {
-    await AsyncStorage.setItem(KEYS.SAVED_GAME, JSON.stringify(gameState));
-  } catch (e) { console.warn('saveSavedGame error:', e); }
+  try { await setItem(KEYS.SAVED_GAME, JSON.stringify(gameState)); } catch (e) {}
 }
 
 export async function clearSavedGame() {
-  try {
-    await AsyncStorage.removeItem(KEYS.SAVED_GAME);
-  } catch (e) { console.warn('clearSavedGame error:', e); }
+  try { await removeItem(KEYS.SAVED_GAME); } catch (e) {}
 }
 
-// ── Reset all ──
 export async function resetAll() {
   try {
-    await AsyncStorage.multiRemove([KEYS.PROGRESS, KEYS.SETTINGS, KEYS.SAVED_GAME]);
-  } catch (e) { console.warn('resetAll error:', e); }
+    await removeItem(KEYS.PROGRESS);
+    await removeItem(KEYS.SETTINGS);
+    await removeItem(KEYS.SAVED_GAME);
+    memStore = {};
+  } catch (e) {}
 }

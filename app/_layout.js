@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { View, ActivityIndicator, StyleSheet, Platform, Animated, Image, Text, Dimensions } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, ActivityIndicator, StyleSheet, Animated, Image, Text } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -17,7 +17,7 @@ import {
   Fondamento_400Regular,
   Fondamento_400Regular_Italic,
 } from '@expo-google-fonts/fondamento';
-import { COLORS, FONTS } from '../src/constants/theme';
+import { COLORS } from '../src/constants/theme';
 import { initAds } from '../src/utils/ads';
 import ConsentDialog from '../src/components/ConsentDialog';
 
@@ -61,29 +61,14 @@ const sp = StyleSheet.create({
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
-    PlusJakartaSans_700Bold,
-    PlusJakartaSans_800ExtraBold,
-    BeVietnamPro_400Regular,
-    BeVietnamPro_500Medium,
-    BeVietnamPro_700Bold,
-    Fondamento_400Regular,
-    Fondamento_400Regular_Italic,
+    PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold,
+    BeVietnamPro_400Regular, BeVietnamPro_500Medium, BeVietnamPro_700Bold,
+    Fondamento_400Regular, Fondamento_400Regular_Italic,
   });
 
   const [splashDone, setSplashDone] = useState(false);
 
-  useEffect(() => {
-    async function setup() {
-      if (Platform.OS === 'ios') {
-        try {
-          const { requestTrackingPermissionsAsync } = require('expo-tracking-transparency');
-          await requestTrackingPermissionsAsync();
-        } catch (e) {}
-      }
-      initAds();
-    }
-    setup();
-  }, []);
+  useEffect(() => { initAds(); }, []);
 
   if (!fontsLoaded) {
     return (
@@ -97,13 +82,7 @@ export default function RootLayout() {
   return (
     <View style={{ flex: 1 }}>
       <StatusBar style="light" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: COLORS.surface },
-          animation: 'fade',
-        }}
-      />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLORS.surface }, animation: 'fade' }} />
       {!splashDone && <AnimatedSplash onFinish={() => setSplashDone(true)} />}
       <ConsentDialog />
     </View>
@@ -111,10 +90,5 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  loading: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-  },
+  loading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.surface },
 });
