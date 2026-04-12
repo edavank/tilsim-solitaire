@@ -76,7 +76,7 @@ export const LEVELS = [
       { name: 'Hayvanlar', words: ['Kedi', 'Köpek', 'Kuş', 'Balık'] },
       { name: 'Renkler', words: ['Kırmızı', 'Mavi', 'Yeşil', 'Sarı'] },
     ],
-    totalSlots: 5, lockedSlots: 1,
+    totalSlots: 4, lockedSlots: 1,
     columns: [{ locked: true }, { depth: 3 }, { depth: 3 }, { depth: 3 }, { depth: 2 }],
   },
   {
@@ -86,8 +86,8 @@ export const LEVELS = [
       { name: 'İçecekler', words: ['Çay', 'Kahve', 'Su', 'Süt'] },
       { name: 'Mevsimler', words: ['İlkbahar', 'Yaz', 'Sonbahar', 'Kış'] },
     ],
-    totalSlots: 4, lockedSlots: 0,
-    columns: [{ depth: 3 }, { depth: 3 }, { depth: 3 }, { depth: 3 }, { depth: 2 }],
+    totalSlots: 4, lockedSlots: 1,
+    columns: [{ locked: true }, { depth: 3 }, { depth: 3 }, { depth: 3 }, { depth: 2 }],
   },
   {
     id: 3, moves: 50, hints: 4, undos: 1,
@@ -96,8 +96,8 @@ export const LEVELS = [
       { name: 'Okul', words: ['Kalem', 'Defter', 'Silgi', 'Cetvel'] },
       { name: 'Duygular', words: ['Mutluluk', 'Üzüntü', 'Şaşkınlık', 'Korku'] },
     ],
-    totalSlots: 4, lockedSlots: 0,
-    columns: [{ depth: 3 }, { depth: 3 }, { depth: 3 }, { depth: 3 }, { depth: 3 }],
+    totalSlots: 4, lockedSlots: 1,
+    columns: [{ locked: true }, { depth: 3 }, { depth: 3 }, { depth: 3 }, { depth: 3 }],
   },
 
   // ── Bölüm 4-6: Orta (3-4 kategori, 4-5 kelime) ──
@@ -108,7 +108,7 @@ export const LEVELS = [
       { name: 'Hayvanlar', words: ['Tavşan', 'At', 'Kaplumbağa', 'Kurbağa'] },
       { name: 'Müzik', words: ['Gitar', 'Piyano', 'Davul', 'Keman'] },
     ],
-    totalSlots: 5, lockedSlots: 1,
+    totalSlots: 3, lockedSlots: 1,
     columns: [{ locked: true }, { depth: 4 }, { depth: 3 }, { depth: 3 }, { depth: 3 }],
   },
   {
@@ -119,7 +119,7 @@ export const LEVELS = [
       { name: 'Ulaşım', words: ['Araba', 'Otobüs', 'Tren', 'Uçak'] },
       { name: 'Renkler', words: ['Turuncu', 'Mor', 'Pembe', 'Beyaz'] },
     ],
-    totalSlots: 5, lockedSlots: 1,
+    totalSlots: 4, lockedSlots: 1,
     columns: [{ locked: true }, { depth: 4 }, { depth: 4 }, { depth: 4 }, { depth: 4 }],
   },
   {
@@ -129,7 +129,7 @@ export const LEVELS = [
       { name: 'Ağaçlar', words: ['Çam', 'Meşe', 'Kavak', 'Ceviz'] },
       { name: 'Giysiler', words: ['Gömlek', 'Pantolon', 'Şapka', 'Ayakkabı'] },
     ],
-    totalSlots: 5, lockedSlots: 1,
+    totalSlots: 3, lockedSlots: 1,
     columns: [{ locked: true }, { depth: 4 }, { depth: 4 }, { depth: 3 }, { depth: 3 }],
   },
 
@@ -142,7 +142,7 @@ export const LEVELS = [
       { name: 'Sebzeler', words: ['Soğan', 'Patlıcan', 'Brokoli', 'Mısır'] },
       { name: 'Sporlar', words: ['Voleybol', 'Boks', 'Bisiklet', 'Koşu'] },
     ],
-    totalSlots: 5, lockedSlots: 1,
+    totalSlots: 4, lockedSlots: 1,
     columns: [{ locked: true }, { depth: 5 }, { depth: 4 }, { depth: 4 }, { depth: 4 }],
   },
   {
@@ -153,7 +153,7 @@ export const LEVELS = [
       { name: 'Yiyecekler', words: ['Dondurma', 'Kek', 'Pizza', 'Sushi'] },
       { name: 'Meyveler', words: ['Ananas', 'Nar', 'İncir', 'Şeftali'] },
     ],
-    totalSlots: 6, lockedSlots: 1,
+    totalSlots: 4, lockedSlots: 1,
     columns: [{ locked: true }, { depth: 5 }, { depth: 5 }, { depth: 4 }, { depth: 4 }],
   },
 
@@ -166,7 +166,7 @@ export const LEVELS = [
       { name: 'Müzik', words: ['Flüt', 'Saz', 'Gitar', 'Davul', 'Keman'] },
       { name: 'Okul', words: ['Kitap', 'Sırt çantası', 'Kalem', 'Defter'] },
     ],
-    totalSlots: 6, lockedSlots: 1,
+    totalSlots: 4, lockedSlots: 1,
     columns: [{ locked: true }, { depth: 5 }, { depth: 5 }, { depth: 5 }, { depth: 5 }],
   },
   {
@@ -178,7 +178,7 @@ export const LEVELS = [
       { name: 'Gezegenler', words: ['Merkür', 'Neptün', 'Mars', 'Satürn', 'Venüs'] },
       { name: 'Kuşlar', words: ['Flamingo', 'Baykuş', 'Kartal', 'Papağan'] },
     ],
-    totalSlots: 6, lockedSlots: 2,
+    totalSlots: 5, lockedSlots: 1,
     columns: [{ locked: true }, { depth: 6 }, { depth: 6 }, { depth: 5 }, { depth: 5 }],
   },
 ];

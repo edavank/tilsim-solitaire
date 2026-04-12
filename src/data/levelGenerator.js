@@ -46,8 +46,8 @@ export function generateLevels(startId, count) {
     const moves = Math.max(60 - difficulty * 3, 28);
     const hints = Math.max(5 - Math.floor(difficulty / 2), 1);
     const undos = difficulty < 4 ? 1 : 0;
-    const lockedSlots = difficulty >= 2 ? Math.min(Math.floor(difficulty / 3), 2) : 0;
-    const hasLockedCol = difficulty >= 3;
+    const lockedSlots = Math.min(1 + Math.floor(difficulty / 4), 2);
+    const hasLockedCol = true; // Every level has a locked column
     const colDepths = [];
 
     if (hasLockedCol) colDepths.push({ locked: true });
@@ -65,7 +65,7 @@ export function generateLevels(startId, count) {
       hints,
       undos,
       categories,
-      totalSlots: numCats + 1 + lockedSlots,
+      totalSlots: numCats,
       lockedSlots,
       columns: colDepths,
     });

@@ -7,7 +7,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { COLORS, FONTS, SIZES, CATEGORY_COLORS } from '../src/constants/theme';
-import BottomNav from '../src/components/BottomNav';
 import { LEVELS, generateGameState } from '../src/data/levels';
 import { loadProgress, updateProgress, clearSavedGame, saveSavedGame } from '../src/utils/storage';
 import { playHaptic } from '../src/utils/sounds';
@@ -185,8 +184,8 @@ function TableauColumn({ column, colIndex, selectedId, hintedId, onCardTap, onCo
         return (
           <View key={card.id} style={{ marginTop: ci === 0 ? 0 : OVERLAP, zIndex: ci }}>
             {card.faceUp ? (
-              <TouchableOpacity activeOpacity={0.7} onPress={() => { if (isLast) onCardTap(card, 'column', colIndex); }} disabled={!isLast}>
-                <FaceUpCard card={card} selected={isLast && selectedId === card.id} hinted={isHinted} />
+              <TouchableOpacity activeOpacity={0.7} onPress={() => onCardTap(card, 'column', colIndex, isLast)}>
+                <FaceUpCard card={card} selected={selectedId === card.id} hinted={isHinted} />
               </TouchableOpacity>
             ) : (
               <FaceDownCard />
@@ -475,7 +474,12 @@ export default function GameScreen() {
     setSelected(null);
   }, []);
 
-  const handleCardTap = useCallback((card, source, sourceIndex) => {
+  const handleCardTap = useCallback((card, source, sourceIndex, isLast = true) => {
+    // If tapping a non-bottom card in a column, show feedback
+    if (source === 'column' && !isLast) {
+      setFeedback('⚠️ Önce altındaki kartları kaldır!');
+      return;
+    }
     setSelected((prev) => {
       if (prev && prev.card.id !== card.id && source === 'column') {
         moveToColumn(prev.card, prev.source, prev.sourceIndex, sourceIndex);
@@ -735,8 +739,6 @@ export default function GameScreen() {
         </View>
       </View>
 
-      <BottomNav activeTab="home" />
-
       {/* Tutorial */}
       {showTutorial && (
         <View style={ov.overlay}>
@@ -912,7 +914,7 @@ const st = StyleSheet.create({
   slotTag: { position: 'absolute', top: 0, left: 0, right: 0, paddingVertical: 2, alignItems: 'center', borderTopLeftRadius: 8, borderTopRightRadius: 8 },
   slotTagText: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: '#fff' },
   tableauRow: { flexDirection: 'row', gap: COL_GAP, alignItems: 'flex-start' },
-  toolbar: { position: 'absolute', bottom: 94, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end', gap: 12, paddingVertical: 6, paddingHorizontal: 16, zIndex: 100 },
+  toolbar: { position: 'absolute', bottom: 30, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end', gap: 12, paddingVertical: 6, paddingHorizontal: 16, zIndex: 100 },
   toolWrap: { alignItems: 'center', gap: 3 },
   toolBtn: { width: 46, height: 46, borderRadius: 13, backgroundColor: COLORS.buttonBlue, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.1)', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 5, elevation: 5 },
   toolBtnBig: { width: 54, height: 54, borderRadius: 27, backgroundColor: COLORS.primary },
