@@ -326,8 +326,8 @@ export default function GameScreen() {
       const cardIdx = col.cards.findIndex((c) => c.id === card.id);
       if (cardIdx < 0) return;
       const stack = col.cards.slice(cardIdx);
-      const allFaceUp = stack.every((c) => c.faceUp);
-      if (!allFaceUp) { setFeedback('⚠️ Önce altındaki kartları kaldır!'); return; }
+      const allValid = stack.every((c) => c.faceUp && c.categoryIndex === card.categoryIndex);
+      if (!allValid) { setFeedback('⚠️ Sadece aynı kategorideki kartlar sürüklenebilir!'); return; }
       stackCards = stack;
     }
     dragRef.current = { card, source, sourceIndex, isLast, stackCards, startX: pageX, startY: pageY };
@@ -575,7 +575,11 @@ export default function GameScreen() {
       if (targetCol.cards.length > 0) {
         const bottomCard = targetCol.cards[targetCol.cards.length - 1];
         if (!bottomCard.faceUp) { setFeedback('⚠️ Buraya koyamazsın!'); return prev; }
-        // Sütunlar serbest — herhangi bir kart herhangi bir kartın üstüne konabilir
+        // Aynı kategorideki kartlar üst üste konabilir
+        if (card.categoryIndex !== undefined && bottomCard.categoryIndex !== undefined && card.categoryIndex !== bottomCard.categoryIndex) {
+          setFeedback('⚠️ Farklı kategori! Sadece aynı kategoriler üst üste konabilir.');
+          return prev;
+        }
       }
       const ns = removeFromSource(prev, source, sourceIndex, card.id);
       ns.columns = ns.columns.map((col, i) => {
@@ -591,15 +595,15 @@ export default function GameScreen() {
 
   const handleCardTap = useCallback((card, source, sourceIndex, isLast = true) => {
     if (source === 'column' && !isLast) {
-      // Check if this card + all below are face-up (any category OK for column moves)
+      // Check if this card + all below form a same-category stack
       const col = gs.columns[sourceIndex];
       if (!col) return;
       const cardIdx = col.cards.findIndex((c) => c.id === card.id);
       if (cardIdx < 0) return;
       const stack = col.cards.slice(cardIdx);
-      const allFaceUp = stack.every((c) => c.faceUp);
-      if (!allFaceUp) {
-        setFeedback('⚠️ Önce altındaki kartları kaldır!');
+      const allValid = stack.every((c) => c.faceUp && c.categoryIndex === card.categoryIndex);
+      if (!allValid) {
+        setFeedback('⚠️ Sadece aynı kategorideki kartlar yığın olarak seçilebilir!');
         return;
       }
       // Valid stack — select it
@@ -633,7 +637,10 @@ export default function GameScreen() {
       if (targetCol.cards.length > 0) {
         const bottomCard = targetCol.cards[targetCol.cards.length - 1];
         if (!bottomCard.faceUp) { setFeedback('⚠️ Buraya koyamazsın!'); return prev; }
-        // Sütunlar serbest — yığınlar herhangi bir kartın üstüne konabilir
+        if (stackCards[0].categoryIndex !== undefined && bottomCard.categoryIndex !== undefined && stackCards[0].categoryIndex !== bottomCard.categoryIndex) {
+          setFeedback('⚠️ Farklı kategori! Sadece aynı kategoriler üst üste konabilir.');
+          return prev;
+        }
       }
 
       const stackIds = new Set(stackCards.map((c) => c.id));
