@@ -144,7 +144,7 @@ export const LEVELS = [
   },
   // Bölüm 7-8: 4-5 kat × 4-5 kel. Derin sütunlar
   {
-    id: 7, moves: 28, hints: 2, undos: 0,
+    id: 7, moves: 32, hints: 2, undos: 0,
     categories: [
       { name: 'Hava durumu', words: ['Güneşli', 'Yağmurlu', 'Karlı', 'Bulutlu', 'Fırtınalı'] },
       { name: 'Sebzeler', words: ['Soğan', 'Patlıcan', 'Brokoli', 'Mısır'] },
@@ -153,10 +153,10 @@ export const LEVELS = [
       { name: 'Mevsimler', words: ['İlkbahar', 'Yaz', 'Sonbahar', 'Kış'] },
     ],
     totalSlots: 5, lockedSlots: 1,
-    columns: [{ locked: true }, { depth: 6 }, { depth: 5 }, { depth: 5 }, { depth: 5 }],
+    columns: [{ locked: true }, { depth: 5 }, { depth: 5 }, { depth: 5 }, { depth: 5 }],
   },
   {
-    id: 8, moves: 26, hints: 1, undos: 0,
+    id: 8, moves: 30, hints: 1, undos: 0,
     categories: [
       { name: 'İçecekler', words: ['Limonata', 'Ayran', 'Meyve suyu', 'Smoothie'] },
       { name: 'Yiyecekler', words: ['Dondurma', 'Kek', 'Pizza', 'Sushi'] },
@@ -165,11 +165,11 @@ export const LEVELS = [
       { name: 'Kuşlar', words: ['Baykuş', 'Flamingo', 'Kartal', 'Martı'] },
     ],
     totalSlots: 5, lockedSlots: 1,
-    columns: [{ locked: true }, { depth: 6 }, { depth: 6 }, { depth: 5 }, { depth: 5 }],
+    columns: [{ locked: true }, { depth: 5 }, { depth: 5 }, { depth: 5 }, { depth: 5 }],
   },
   // Bölüm 9-10: 5 kat × 4-5 kel. Çok derin, çok az hamle
   {
-    id: 9, moves: 25, hints: 1, undos: 0,
+    id: 9, moves: 28, hints: 1, undos: 0,
     categories: [
       { name: 'Hayvanlar', words: ['Aslan', 'Fil', 'Zürafa', 'Penguen', 'Kedi'] },
       { name: 'Ağaçlar', words: ['Palmiye', 'Çam', 'Meşe', 'Kavak', 'Ceviz'] },
@@ -177,11 +177,11 @@ export const LEVELS = [
       { name: 'Ulaşım', words: ['Gemi', 'Uçak', 'Tren', 'Araba'] },
       { name: 'Gezegenler', words: ['Merkür', 'Neptün', 'Mars', 'Venüs'] },
     ],
-    totalSlots: 5, lockedSlots: 2,
-    columns: [{ locked: true }, { depth: 6 }, { depth: 6 }, { depth: 6 }, { depth: 5 }],
+    totalSlots: 5, lockedSlots: 1,
+    columns: [{ locked: true }, { depth: 6 }, { depth: 5 }, { depth: 5 }, { depth: 5 }],
   },
   {
-    id: 10, moves: 24, hints: 1, undos: 0,
+    id: 10, moves: 28, hints: 1, undos: 0,
     categories: [
       { name: 'Hava durumu', words: ['Sisli', 'Güneşli', 'Yağmurlu', 'Karlı', 'Bulutlu'] },
       { name: 'Duygular', words: ['Şaşkınlık', 'Korku', 'Öfke', 'Heyecan', 'Üzüntü'] },
@@ -189,8 +189,8 @@ export const LEVELS = [
       { name: 'Mevsimler', words: ['İlkbahar', 'Yaz', 'Sonbahar', 'Kış'] },
       { name: 'Sebzeler', words: ['Domates', 'Biber', 'Havuç', 'Patates', 'Soğan'] },
     ],
-    totalSlots: 5, lockedSlots: 2,
-    columns: [{ locked: true }, { depth: 7 }, { depth: 6 }, { depth: 6 }, { depth: 6 }],
+    totalSlots: 5, lockedSlots: 1,
+    columns: [{ locked: true }, { depth: 6 }, { depth: 6 }, { depth: 5 }, { depth: 5 }],
   },
 ];
 

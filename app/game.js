@@ -12,12 +12,12 @@ import { loadProgress, updateProgress, clearSavedGame, saveSavedGame } from '../
 import { playHaptic, playSound } from '../src/utils/sounds';
 import { showRewarded, showInterstitial } from '../src/utils/ads';
 
-const { width: SW } = Dimensions.get('window');
+const { width: SW, height: SH } = Dimensions.get('window');
 const COL_COUNT = 5;
-const COL_GAP = 5;
-const CARD_W = Math.floor((SW - 20 - (COL_COUNT - 1) * COL_GAP) / COL_COUNT);
-const CARD_H = Math.floor(CARD_W * 1.35);
-const OVERLAP = -Math.floor(CARD_H * 0.72);
+const COL_GAP = 4;
+const CARD_W = Math.floor((SW - 16 - (COL_COUNT - 1) * COL_GAP) / COL_COUNT);
+const CARD_H = Math.floor(CARD_W * 1.3);
+const OVERLAP = -Math.floor(CARD_H * 0.75);
 const OWL_HAPPY = require('../assets/bilge-happy.png');
 
 /* ── Sparkle Particle ── */
@@ -126,7 +126,7 @@ function FaceUpCard({ card, selected, w, h, hinted, isDragging }) {
 }
 
 function FoundationSlot({ slot, slotIndex, onPress, onUnlock, hinted }) {
-  const h = CARD_H * 0.85;
+  const h = CARD_H * 0.72;
   if (slot.locked) {
     return (
       <View style={[st.slotBox, st.slotDashed, { height: h }]}>
@@ -605,14 +605,14 @@ export default function GameScreen() {
       if (targetCol.cards.length > 0) {
         const bottomCard = targetCol.cards[targetCol.cards.length - 1];
         if (!bottomCard.faceUp) { setFeedback('⚠️ Buraya koyamazsın!'); return prev; }
-        // Kategori kartları sütunda gruplanamaz
-        if (card.type === 'category' || bottomCard.type === 'category') {
-          setFeedback('⚠️ Kategori kartları gruplanamaz!');
+        // Kelime kartı kategori kartının üstüne konamaz
+        if (card.type === 'word' && bottomCard.type === 'category') {
+          setFeedback('⚠️ Kelime kartı kategori üstüne konamaz!');
           return prev;
         }
-        // Aynı kategorideki kartlar üst üste konabilir
-        if (card.categoryIndex !== undefined && bottomCard.categoryIndex !== undefined && card.categoryIndex !== bottomCard.categoryIndex) {
-          setFeedback('⚠️ Farklı kategori! Sadece aynı kategoriler üst üste konabilir.');
+        // Aynı kategorideki kelime kartları üst üste konabilir
+        if (card.type === 'word' && bottomCard.type === 'word' && card.categoryIndex !== bottomCard.categoryIndex) {
+          setFeedback('⚠️ Farklı kategori!');
           return prev;
         }
       }
@@ -672,13 +672,14 @@ export default function GameScreen() {
       if (targetCol.cards.length > 0) {
         const bottomCard = targetCol.cards[targetCol.cards.length - 1];
         if (!bottomCard.faceUp) { setFeedback('⚠️ Buraya koyamazsın!'); return prev; }
-        // Kategori kartları sütunda gruplanamaz
-        if (stackCards[0].type === 'category' || bottomCard.type === 'category') {
-          setFeedback('⚠️ Kategori kartları gruplanamaz!');
+        // Kelime kartı kategori kartının üstüne konamaz
+        if (stackCards[0].type === 'word' && bottomCard.type === 'category') {
+          setFeedback('⚠️ Kelime kartı kategori üstüne konamaz!');
           return prev;
         }
-        if (stackCards[0].categoryIndex !== undefined && bottomCard.categoryIndex !== undefined && stackCards[0].categoryIndex !== bottomCard.categoryIndex) {
-          setFeedback('⚠️ Farklı kategori! Sadece aynı kategoriler üst üste konabilir.');
+        // Aynı kategorideki kelime kartları üst üste konabilir
+        if (stackCards[0].type === 'word' && bottomCard.type === 'word' && stackCards[0].categoryIndex !== bottomCard.categoryIndex) {
+          setFeedback('⚠️ Farklı kategori!');
           return prev;
         }
       }
@@ -867,7 +868,7 @@ export default function GameScreen() {
 
   const selId = selected?.card?.id;
   const selectedStackIds = selected?.stackCards ? new Set(selected.stackCards.map((c) => c.id)) : null;
-  const DCW = Math.floor(CARD_W * 0.95); const DCH = Math.floor(CARD_H * 0.85);
+  const DCW = Math.floor(CARD_W * 0.88); const DCH = Math.floor(CARD_H * 0.78);
   const dragStackIds = dragCard?.stackCards ? new Set(dragCard.stackCards.map((c) => c.id)) : null;
 
   // Unlock slot or column (via ad or free)
@@ -912,7 +913,7 @@ export default function GameScreen() {
       {!!feedback && <View style={st.feedbackBar}><Text style={st.feedbackText}>{feedback}</Text></View>}
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={st.scrollContent} showsVerticalScrollIndicator={false} scrollEnabled={!dragCard} ref={scrollRef}>
-        <View style={{ height: 28 }} />
+        <View style={{ height: 20 }} />
         <View style={st.deckRow}>
           <View style={st.movesPanel}>
             <Text style={st.movesLabel}>HAMLE</Text>
@@ -1156,21 +1157,21 @@ const ov = StyleSheet.create({
 /* ── Game Styles ── */
 const st = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.surface },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 14, paddingTop: 52, paddingBottom: 6, backgroundColor: COLORS.headerBg, zIndex: 50 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 14, paddingTop: 50, paddingBottom: 4, backgroundColor: COLORS.headerBg, zIndex: 50 },
   coinBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: COLORS.panelBg, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 9999, borderWidth: 1, borderColor: COLORS.panelBorder },
   coinText: { fontFamily: FONTS.headline, fontSize: 13, color: COLORS.onSurface },
   headerTitle: { fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff', letterSpacing: 1 },
   settingsBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: COLORS.panelBg, alignItems: 'center', justifyContent: 'center' },
   feedbackBar: { position: 'absolute', top: 88, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.65)', paddingVertical: 8, paddingHorizontal: 16, zIndex: 100 },
   feedbackText: { fontFamily: FONTS.headline, fontSize: 13, color: '#fff', textAlign: 'center' },
-  scrollContent: { paddingHorizontal: 10, paddingTop: 4, gap: 8 },
-  deckRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  movesPanel: { backgroundColor: COLORS.panelBg, borderWidth: 1.5, borderColor: COLORS.panelBorder, borderRadius: 14, paddingHorizontal: 8, paddingVertical: 6, alignItems: 'center', minWidth: 64 },
+  scrollContent: { paddingHorizontal: 8, paddingTop: 2, gap: 6 },
+  deckRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  movesPanel: { backgroundColor: COLORS.panelBg, borderWidth: 1.5, borderColor: COLORS.panelBorder, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 5, alignItems: 'center', minWidth: 60 },
   movesLabel: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: COLORS.onSurfaceVariant, letterSpacing: 1 },
   movesNum: { fontFamily: FONTS.headlineBlack, fontSize: 22, color: '#fff', lineHeight: 26 },
   addBtn: { backgroundColor: COLORS.success, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 9999, marginTop: 2 },
   addBtnText: { fontFamily: FONTS.headlineBlack, fontSize: 8, color: '#fff' },
-  drawnArea: { flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: 76 },
+  drawnArea: { flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: 66 },
   emptyCard: { borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.panelBorder, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.03)' },
   deckBadge: { position: 'absolute', top: -5, right: -5, backgroundColor: COLORS.primary, minWidth: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff', paddingHorizontal: 3 },
   deckBadgeText: { fontFamily: FONTS.headlineBlack, fontSize: 9, color: '#fff' },
@@ -1185,7 +1186,7 @@ const st = StyleSheet.create({
   catBadge: { position: 'absolute', top: 3, right: 4, backgroundColor: COLORS.cardBackTop, paddingHorizontal: 4, paddingVertical: 1, borderRadius: 6 },
   catBadgeText: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: '#fff' },
   catName: { fontFamily: FONTS.headlineBlack, fontSize: 9, color: '#1e293b', textAlign: 'center', lineHeight: 12, marginTop: 1 },
-  slotsRow: { flexDirection: 'row', gap: 3 },
+  slotsRow: { flexDirection: 'row', gap: 2 },
   slotBox: { borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', gap: 2 },
   slotDashed: { borderColor: COLORS.panelBorder, borderStyle: 'dashed', backgroundColor: 'rgba(255,255,255,0.03)' },
   slotHinted: { borderColor: COLORS.coin, borderWidth: 2.5, shadowColor: COLORS.coin, shadowOpacity: 0.6, shadowRadius: 10 },
@@ -1194,7 +1195,7 @@ const st = StyleSheet.create({
   adText: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: '#fff' },
   slotTag: { position: 'absolute', top: 0, left: 0, right: 0, paddingVertical: 2, alignItems: 'center', borderTopLeftRadius: 8, borderTopRightRadius: 8 },
   slotTagText: { fontFamily: FONTS.headlineBlack, fontSize: 8, color: '#fff' },
-  tableauRow: { flexDirection: 'row', gap: COL_GAP, alignItems: 'flex-start' },
+  tableauRow: { flexDirection: 'row', gap: COL_GAP, alignItems: 'flex-start', marginTop: 2 },
   toolbar: { position: 'absolute', bottom: 30, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end', gap: 12, paddingVertical: 6, paddingHorizontal: 16, zIndex: 100 },
   toolWrap: { alignItems: 'center', gap: 3 },
   toolBtn: { width: 46, height: 46, borderRadius: 13, backgroundColor: COLORS.buttonBlue, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.1)', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 5, elevation: 5 },
