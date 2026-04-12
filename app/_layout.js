@@ -23,6 +23,7 @@ import ConsentDialog from '../src/components/ConsentDialog';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { setVibrationEnabled, setSoundEnabled, loadSounds } from '../src/utils/sounds';
 import { loadSettings } from '../src/utils/storage';
+import { initAuth } from '../src/utils/auth';
 
 const OWL = require('../assets/bilge-happy.png');
 
@@ -73,6 +74,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     initAds();
+    initAuth();
     loadSounds();
     loadSettings().then((s) => {
       setVibrationEnabled(s.vibration !== false);

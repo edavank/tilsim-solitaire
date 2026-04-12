@@ -7,6 +7,7 @@ import { COLORS, FONTS, SIZES } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { loadSettings, saveSettings, loadProgress, resetAll } from '../src/utils/storage';
 import { setVibrationEnabled, setSoundEnabled } from '../src/utils/sounds';
+import { signInWithGoogle, signOut, getUser, onAuthChange } from '../src/utils/auth';
 
 const OWL = require('../assets/bilge-happy.png');
 
@@ -14,6 +15,8 @@ export default function SettingsScreen() {
   const [sound, setSound] = useState(true);
   const [vibration, setVibration] = useState(true);
   const [coins, setCoins] = useState(0);
+  const [user, setUser] = useState(getUser());
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadSettings().then((s) => {
@@ -21,6 +24,8 @@ export default function SettingsScreen() {
       setSound(s.sound !== false);
     });
     loadProgress().then((p) => setCoins(p.coins));
+    const unsub = onAuthChange((u) => setUser(u));
+    return unsub;
   }, []);
 
   const toggleSound = (v) => {
@@ -81,6 +86,37 @@ export default function SettingsScreen() {
         <View style={s.card}>
           <SettingRow icon="translate" iconColor={COLORS.secondary} label="Dil" right={<ChevronValue value="Türkçe" />} />
         </View>
+
+        {/* Hesap */}
+        <View style={s.sectionHeader}>
+          <MaterialIcons name="person" size={18} color={COLORS.coin} />
+          <Text style={s.sectionTitle}>Hesap</Text>
+        </View>
+        {user ? (
+          <View style={s.card}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 }}>
+              <MaterialIcons name="account-circle" size={40} color={COLORS.primary} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 15, color: COLORS.onSurface }}>{user.name}</Text>
+                <Text style={{ fontFamily: FONTS.body, fontSize: 12, color: COLORS.onSurfaceVariant }}>{user.email}</Text>
+              </View>
+            </View>
+            <View style={s.divider} />
+            <TouchableOpacity style={{ padding: 14, alignItems: 'center' }} onPress={async () => { await signOut(); Alert.alert('Çıkış yapıldı'); }}>
+              <Text style={{ fontFamily: FONTS.body, fontSize: 14, color: COLORS.primary }}>Çıkış Yap</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity style={s.googleBtn} activeOpacity={0.8} onPress={async () => {
+            setLoading(true);
+            const result = await signInWithGoogle();
+            setLoading(false);
+            if (result.error) Alert.alert('Giriş Hatası', result.error);
+          }}>
+            <MaterialIcons name="public" size={20} color="#fff" />
+            <Text style={s.googleText}>{loading ? 'Bağlanıyor...' : 'Google ile Bağla'}</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Buttons */}
         <TouchableOpacity style={s.resetBtn} activeOpacity={0.8} onPress={handleReset}>
@@ -169,6 +205,12 @@ const s = StyleSheet.create({
   rowLabel: { fontFamily: FONTS.bodyMedium, fontSize: 15, color: COLORS.onSurface },
   divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginHorizontal: 16 },
   chevronValue: { fontFamily: FONTS.bodyMedium, fontSize: 13, color: COLORS.secondary },
+
+  googleBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+    backgroundColor: COLORS.primary, paddingVertical: 16, borderRadius: 16, marginTop: 12,
+  },
+  googleText: { fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff' },
 
   resetBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
