@@ -18,6 +18,7 @@ import {
 } from '@expo-google-fonts/fondamento';
 import { COLORS } from '../src/constants/theme';
 import { initAds } from '../src/utils/ads';
+import ConsentDialog from '../src/components/ConsentDialog';
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -62,6 +63,7 @@ export default function RootLayout() {
           animation: 'fade',
         }}
       />
+      <ConsentDialog />
     </View>
   );
 }

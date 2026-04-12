@@ -8,7 +8,7 @@ const WORD_POOLS = [
   { name: 'Ağaçlar', words: ['Çam', 'Meşe', 'Kavak', 'Ceviz', 'Zeytin', 'Palmiye'] },
   { name: 'Müzik', words: ['Gitar', 'Piyano', 'Davul', 'Keman', 'Flüt', 'Saz'] },
   { name: 'Sebzeler', words: ['Domates', 'Biber', 'Havuç', 'Patates', 'Soğan', 'Patlıcan', 'Brokoli', 'Mısır'] },
-  { name: 'Ülkeler', words: ['Türkiye', 'Japonya', 'Brezilya', 'İtalya', 'Fransa'] },
+  { name: 'Ülkeler', words: ['Türkiye', 'Japonya', 'Brezilya', 'İtalya', 'Fransa', 'Almanya'] },
   { name: 'Gezegenler', words: ['Mars', 'Jüpiter', 'Satürn', 'Venüs', 'Merkür', 'Neptün'] },
   { name: 'Mevsimler', words: ['İlkbahar', 'Yaz', 'Sonbahar', 'Kış'] },
   { name: 'Duygular', words: ['Mutluluk', 'Üzüntü', 'Şaşkınlık', 'Korku', 'Öfke', 'Heyecan'] },

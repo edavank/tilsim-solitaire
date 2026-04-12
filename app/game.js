@@ -140,11 +140,14 @@ function FoundationSlot({ slot, onPress, hinted }) {
   if (slot.category) {
     const clr = CATEGORY_COLORS[slot.category.categoryIndex % CATEGORY_COLORS.length];
     const p = slot.placedCards.length; const t = slot.category.totalWords;
+    const isDone = p >= t;
     return (
-      <TouchableOpacity style={[st.slotBox, { height: h, borderColor: clr, borderStyle: 'solid', backgroundColor: '#fff' }, hinted && st.slotHinted]} onPress={onPress} activeOpacity={0.7}>
-        <View style={[st.slotTag, { backgroundColor: clr }]}><Text style={st.slotTagText}>{p}/{t}</Text></View>
-        <MaterialIcons name="style" size={14} color={clr} style={{ marginTop: 8 }} />
-        <Text style={[st.word, { fontSize: 7, marginTop: 2 }]} numberOfLines={2}>{slot.category.word}</Text>
+      <TouchableOpacity style={[st.slotBox, { height: h, borderColor: isDone ? COLORS.success : clr, borderStyle: 'solid', backgroundColor: isDone ? '#f0fff0' : '#fff' }, hinted && st.slotHinted]} onPress={onPress} activeOpacity={0.7}>
+        <View style={[st.slotTag, { backgroundColor: isDone ? COLORS.success : clr }]}>
+          {isDone ? <MaterialIcons name="check" size={10} color="#fff" /> : <Text style={st.slotTagText}>{p}/{t}</Text>}
+        </View>
+        <MaterialIcons name={isDone ? 'check-circle' : 'style'} size={14} color={isDone ? COLORS.success : clr} style={{ marginTop: 8 }} />
+        <Text style={[st.word, { fontSize: 7, marginTop: 2, color: isDone ? COLORS.success : '#1e293b' }]} numberOfLines={2}>{slot.category.word}</Text>
       </TouchableOpacity>
     );
   }
@@ -196,14 +199,16 @@ function TableauColumn({ column, colIndex, selectedId, hintedId, onCardTap, onCo
 }
 
 /* ── Win Overlay ── */
-function LevelCompleteOverlay({ score, coins, onNext, onReplay, onHome }) {
+function LevelCompleteOverlay({ score, coins, movesLeft, maxMoves, levelId, onNext, onReplay, onHome }) {
+  const moveBonus = Math.floor(50 * (movesLeft / maxMoves));
+  const totalCoins = coins + moveBonus;
   return (
     <View style={ov.overlay}>
       <LinearGradient colors={['rgba(21,6,41,0.95)', 'rgba(61,53,96,0.95)']} style={StyleSheet.absoluteFillObject} />
       <View style={ov.card}>
         <Image source={OWL_HAPPY} style={ov.owl} />
         <Text style={ov.title}>Tebrikler!</Text>
-        <Text style={ov.subtitle}>BÖLÜM TAMAMLANDI</Text>
+        <Text style={ov.subtitle}>BÖLÜM {levelId} TAMAMLANDI</Text>
         <View style={ov.statsRow}>
           <View style={ov.statBox}>
             <Text style={ov.statLabel}>SKOR</Text>
@@ -214,7 +219,8 @@ function LevelCompleteOverlay({ score, coins, onNext, onReplay, onHome }) {
               <MaterialIcons name="monetization-on" size={14} color={COLORS.coin} />
               <Text style={ov.statLabel}>ALTIN</Text>
             </View>
-            <Text style={[ov.statValue, { color: COLORS.coin }]}>+{coins}</Text>
+            <Text style={[ov.statValue, { color: COLORS.coin }]}>+{totalCoins}</Text>
+            {moveBonus > 0 && <Text style={{ fontFamily: FONTS.body, fontSize: 9, color: COLORS.onSurfaceVariant, marginTop: 2 }}>({coins} + {moveBonus} hamle bonus)</Text>}
           </View>
         </View>
         <TouchableOpacity onPress={onNext} activeOpacity={0.85}>
@@ -788,7 +794,7 @@ export default function GameScreen() {
 
       {/* Overlays */}
       {gs.isComplete && (
-        <LevelCompleteOverlay score={gs.score} coins={250} onNext={handleNextLevel} onReplay={handleReplay} onHome={handleHome} />
+        <LevelCompleteOverlay score={gs.score} coins={250} movesLeft={gs.moves} maxMoves={level.moves} levelId={gs.levelId} onNext={handleNextLevel} onReplay={handleReplay} onHome={handleHome} />
       )}
       {gs.isFailed && !gs.isComplete && (
         <LevelFailedOverlay levelId={gs.levelId} onAddMoves={addMoves} onReplay={handleReplay} onHome={handleHome} />

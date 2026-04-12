@@ -32,7 +32,7 @@ export const WORD_EMOJIS = {
   'Soğan': '🧅', 'Patlıcan': '🍆', 'Brokoli': '🥦', 'Mısır': '🌽',
   // Ülkeler
   'Türkiye': '🇹🇷', 'Japonya': '🇯🇵', 'Brezilya': '🇧🇷', 'İtalya': '🇮🇹',
-  'Fransa': '🇫🇷', 'Mısır': '🇪🇬',
+  'Fransa': '🇫🇷', 'Almanya': '🇩🇪',
   // Gezegenler
   'Mars': '🔴', 'Jüpiter': '🟤', 'Satürn': '💫', 'Venüs': '🌟',
   'Merkür': '⚫', 'Neptün': '🔵',
