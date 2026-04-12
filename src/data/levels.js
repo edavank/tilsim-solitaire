@@ -58,6 +58,15 @@ export const WORD_EMOJIS = {
   'Soru işareti': '❓', 'Ünlem': '❗', 'Virgül': '✏️', 'Nokta': '⏺️',
 };
 
+// Kategori kartları için temsili emoji
+const CATEGORY_EMOJIS = {
+  'Meyveler': '🍎', 'Hayvanlar': '🐾', 'Renkler': '🎨', 'Sporlar': '🏆',
+  'İçecekler': '🥤', 'Ağaçlar': '🌳', 'Müzik': '🎵', 'Sebzeler': '🥬',
+  'Ülkeler': '🌍', 'Gezegenler': '🪐', 'Mevsimler': '🍃', 'Duygular': '💭',
+  'Okul': '📚', 'Yiyecekler': '🍽️', 'Hava durumu': '🌤️', 'Ulaşım': '🚀',
+  'Giysiler': '👕', 'Kuşlar': '🐦',
+};
+
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -201,7 +210,7 @@ export function generateGameState(level) {
   const catCards = level.categories.map((cat, ci) => ({
     id: 'cat-' + ci,
     type: 'category', word: cat.name, categoryIndex: ci,
-    totalWords: cat.words.length, emoji: '🃏', faceUp: false,
+    totalWords: cat.words.length, emoji: CATEGORY_EMOJIS[cat.name] || '📂', faceUp: false,
   }));
 
   const pool = shuffle([...wordCards, ...catCards]);

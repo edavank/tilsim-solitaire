@@ -111,8 +111,7 @@ function FaceUpCard({ card, selected, w, h, hinted, isDragging }) {
     <View style={[st.faceUp, { width: cw, height: ch }, selected && st.cardSelected, isCat && st.catCardBorder, hinted && st.cardHinted, isDragging && { opacity: 0.3 }]}>
       {isCat ? (
         <>
-          <View style={st.catBadge}><Text style={st.catBadgeText}>0/{card.totalWords}</Text></View>
-          <MaterialIcons name="style" size={16} color={COLORS.cardBackTop} />
+          <Text style={{ fontSize: Math.max(16, cw * 0.3), marginBottom: 1 }}>{card.emoji}</Text>
           <Text style={st.catName} numberOfLines={2}>{card.word}</Text>
         </>
       ) : (
@@ -147,14 +146,18 @@ function FoundationSlot({ slot, slotIndex, onPress, onUnlock, hinted }) {
         <View style={[st.slotTag, { backgroundColor: isDone ? COLORS.success : clr }]}>
           {isDone ? <MaterialIcons name="check" size={10} color="#fff" /> : <Text style={st.slotTagText}>{p}/{t}</Text>}
         </View>
-        <MaterialIcons name={isDone ? 'check-circle' : 'style'} size={14} color={isDone ? COLORS.success : clr} style={{ marginTop: 8 }} />
+        {isDone ? (
+          <MaterialIcons name="check-circle" size={14} color={COLORS.success} style={{ marginTop: 8 }} />
+        ) : (
+          <Text style={{ fontSize: 14, marginTop: 8 }}>{slot.category.emoji}</Text>
+        )}
         <Text style={[st.word, { fontSize: 7, marginTop: 2, color: isDone ? COLORS.success : '#1e293b' }]} numberOfLines={2}>{slot.category.word}</Text>
       </TouchableOpacity>
     );
   }
   return (
     <TouchableOpacity style={[st.slotBox, st.slotDashed, { height: h }, hinted && st.slotHinted]} onPress={onPress} activeOpacity={0.7}>
-      <MaterialIcons name="style" size={20} color="rgba(255,255,255,0.12)" />
+      <Text style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>Boş</Text>
     </TouchableOpacity>
   );
 }
@@ -407,11 +410,19 @@ export default function GameScreen() {
 
   // Load progress
   useEffect(() => {
-    loadProgress().then((p) => {
+    loadProgress().then(async (p) => {
       setCoins(p.coins);
       if (!params.level) setLevelId(p.currentLevel);
-      // Show tutorial on first play
       if (p.currentLevel === 1) setShowTutorial(true);
+      // Restore saved game if available
+      try {
+        const { loadSavedGame } = require('../src/utils/storage');
+        const saved = await loadSavedGame();
+        if (saved && saved.levelId === (parseInt(params.level) || p.currentLevel) && !saved.isComplete && !saved.isFailed) {
+          setGs(saved);
+          setFeedback('💾 Kayıtlı oyun yüklendi');
+        }
+      } catch (e) {}
     });
   }, []);
 
@@ -756,12 +767,16 @@ export default function GameScreen() {
   const useHint = useCallback(() => {
     if (gs.hints <= 0) { setFeedback('İpucu hakkın kalmadı!'); return; }
 
-    // 1. Find playable cards (bottom of columns + top of drawn)
+    // 1. Find playable cards (all face-up in columns + top of drawn)
     const playable = [];
     gs.columns.forEach((col, ci) => {
       if (col.locked || col.cards.length === 0) return;
-      const last = col.cards[col.cards.length - 1];
-      if (last.faceUp) playable.push({ card: last, source: 'column', sourceIndex: ci });
+      // Check all face-up cards from bottom to top
+      for (let k = col.cards.length - 1; k >= 0; k--) {
+        const card = col.cards[k];
+        if (!card.faceUp) break;
+        playable.push({ card, source: 'column', sourceIndex: ci });
+      }
     });
     if (gs.drawnCards.length > 0) {
       playable.push({ card: gs.drawnCards[gs.drawnCards.length - 1], source: 'drawn', sourceIndex: null });

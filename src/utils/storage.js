@@ -11,7 +11,7 @@ const DEFAULT_PROGRESS = {
   currentLevel: 1, coins: 310, totalGames: 0, totalWins: 0, bestScore: 0, streak: 0, unlockedThemes: ['cosmic'],
 };
 
-const DEFAULT_SETTINGS = { sound: true, music: true, vibration: true, language: 'tr', difficulty: 'normal' };
+const DEFAULT_SETTINGS = { sound: true, bgm: true, vibration: true, language: 'tr', difficulty: 'normal' };
 
 // In-memory fallback when AsyncStorage is unavailable
 let memStore = {};
