@@ -576,7 +576,7 @@ export default function GameScreen() {
         return { ...col, cards: [...col.cards, { ...card, faceUp: true }] };
       });
       setHistory((h) => [...h, prev]);
-      setFeedback('📋 ' + card.word + ' taşındı');
+      setFeedback('📋 ' + card.word + ' taşındı (ücretsiz)');
       return ns;
     });
     setSelected(null);
@@ -649,7 +649,7 @@ export default function GameScreen() {
       });
 
       setHistory((h) => [...h, prev]);
-      setFeedback('📋 ' + stackCards.length + ' kart taşındı');
+      setFeedback('📋 ' + stackCards.length + ' kart taşındı (ücretsiz)');
       return { ...prev, columns: newColumns };
     });
     setSelected(null);
@@ -680,21 +680,19 @@ export default function GameScreen() {
     setGs((p) => {
       if (p.deck.length === 0 && p.drawnCards.length === 0) { setFeedback('Tüm kartlar kullanıldı!'); return p; }
       if (p.deck.length === 0) {
-        // Recycle: drawn cards go back to deck (shuffled, face down)
         const recycled = [...p.drawnCards].reverse().map((c) => ({ ...c, faceUp: false }));
-        // Shuffle recycled
         for (let i = recycled.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
           [recycled[i], recycled[j]] = [recycled[j], recycled[i]];
         }
-        setFeedback('🔄 Deste karıştırıldı!');
+        setFeedback('🔄 Deste karıştırıldı! (-1 hamle)');
         playHaptic('draw');
-        return { ...p, deck: recycled, drawnCards: [] };
+        return { ...p, deck: recycled, drawnCards: [], moves: p.moves - 1, isFailed: p.moves - 1 <= 0 };
       }
       const d = [...p.deck]; const card = { ...d.pop(), faceUp: true };
-      setFeedback('🎴 ' + card.word + ' çekildi!');
+      setFeedback('🎴 ' + card.word + ' çekildi (-1 hamle)');
       playHaptic('draw');
-      return { ...p, deck: d, drawnCards: [...p.drawnCards, card] };
+      return { ...p, deck: d, drawnCards: [...p.drawnCards, card], moves: p.moves - 1, isFailed: p.moves - 1 <= 0 };
     });
     setSelected(null);
   }, []);
