@@ -71,8 +71,6 @@ export default function SettingsScreen() {
         </View>
         <View style={s.card}>
           <SettingRow icon="translate" iconColor={COLORS.secondary} label="Dil" right={<ChevronValue value="Türkçe" />} />
-          <View style={s.divider} />
-          <SettingRow icon="star" iconColor={COLORS.secondary} label="Zorluk" right={<ChevronValue value="Normal" />} />
         </View>
 
         {/* Buttons */}
