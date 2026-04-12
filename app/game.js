@@ -157,7 +157,7 @@ function FoundationSlot({ slot, onPress, hinted }) {
   );
 }
 
-function TableauColumn({ column, colIndex, selectedId, hintedId, dragCardId, onCardTap, onColumnTap, onCardLongPress }) {
+function TableauColumn({ column, colIndex, selectedId, hintedId, dragCardId, dragStackIds, onCardTap, onColumnTap, onCardLongPress }) {
   if (column.locked) {
     return (
       <View style={[st.slotBox, st.slotDashed, { height: CARD_H }]}>
@@ -190,7 +190,7 @@ function TableauColumn({ column, colIndex, selectedId, hintedId, dragCardId, onC
                 onLongPress={(e) => onCardLongPress?.(card, 'column', colIndex, isLast, e)}
                 delayLongPress={200}
               >
-                <FaceUpCard card={card} selected={selectedId === card.id} hinted={isHinted} isDragging={card.id === dragCardId} />
+                <FaceUpCard card={card} selected={selectedId === card.id} hinted={isHinted} isDragging={dragCardId && dragCardId === card.id || (dragStackIds && dragStackIds.has(card.id))} />
               </TouchableOpacity>
             ) : (
               <FaceDownCard />
@@ -315,16 +315,27 @@ export default function GameScreen() {
   }, []);
 
   const startDrag = useCallback((card, source, sourceIndex, isLast, pageX, pageY) => {
-    if (!isLast) { setFeedback('⚠️ Önce altındaki kartları kaldır!'); return; }
-    dragRef.current = { card, source, sourceIndex, isLast, startX: pageX, startY: pageY };
-    setDragCard({ card, source, sourceIndex, isLast });
+    // Check if this card forms a valid stack
+    let stackCards = [card];
+    if (source === 'column' && !isLast) {
+      const col = gs.columns[sourceIndex];
+      if (!col) return;
+      const cardIdx = col.cards.findIndex((c) => c.id === card.id);
+      if (cardIdx < 0) return;
+      const stack = col.cards.slice(cardIdx);
+      const allSameCat = stack.every((c) => c.faceUp && c.type === 'word' && c.categoryIndex === card.categoryIndex);
+      if (!allSameCat) { setFeedback('⚠️ Önce altındaki kartları kaldır!'); return; }
+      stackCards = stack;
+    }
+    dragRef.current = { card, source, sourceIndex, isLast, stackCards, startX: pageX, startY: pageY };
+    setDragCard({ card, source, sourceIndex, isLast, stackCards });
     dragX.setValue(pageX - CARD_W / 2);
     dragY.setValue(pageY - CARD_H / 2);
     dragOpacity.setValue(1);
     Animated.spring(dragScale, { toValue: 1.15, friction: 6, useNativeDriver: true }).start();
     playHaptic('tap');
     setSelected(null);
-  }, []);
+  }, [gs.columns]);
 
   const panResponder = useRef(PanResponder.create({
     onStartShouldSetPanResponder: () => false,
@@ -354,14 +365,11 @@ export default function GameScreen() {
   }, []);
 
   const handleDrop = useCallback((dragInfo, dropX, dropY) => {
-    // Find which drop zone the card was dropped on
-    // We use the slot/column refs measured via onLayout
-    // For simplicity, check foundation slots (top area) vs columns (bottom area)
-    const { card, source, sourceIndex } = dragInfo;
+    const { card, source, sourceIndex, stackCards } = dragInfo;
+    const stack = stackCards || [card];
 
-    // Check slots (foundation) — roughly top 30% of game area
+    // Check slots (foundation) — top area
     if (dropY < 380) {
-      // Find closest slot
       const slotWidth = (SW - 20) / gs.slots.length;
       const slotIdx = Math.floor((dropX - 10) / slotWidth);
       if (slotIdx >= 0 && slotIdx < gs.slots.length) {
@@ -375,15 +383,18 @@ export default function GameScreen() {
     const colWidth = (SW - 20) / COL_COUNT;
     const colIdx = Math.floor((dropX - 10) / colWidth);
     if (colIdx >= 0 && colIdx < gs.columns.length) {
-      moveToColumn(card, source, sourceIndex, colIdx);
+      if (stack.length > 1) {
+        moveStackToColumn(stack, source, sourceIndex, colIdx);
+      } else {
+        moveToColumn(card, source, sourceIndex, colIdx);
+      }
       cancelDrag();
       return;
     }
 
-    // No valid target — snap back
     cancelDrag();
     setFeedback('⚠️ Geçersiz hedef');
-  }, [gs.slots, gs.columns, placeCard, moveToColumn, cancelDrag]);
+  }, [gs.slots, gs.columns, placeCard, moveToColumn, moveStackToColumn, cancelDrag]);
 
   // Load progress
   useEffect(() => {
@@ -568,26 +579,86 @@ export default function GameScreen() {
   }, []);
 
   const handleCardTap = useCallback((card, source, sourceIndex, isLast = true) => {
-    // If tapping a non-bottom card in a column, show feedback
     if (source === 'column' && !isLast) {
-      setFeedback('⚠️ Önce altındaki kartları kaldır!');
+      // Check if this card + all below form a valid same-category stack
+      const col = gs.columns[sourceIndex];
+      if (!col) return;
+      const cardIdx = col.cards.findIndex((c) => c.id === card.id);
+      if (cardIdx < 0) return;
+      const stack = col.cards.slice(cardIdx);
+      const allSameCat = stack.every((c) => c.faceUp && c.type === 'word' && c.categoryIndex === card.categoryIndex);
+      if (!allSameCat) {
+        setFeedback('⚠️ Önce altındaki kartları kaldır!');
+        return;
+      }
+      // Valid stack — select it
+      setSelected({ card, source, sourceIndex, stackCards: stack });
+      setFeedback('✋ ' + stack.length + ' kart seçildi → Sütuna veya slot\'a dokun');
       return;
     }
     setSelected((prev) => {
       if (prev && prev.card.id !== card.id && source === 'column') {
-        moveToColumn(prev.card, prev.source, prev.sourceIndex, sourceIndex);
+        // Move selected card/stack to this column
+        if (prev.stackCards && prev.stackCards.length > 1) {
+          moveStackToColumn(prev.stackCards, prev.source, prev.sourceIndex, sourceIndex);
+        } else {
+          moveToColumn(prev.card, prev.source, prev.sourceIndex, sourceIndex);
+        }
         return null;
       }
       if (prev && prev.card.id === card.id) { setFeedback(''); return null; }
       setFeedback('✋ ' + card.word + ' → Slot veya sütuna dokun');
-      return { card, source, sourceIndex };
+      return { card, source, sourceIndex, stackCards: [card] };
     });
-  }, [moveToColumn]);
+  }, [moveToColumn, gs.columns]);
+
+  // Move entire stack to another column
+  const moveStackToColumn = useCallback((stackCards, source, sourceIndex, targetColIndex) => {
+    if (source === 'column' && sourceIndex === targetColIndex) return;
+    setGs((prev) => {
+      const targetCol = prev.columns[targetColIndex];
+      if (targetCol.locked) { setFeedback('🔒 Kilitli!'); return prev; }
+
+      if (targetCol.cards.length > 0) {
+        const bottomCard = targetCol.cards[targetCol.cards.length - 1];
+        if (!bottomCard.faceUp) { setFeedback('⚠️ Buraya koyamazsın!'); return prev; }
+        if (bottomCard.type === 'category') { setFeedback('⚠️ Kategori kartının üstüne konamazsın!'); return prev; }
+        if (stackCards[0].categoryIndex !== bottomCard.categoryIndex) {
+          setFeedback('⚠️ Aynı kategori kartları üst üste konabilir!');
+          return prev;
+        }
+      }
+
+      const stackIds = new Set(stackCards.map((c) => c.id));
+      const newColumns = prev.columns.map((col, i) => {
+        if (i === sourceIndex) {
+          const remaining = col.cards.filter((c) => !stackIds.has(c.id));
+          if (remaining.length > 0 && !remaining[remaining.length - 1].faceUp) {
+            remaining[remaining.length - 1] = { ...remaining[remaining.length - 1], faceUp: true };
+          }
+          return { ...col, cards: remaining };
+        }
+        if (i === targetColIndex) {
+          return { ...col, cards: [...col.cards, ...stackCards.map((c) => ({ ...c, faceUp: true }))] };
+        }
+        return col;
+      });
+
+      setHistory((h) => [...h, prev]);
+      setFeedback('📋 ' + stackCards.length + ' kart taşındı');
+      return { ...prev, columns: newColumns };
+    });
+    setSelected(null);
+  }, []);
 
   const handleColumnTap = useCallback((colIndex) => {
     if (!selected) return;
-    moveToColumn(selected.card, selected.source, selected.sourceIndex, colIndex);
-  }, [selected, moveToColumn]);
+    if (selected.stackCards && selected.stackCards.length > 1) {
+      moveStackToColumn(selected.stackCards, selected.source, selected.sourceIndex, colIndex);
+    } else {
+      moveToColumn(selected.card, selected.source, selected.sourceIndex, colIndex);
+    }
+  }, [selected, moveToColumn, moveStackToColumn]);
 
   const handleCardLongPress = useCallback((card, source, sourceIndex, isLast, event) => {
     if (!event?.nativeEvent) return;
@@ -740,6 +811,7 @@ export default function GameScreen() {
 
   const selId = selected?.card?.id;
   const DCW = Math.floor(CARD_W * 1.1); const DCH = Math.floor(CARD_H * 1.1);
+  const dragStackIds = dragCard?.stackCards ? new Set(dragCard.stackCards.map((c) => c.id)) : null;
 
   return (
     <View style={st.container} {...panResponder.panHandlers}>
@@ -827,7 +899,7 @@ export default function GameScreen() {
         <View style={st.tableauRow}>
           {gs.columns.map((col, i) => (
             <View key={i} style={{ flex: 1 }}>
-              <TableauColumn column={col} colIndex={i} selectedId={selId} hintedId={hintCard} dragCardId={dragCard?.card?.id} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onCardLongPress={handleCardLongPress} />
+              <TableauColumn column={col} colIndex={i} selectedId={selId} hintedId={hintCard} dragCardId={dragCard?.card?.id} dragStackIds={dragStackIds} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onCardLongPress={handleCardLongPress} />
             </View>
           ))}
         </View>
@@ -924,6 +996,11 @@ export default function GameScreen() {
           }}
         >
           <FaceUpCard card={dragCard.card} selected={true} />
+          {dragCard.stackCards && dragCard.stackCards.length > 1 && (
+            <View style={{ position: 'absolute', top: -10, right: -10, backgroundColor: COLORS.primary, width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' }}>
+              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 11, color: '#fff' }}>{dragCard.stackCards.length}</Text>
+            </View>
+          )}
         </Animated.View>
       )}
     </View>
