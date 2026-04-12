@@ -111,12 +111,13 @@ function FaceUpCard({ card, selected, w, h, hinted, isDragging }) {
     <View style={[st.faceUp, { width: cw, height: ch }, selected && st.cardSelected, isCat && st.catCardBorder, hinted && st.cardHinted, isDragging && { opacity: 0.3 }]}>
       {isCat ? (
         <>
-          <Text style={{ fontSize: Math.max(16, cw * 0.3), marginBottom: 1 }}>{card.emoji}</Text>
+          <View style={st.catBadge}><Text style={st.catBadgeText}>0/{card.totalWords}</Text></View>
+          <Text style={{ fontSize: Math.max(20, cw * 0.35), marginBottom: 2 }}>{card.emoji}</Text>
           <Text style={st.catName} numberOfLines={2}>{card.word}</Text>
         </>
       ) : (
         <>
-          <Text style={{ fontSize: Math.max(16, cw * 0.3), marginBottom: 1 }}>{card.emoji}</Text>
+          <Text style={{ fontSize: Math.max(20, cw * 0.35), marginBottom: 2 }}>{card.emoji}</Text>
           <Text style={st.word} numberOfLines={2}>{card.word}</Text>
         </>
       )}
@@ -147,11 +148,11 @@ function FoundationSlot({ slot, slotIndex, onPress, onUnlock, hinted }) {
           {isDone ? <MaterialIcons name="check" size={10} color="#fff" /> : <Text style={st.slotTagText}>{p}/{t}</Text>}
         </View>
         {isDone ? (
-          <MaterialIcons name="check-circle" size={14} color={COLORS.success} style={{ marginTop: 8 }} />
+          <MaterialIcons name="check-circle" size={16} color={COLORS.success} style={{ marginTop: 8 }} />
         ) : (
-          <Text style={{ fontSize: 14, marginTop: 8 }}>{slot.category.emoji}</Text>
+          <Text style={{ fontSize: 16, marginTop: 8 }}>{slot.category.emoji}</Text>
         )}
-        <Text style={[st.word, { fontSize: 7, marginTop: 2, color: isDone ? COLORS.success : '#1e293b' }]} numberOfLines={2}>{slot.category.word}</Text>
+        <Text style={[st.word, { fontSize: 8, marginTop: 2, color: isDone ? COLORS.success : '#1e293b' }]} numberOfLines={2}>{slot.category.word}</Text>
       </TouchableOpacity>
     );
   }
@@ -866,7 +867,7 @@ export default function GameScreen() {
 
   const selId = selected?.card?.id;
   const selectedStackIds = selected?.stackCards ? new Set(selected.stackCards.map((c) => c.id)) : null;
-  const DCW = Math.floor(CARD_W * 1.1); const DCH = Math.floor(CARD_H * 1.1);
+  const DCW = Math.floor(CARD_W * 0.95); const DCH = Math.floor(CARD_H * 0.85);
   const dragStackIds = dragCard?.stackCards ? new Set(dragCard.stackCards.map((c) => c.id)) : null;
 
   // Unlock slot or column (via ad or free)
@@ -911,6 +912,7 @@ export default function GameScreen() {
       {!!feedback && <View style={st.feedbackBar}><Text style={st.feedbackText}>{feedback}</Text></View>}
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={st.scrollContent} showsVerticalScrollIndicator={false} scrollEnabled={!dragCard} ref={scrollRef}>
+        <View style={{ height: 28 }} />
         <View style={st.deckRow}>
           <View style={st.movesPanel}>
             <Text style={st.movesLabel}>HAMLE</Text>
@@ -1159,16 +1161,16 @@ const st = StyleSheet.create({
   coinText: { fontFamily: FONTS.headline, fontSize: 13, color: COLORS.onSurface },
   headerTitle: { fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff', letterSpacing: 1 },
   settingsBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: COLORS.panelBg, alignItems: 'center', justifyContent: 'center' },
-  feedbackBar: { backgroundColor: 'rgba(0,0,0,0.55)', paddingVertical: 8, paddingHorizontal: 16, zIndex: 50 },
+  feedbackBar: { position: 'absolute', top: 88, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.65)', paddingVertical: 8, paddingHorizontal: 16, zIndex: 100 },
   feedbackText: { fontFamily: FONTS.headline, fontSize: 13, color: '#fff', textAlign: 'center' },
-  scrollContent: { paddingHorizontal: 10, paddingTop: 10, gap: 10 },
+  scrollContent: { paddingHorizontal: 10, paddingTop: 4, gap: 8 },
   deckRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  movesPanel: { backgroundColor: COLORS.panelBg, borderWidth: 1.5, borderColor: COLORS.panelBorder, borderRadius: 14, paddingHorizontal: 10, paddingVertical: 8, alignItems: 'center', minWidth: 72 },
+  movesPanel: { backgroundColor: COLORS.panelBg, borderWidth: 1.5, borderColor: COLORS.panelBorder, borderRadius: 14, paddingHorizontal: 8, paddingVertical: 6, alignItems: 'center', minWidth: 64 },
   movesLabel: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: COLORS.onSurfaceVariant, letterSpacing: 1 },
-  movesNum: { fontFamily: FONTS.headlineBlack, fontSize: 26, color: '#fff', lineHeight: 30 },
+  movesNum: { fontFamily: FONTS.headlineBlack, fontSize: 22, color: '#fff', lineHeight: 26 },
   addBtn: { backgroundColor: COLORS.success, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 9999, marginTop: 2 },
   addBtnText: { fontFamily: FONTS.headlineBlack, fontSize: 8, color: '#fff' },
-  drawnArea: { flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: 90 },
+  drawnArea: { flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: 76 },
   emptyCard: { borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.panelBorder, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.03)' },
   deckBadge: { position: 'absolute', top: -5, right: -5, backgroundColor: COLORS.primary, minWidth: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff', paddingHorizontal: 3 },
   deckBadgeText: { fontFamily: FONTS.headlineBlack, fontSize: 9, color: '#fff' },
@@ -1179,10 +1181,10 @@ const st = StyleSheet.create({
   cardSelected: { borderColor: COLORS.primary, borderWidth: 2.5, shadowColor: COLORS.primary, shadowOpacity: 0.7, shadowRadius: 10, elevation: 8, transform: [{ scale: 1.05 }] },
   cardHinted: { borderColor: COLORS.coin, borderWidth: 2.5, shadowColor: COLORS.coin, shadowOpacity: 0.8, shadowRadius: 12, elevation: 8, transform: [{ scale: 1.08 }] },
   catCardBorder: { borderColor: COLORS.cardBackBorder, borderWidth: 2 },
-  word: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: '#1e293b', textAlign: 'center', lineHeight: 9 },
-  catBadge: { position: 'absolute', top: 2, right: 3 },
-  catBadgeText: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: COLORS.cardBackTop },
-  catName: { fontFamily: FONTS.headlineBlack, fontSize: 8, color: '#1e293b', textAlign: 'center', lineHeight: 10, marginTop: 2 },
+  word: { fontFamily: FONTS.headlineBlack, fontSize: 9, color: '#1e293b', textAlign: 'center', lineHeight: 12 },
+  catBadge: { position: 'absolute', top: 3, right: 4, backgroundColor: COLORS.cardBackTop, paddingHorizontal: 4, paddingVertical: 1, borderRadius: 6 },
+  catBadgeText: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: '#fff' },
+  catName: { fontFamily: FONTS.headlineBlack, fontSize: 9, color: '#1e293b', textAlign: 'center', lineHeight: 12, marginTop: 1 },
   slotsRow: { flexDirection: 'row', gap: 3 },
   slotBox: { borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', gap: 2 },
   slotDashed: { borderColor: COLORS.panelBorder, borderStyle: 'dashed', backgroundColor: 'rgba(255,255,255,0.03)' },
@@ -1191,7 +1193,7 @@ const st = StyleSheet.create({
   adBadge: { backgroundColor: COLORS.primary, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
   adText: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: '#fff' },
   slotTag: { position: 'absolute', top: 0, left: 0, right: 0, paddingVertical: 2, alignItems: 'center', borderTopLeftRadius: 8, borderTopRightRadius: 8 },
-  slotTagText: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: '#fff' },
+  slotTagText: { fontFamily: FONTS.headlineBlack, fontSize: 8, color: '#fff' },
   tableauRow: { flexDirection: 'row', gap: COL_GAP, alignItems: 'flex-start' },
   toolbar: { position: 'absolute', bottom: 30, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end', gap: 12, paddingVertical: 6, paddingHorizontal: 16, zIndex: 100 },
   toolWrap: { alignItems: 'center', gap: 3 },
