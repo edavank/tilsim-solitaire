@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Dimensions,
-  ScrollView, Vibration, Image, Animated, Easing,
+  ScrollView, Vibration, Image, Animated, Easing, PanResponder,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -157,7 +157,7 @@ function FoundationSlot({ slot, onPress, hinted }) {
   );
 }
 
-function TableauColumn({ column, colIndex, selectedId, hintedId, onCardTap, onColumnTap }) {
+function TableauColumn({ column, colIndex, selectedId, hintedId, onCardTap, onColumnTap, onCardLongPress }) {
   if (column.locked) {
     return (
       <View style={[st.slotBox, st.slotDashed, { height: CARD_H }]}>
@@ -184,7 +184,12 @@ function TableauColumn({ column, colIndex, selectedId, hintedId, onCardTap, onCo
         return (
           <View key={card.id} style={{ marginTop: ci === 0 ? 0 : OVERLAP, zIndex: ci }}>
             {card.faceUp ? (
-              <TouchableOpacity activeOpacity={0.7} onPress={() => onCardTap(card, 'column', colIndex, isLast)}>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => onCardTap(card, 'column', colIndex, isLast)}
+                onLongPress={(e) => onCardLongPress?.(card, 'column', colIndex, isLast, e)}
+                delayLongPress={200}
+              >
                 <FaceUpCard card={card} selected={selectedId === card.id} hinted={isHinted} />
               </TouchableOpacity>
             ) : (
@@ -291,6 +296,94 @@ export default function GameScreen() {
   const [shakeSlotIdx, setShakeSlotIdx] = useState(-1);
   const [showTutorial, setShowTutorial] = useState(false);
   const shakeAnim = useRef(new Animated.Value(0)).current;
+
+  // ── Drag & Drop System ──
+  const [dragCard, setDragCard] = useState(null); // { card, source, sourceIndex, isLast }
+  const dragX = useRef(new Animated.Value(0)).current;
+  const dragY = useRef(new Animated.Value(0)).current;
+  const dragScale = useRef(new Animated.Value(1)).current;
+  const dragOpacity = useRef(new Animated.Value(0)).current;
+  const dropZones = useRef([]); // [{ type: 'slot'|'column', index, x, y, w, h }]
+  const dragRef = useRef({ card: null, source: null, sourceIndex: null, isLast: false, startX: 0, startY: 0 });
+  const scrollRef = useRef(null);
+
+  const measureDropZone = useCallback((type, index, event) => {
+    const { x, y, width, height } = event.nativeEvent.layout;
+    // Store layout relative to screen — we'll need pageX/pageY later
+    dropZones.current = dropZones.current.filter((z) => !(z.type === type && z.index === index));
+    dropZones.current.push({ type, index, x, y, w: width, h: height });
+  }, []);
+
+  const startDrag = useCallback((card, source, sourceIndex, isLast, pageX, pageY) => {
+    if (!isLast) { setFeedback('⚠️ Önce altındaki kartları kaldır!'); return; }
+    dragRef.current = { card, source, sourceIndex, isLast, startX: pageX, startY: pageY };
+    setDragCard({ card, source, sourceIndex, isLast });
+    dragX.setValue(pageX - CARD_W / 2);
+    dragY.setValue(pageY - CARD_H / 2);
+    dragOpacity.setValue(1);
+    Animated.spring(dragScale, { toValue: 1.15, friction: 6, useNativeDriver: true }).start();
+    playHaptic('tap');
+    setSelected(null);
+  }, []);
+
+  const panResponder = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => false,
+    onMoveShouldSetPanResponder: () => !!dragRef.current.card,
+    onPanResponderMove: (_, gestureState) => {
+      if (!dragRef.current.card) return;
+      dragX.setValue(dragRef.current.startX + gestureState.dx - CARD_W / 2);
+      dragY.setValue(dragRef.current.startY + gestureState.dy - CARD_H / 2);
+    },
+    onPanResponderRelease: (_, gestureState) => {
+      if (!dragRef.current.card) return;
+      const dropX = dragRef.current.startX + gestureState.dx;
+      const dropY = dragRef.current.startY + gestureState.dy;
+      handleDrop(dragRef.current, dropX, dropY);
+    },
+    onPanResponderTerminate: () => {
+      cancelDrag();
+    },
+  })).current;
+
+  const cancelDrag = useCallback(() => {
+    Animated.timing(dragOpacity, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
+      setDragCard(null);
+      dragRef.current = { card: null, source: null, sourceIndex: null, isLast: false, startX: 0, startY: 0 };
+      dragScale.setValue(1);
+    });
+  }, []);
+
+  const handleDrop = useCallback((dragInfo, dropX, dropY) => {
+    // Find which drop zone the card was dropped on
+    // We use the slot/column refs measured via onLayout
+    // For simplicity, check foundation slots (top area) vs columns (bottom area)
+    const { card, source, sourceIndex } = dragInfo;
+
+    // Check slots (foundation) — roughly top 30% of game area
+    if (dropY < 380) {
+      // Find closest slot
+      const slotWidth = (SW - 20) / gs.slots.length;
+      const slotIdx = Math.floor((dropX - 10) / slotWidth);
+      if (slotIdx >= 0 && slotIdx < gs.slots.length) {
+        placeCard(card, source, sourceIndex, slotIdx);
+        cancelDrag();
+        return;
+      }
+    }
+
+    // Check columns — bottom area
+    const colWidth = (SW - 20) / COL_COUNT;
+    const colIdx = Math.floor((dropX - 10) / colWidth);
+    if (colIdx >= 0 && colIdx < gs.columns.length) {
+      moveToColumn(card, source, sourceIndex, colIdx);
+      cancelDrag();
+      return;
+    }
+
+    // No valid target — snap back
+    cancelDrag();
+    setFeedback('⚠️ Geçersiz hedef');
+  }, [gs.slots, gs.columns, placeCard, moveToColumn, cancelDrag]);
 
   // Load progress
   useEffect(() => {
@@ -496,6 +589,12 @@ export default function GameScreen() {
     moveToColumn(selected.card, selected.source, selected.sourceIndex, colIndex);
   }, [selected, moveToColumn]);
 
+  const handleCardLongPress = useCallback((card, source, sourceIndex, isLast, event) => {
+    if (!event?.nativeEvent) return;
+    const { pageX, pageY } = event.nativeEvent;
+    startDrag(card, source, sourceIndex, isLast, pageX, pageY);
+  }, [startDrag]);
+
   const handleSlotTap = useCallback((slotIndex) => {
     if (!selected) { setFeedback('Önce kart seç!'); return; }
     placeCard(selected.card, selected.source, selected.sourceIndex, slotIndex);
@@ -643,7 +742,7 @@ export default function GameScreen() {
   const DCW = Math.floor(CARD_W * 1.1); const DCH = Math.floor(CARD_H * 1.1);
 
   return (
-    <View style={st.container}>
+    <View style={st.container} {...panResponder.panHandlers}>
       <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
 
       {/* Sparkle */}
@@ -670,7 +769,18 @@ export default function GameScreen() {
             <TouchableOpacity style={st.addBtn} onPress={addMoves}><Text style={st.addBtnText}>+20 ▶</Text></TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={st.drawnArea} onPress={handleDrawnTap} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={st.drawnArea}
+            onPress={handleDrawnTap}
+            onLongPress={(e) => {
+              if (gs.drawnCards.length > 0) {
+                const card = gs.drawnCards[gs.drawnCards.length - 1];
+                handleCardLongPress(card, 'drawn', null, true, e);
+              }
+            }}
+            delayLongPress={200}
+            activeOpacity={0.7}
+          >
             {gs.drawnCards.length === 0 ? (
               <View style={[st.emptyCard, { width: DCW, height: DCH }]}>
                 <Text style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>Boş</Text>
@@ -717,7 +827,7 @@ export default function GameScreen() {
         <View style={st.tableauRow}>
           {gs.columns.map((col, i) => (
             <View key={i} style={{ flex: 1 }}>
-              <TableauColumn column={col} colIndex={i} selectedId={selId} hintedId={hintCard} onCardTap={handleCardTap} onColumnTap={handleColumnTap} />
+              <TableauColumn column={col} colIndex={i} selectedId={selId} hintedId={hintCard} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onCardLongPress={handleCardLongPress} />
             </View>
           ))}
         </View>
@@ -800,6 +910,21 @@ export default function GameScreen() {
       )}
       {gs.isFailed && !gs.isComplete && (
         <LevelFailedOverlay levelId={gs.levelId} onAddMoves={addMoves} onReplay={handleReplay} onHome={handleHome} />
+      )}
+
+      {/* Floating drag card */}
+      {dragCard && (
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: 'absolute', zIndex: 99999,
+            left: dragX, top: dragY,
+            opacity: dragOpacity,
+            transform: [{ scale: dragScale }],
+          }}
+        >
+          <FaceUpCard card={dragCard.card} selected={true} />
+        </Animated.View>
       )}
     </View>
   );

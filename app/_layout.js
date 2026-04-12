@@ -20,6 +20,7 @@ import {
 import { COLORS } from '../src/constants/theme';
 import { initAds } from '../src/utils/ads';
 import ConsentDialog from '../src/components/ConsentDialog';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 const OWL = require('../assets/bilge-happy.png');
 
@@ -80,12 +81,12 @@ export default function RootLayout() {
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLORS.surface }, animation: 'fade' }} />
       {!splashDone && <AnimatedSplash onFinish={() => setSplashDone(true)} />}
       <ConsentDialog />
-    </View>
+    </GestureHandlerRootView>
   );
 }
 
