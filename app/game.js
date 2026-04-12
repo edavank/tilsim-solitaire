@@ -399,6 +399,12 @@ export default function GameScreen() {
     setFeedback('⚠️ Geçersiz hedef');
   }, [gs.slots, gs.columns, placeCard, moveToColumn, moveStackToColumn, cancelDrag]);
 
+  // Play win/lose sounds
+  useEffect(() => {
+    if (gs.isComplete) playSound('win');
+    else if (gs.isFailed) playSound('lose');
+  }, [gs.isComplete, gs.isFailed]);
+
   // Load progress
   useEffect(() => {
     loadProgress().then((p) => {

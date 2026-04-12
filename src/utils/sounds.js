@@ -35,6 +35,7 @@ const SOUND_FILES = {
   win: require('../../assets/sounds/win.wav'),
   unlock: require('../../assets/sounds/unlock.mp3'),
   coin: require('../../assets/sounds/coin.mp3'),
+  lose: require('../../assets/sounds/lose.mp3'),
 };
 
 export async function loadSounds() {
