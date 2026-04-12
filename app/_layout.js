@@ -28,15 +28,16 @@ const OWL = require('../assets/bilge-happy.png');
 const { width: SW } = Dimensions.get('window');
 
 const LANGUAGES = [
-  { code: 'tr', flag: '🇹🇷', name: 'Türkçe', native: 'Türkçe', available: true },
-  { code: 'en', flag: '🇬🇧', name: 'English', native: 'English', available: false },
-  { code: 'de', flag: '🇩🇪', name: 'Deutsch', native: 'Deutsch', available: false },
-  { code: 'fr', flag: '🇫🇷', name: 'Français', native: 'Français', available: false },
-  { code: 'es', flag: '🇪🇸', name: 'Español', native: 'Español', available: false },
-  { code: 'ar', flag: '🇸🇦', name: 'العربية', native: 'Arapça', available: false },
+  { code: 'tr', flag: '🇹🇷', name: 'Türkçe', available: true },
+  { code: 'en', flag: '🇬🇧', name: 'English', available: true },
+  { code: 'de', flag: '🇩🇪', name: 'Deutsch', available: true },
+  { code: 'fr', flag: '🇫🇷', name: 'Français', available: true },
+  { code: 'es', flag: '🇪🇸', name: 'Español', available: true },
+  { code: 'ar', flag: '🇸🇦', name: 'العربية', available: true },
 ];
 
 function LanguageSelector({ onSelect }) {
+  const [selected, setSelected] = useState(null);
   return (
     <View style={lang.overlay}>
       <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
@@ -47,14 +48,13 @@ function LanguageSelector({ onSelect }) {
         {LANGUAGES.map((l) => (
           <TouchableOpacity
             key={l.code}
-            style={[lang.item, !l.available && lang.itemDisabled]}
-            onPress={() => l.available && onSelect(l.code)}
-            activeOpacity={l.available ? 0.7 : 1}
+            style={[lang.item, selected === l.code && { borderColor: COLORS.primary, borderWidth: 2 }]}
+            onPress={() => { setSelected(l.code); setTimeout(() => onSelect(l.code), 300); }}
+            activeOpacity={0.7}
           >
             <Text style={lang.flag}>{l.flag}</Text>
-            <Text style={[lang.name, !l.available && { color: 'rgba(255,255,255,0.3)' }]}>{l.name}</Text>
-            {!l.available && <Text style={lang.soon}>Yakında</Text>}
-            {l.available && <View style={lang.check}><Text style={{ color: '#fff', fontSize: 12 }}>✓</Text></View>}
+            <Text style={lang.name}>{l.name}</Text>
+            {selected === l.code && <View style={lang.check}><Text style={{ color: '#fff', fontSize: 12 }}>✓</Text></View>}
           </TouchableOpacity>
         ))}
       </View>

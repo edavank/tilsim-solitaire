@@ -1,71 +1,7 @@
 import { generateLevels } from './levelGenerator';
+import { EMOJI_MAP as WORD_EMOJIS, CATEGORY_EMOJIS } from './wordPools';
 
-export const WORD_EMOJIS = {
-  // Meyveler
-  'Elma': '🍎', 'Armut': '🍐', 'Kiraz': '🍒', 'Portakal': '🍊',
-  'Çilek': '🍓', 'Muz': '🍌', 'Karpuz': '🍉', 'Üzüm': '🍇',
-  'Şeftali': '🍑', 'Ananas': '🍍', 'Nar': '🫐', 'İncir': '🫐',
-  // Hayvanlar
-  'Kedi': '🐱', 'Köpek': '🐶', 'Kuş': '🐦', 'Balık': '🐟',
-  'Tavşan': '🐰', 'At': '🐴', 'Kaplumbağa': '🐢', 'Kurbağa': '🐸',
-  'Aslan': '🦁', 'Fil': '🐘', 'Zürafa': '🦒', 'Penguen': '🐧',
-  // Renkler
-  'Kırmızı': '🔴', 'Mavi': '🔵', 'Yeşil': '🟢', 'Sarı': '🟡',
-  'Turuncu': '🟠', 'Mor': '🟣', 'Pembe': '💗', 'Beyaz': '⚪',
-  // Kuşlar
-  'Papağan': '🦜', 'Serçe': '🐦', 'Kartal': '🦅', 'Martı': '🕊️',
-  'Baykuş': '🦉', 'Flamingo': '🦩',
-  // Sporlar
-  'Futbol': '⚽', 'Basketbol': '🏀', 'Tenis': '🎾', 'Yüzme': '🏊',
-  'Voleybol': '🏐', 'Boks': '🥊', 'Bisiklet': '🚴', 'Koşu': '🏃',
-  // İçecekler
-  'Çay': '🍵', 'Kahve': '☕', 'Su': '💧', 'Süt': '🥛',
-  'Limonata': '🍋', 'Ayran': '🥛', 'Meyve suyu': '🧃', 'Smoothie': '🫐',
-  // Ağaçlar
-  'Çam': '🌲', 'Meşe': '🌳', 'Kavak': '🌿', 'Ceviz': '🌳',
-  'Zeytin': '🫒', 'Palmiye': '🌴',
-  // Müzik
-  'Gitar': '🎸', 'Piyano': '🎹', 'Davul': '🥁', 'Keman': '🎻',
-  'Flüt': '🪈', 'Saz': '🪕',
-  // Sebzeler
-  'Domates': '🍅', 'Biber': '🌶️', 'Havuç': '🥕', 'Patates': '🥔',
-  'Soğan': '🧅', 'Patlıcan': '🍆', 'Brokoli': '🥦', 'Mısır': '🌽',
-  // Ülkeler
-  'Türkiye': '🇹🇷', 'Japonya': '🇯🇵', 'Brezilya': '🇧🇷', 'İtalya': '🇮🇹',
-  'Fransa': '🇫🇷', 'Almanya': '🇩🇪',
-  // Gezegenler
-  'Mars': '🪨', 'Jüpiter': '🌕', 'Satürn': '🪐', 'Venüs': '⭐',
-  'Merkür': '🌑', 'Neptün': '🌊',
-  // Mevsimler
-  'İlkbahar': '🌸', 'Yaz': '☀️', 'Sonbahar': '🍂', 'Kış': '❄️',
-  // Duygular
-  'Mutluluk': '😊', 'Üzüntü': '😢', 'Şaşkınlık': '😲', 'Korku': '😨', 'Öfke': '😡', 'Heyecan': '🤩',
-  // Okul
-  'Kalem': '✏️', 'Defter': '📓', 'Silgi': '🧽', 'Cetvel': '📏',
-  'Kitap': '📖', 'Sırt çantası': '🎒',
-  // Yiyecekler
-  'Pizza': '🍕', 'Hamburger': '🍔', 'Sushi': '🍣', 'Makarna': '🍝',
-  'Dondurma': '🍦', 'Kek': '🎂',
-  // Hava durumu
-  'Güneşli': '☀️', 'Yağmurlu': '🌧️', 'Karlı': '🌨️', 'Bulutlu': '☁️', 'Fırtınalı': '⛈️', 'Sisli': '🌫️',
-  // Ulaşım
-  'Araba': '🚗', 'Otobüs': '🚌', 'Tren': '🚆', 'Uçak': '✈️',
-  'Gemi': '🚢', 'Bisiklet2': '🚲',
-  // Giysiler
-  'Gömlek': '👔', 'Pantolon': '👖', 'Şapka': '🧢', 'Ayakkabı': '👟',
-  'Elbise': '👗', 'Çorap': '🧦',
-  // Noktalama
-  'Soru işareti': '❓', 'Ünlem': '❗', 'Virgül': '✏️', 'Nokta': '⏺️',
-};
-
-// Kategori kartları için temsili emoji
-const CATEGORY_EMOJIS = {
-  'Meyveler': '🍎', 'Hayvanlar': '🐾', 'Renkler': '🎨', 'Sporlar': '🏆',
-  'İçecekler': '🥤', 'Ağaçlar': '🌳', 'Müzik': '🎵', 'Sebzeler': '🥬',
-  'Ülkeler': '🌍', 'Gezegenler': '🪐', 'Mevsimler': '🍃', 'Duygular': '💭',
-  'Okul': '📚', 'Yiyecekler': '🍽️', 'Hava durumu': '🌤️', 'Ulaşım': '🚀',
-  'Giysiler': '👕', 'Kuşlar': '🐦',
-};
+export { WORD_EMOJIS, CATEGORY_EMOJIS };
 
 function shuffle(arr) {
   const a = [...arr];
@@ -241,6 +177,6 @@ export function generateGameState(level) {
   };
 }
 
-// Auto-generate levels 11-50
-const GENERATED = generateLevels(11, 40);
+// Auto-generate levels 11-100
+const GENERATED = generateLevels(11, 90);
 LEVELS.push(...GENERATED);

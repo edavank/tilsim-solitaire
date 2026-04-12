@@ -24,6 +24,15 @@ try {
 
 const OWL = require('../assets/bilge-happy.png');
 
+const LANG_OPTIONS = [
+  { code: 'tr', flag: '🇹🇷', name: 'Türkçe' },
+  { code: 'en', flag: '🇬🇧', name: 'English' },
+  { code: 'de', flag: '🇩🇪', name: 'Deutsch' },
+  { code: 'fr', flag: '🇫🇷', name: 'Français' },
+  { code: 'es', flag: '🇪🇸', name: 'Español' },
+  { code: 'ar', flag: '🇸🇦', name: 'العربية' },
+];
+
 export default function SettingsScreen() {
   const [sound, setSound] = useState(true);
   const [vibration, setVibration] = useState(true);
@@ -31,12 +40,15 @@ export default function SettingsScreen() {
   const [coins, setCoins] = useState(0);
   const [user, setUser] = useState(getUser());
   const [loading, setLoading] = useState(false);
+  const [language, setLanguage] = useState('tr');
+  const [showLangPicker, setShowLangPicker] = useState(false);
 
   useEffect(() => {
     loadSettings().then((s) => {
       setVibration(s.vibration !== false);
       setSound(s.sound !== false);
       setBgm(s.bgm !== false);
+      setLanguage(s.language || 'tr');
     });
     loadProgress().then((p) => setCoins(p.coins));
     const unsub = onAuthChange((u) => setUser(u));
@@ -58,7 +70,14 @@ export default function SettingsScreen() {
   const toggleBgm = (v) => {
     setBgm(v);
     setBgmEnabled(v);
-    saveSettings({ sound, vibration, bgm: v });
+    saveSettings({ sound, vibration, bgm: v, language });
+  };
+
+  const selectLanguage = (code) => {
+    setLanguage(code);
+    setShowLangPicker(false);
+    saveSettings({ sound, vibration, bgm, language: code, languageSelected: true });
+    Alert.alert('Dil Değiştirildi', 'Yeni dil bir sonraki bölümde aktif olacak.');
   };
 
   const handleReset = () => {
@@ -106,9 +125,9 @@ export default function SettingsScreen() {
           <MaterialIcons name="language" size={18} color={COLORS.coin} />
           <Text style={s.sectionTitle}>Genel</Text>
         </View>
-        <View style={s.card}>
-          <SettingRow icon="translate" iconColor={COLORS.secondary} label="Dil" right={<ChevronValue value="Türkçe" />} />
-        </View>
+        <TouchableOpacity style={s.card} onPress={() => setShowLangPicker(true)} activeOpacity={0.7}>
+          <SettingRow icon="translate" iconColor={COLORS.secondary} label="Dil" right={<ChevronValue value={LANG_OPTIONS.find(l => l.code === language)?.flag + ' ' + LANG_OPTIONS.find(l => l.code === language)?.name || 'Türkçe'} />} />
+        </TouchableOpacity>
 
         {/* Hesap */}
         <View style={s.sectionHeader}>
@@ -168,6 +187,27 @@ export default function SettingsScreen() {
       </ScrollView>
 
       <BottomNav activeTab="home" />
+
+      {/* Language Picker Modal */}
+      {showLangPicker && (
+        <View style={s.langOverlay}>
+          <LinearGradient colors={['rgba(21,6,41,0.95)', 'rgba(61,53,96,0.95)']} style={StyleSheet.absoluteFillObject} />
+          <View style={s.langCard}>
+            <Text style={s.langTitle}>Dil Seçin</Text>
+            <Text style={s.langSub}>Choose Language</Text>
+            {LANG_OPTIONS.map((l) => (
+              <TouchableOpacity key={l.code} style={[s.langItem, language === l.code && s.langItemActive]} onPress={() => selectLanguage(l.code)} activeOpacity={0.7}>
+                <Text style={{ fontSize: 24 }}>{l.flag}</Text>
+                <Text style={s.langName}>{l.name}</Text>
+                {language === l.code && <View style={s.langCheck}><Text style={{ color: '#fff', fontSize: 12 }}>✓</Text></View>}
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity style={s.langClose} onPress={() => setShowLangPicker(false)} activeOpacity={0.7}>
+              <Text style={s.langCloseText}>Kapat</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -248,4 +288,15 @@ const s = StyleSheet.create({
   footerOwl: { width: 30, height: 30, borderRadius: 15 },
   footerName: { fontFamily: FONTS.headlineBlack, fontSize: 16, color: COLORS.primary, letterSpacing: 4 },
   footerVersion: { fontFamily: FONTS.body, fontSize: 10, color: COLORS.outlineVariant, letterSpacing: 2 },
+
+  langOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 999, justifyContent: 'center', alignItems: 'center' },
+  langCard: { width: '85%', backgroundColor: COLORS.surfaceContainerHigh, borderRadius: 24, padding: 20, alignItems: 'center', borderWidth: 1, borderColor: COLORS.panelBorder },
+  langTitle: { fontFamily: FONTS.headlineBlack, fontSize: 22, color: COLORS.onSurface, marginBottom: 2 },
+  langSub: { fontFamily: FONTS.body, fontSize: 12, color: COLORS.onSurfaceVariant, marginBottom: 16 },
+  langItem: { flexDirection: 'row', alignItems: 'center', gap: 12, width: '100%', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', marginBottom: 6, borderWidth: 1, borderColor: 'transparent' },
+  langItemActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primary + '15' },
+  langName: { flex: 1, fontFamily: FONTS.headline, fontSize: 15, color: COLORS.onSurface },
+  langCheck: { width: 22, height: 22, borderRadius: 11, backgroundColor: COLORS.success, alignItems: 'center', justifyContent: 'center' },
+  langClose: { marginTop: 12, paddingVertical: 12, paddingHorizontal: 40, borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.primary },
+  langCloseText: { fontFamily: FONTS.headlineBlack, fontSize: 14, color: COLORS.primary },
 });
