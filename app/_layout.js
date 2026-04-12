@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, ActivityIndicator, StyleSheet, Animated, Image, Text } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Animated, Image, Text, TouchableOpacity, Dimensions } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -17,12 +17,64 @@ import {
   Fondamento_400Regular,
   Fondamento_400Regular_Italic,
 } from '@expo-google-fonts/fondamento';
-import { COLORS } from '../src/constants/theme';
+import { COLORS, FONTS } from '../src/constants/theme';
 import { initAds } from '../src/utils/ads';
 import ConsentDialog from '../src/components/ConsentDialog';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { setVibrationEnabled, setSoundEnabled, setBgmEnabled, loadSounds, startBgm } from '../src/utils/sounds';
-import { loadSettings } from '../src/utils/storage';
+import { loadSettings, saveSettings } from '../src/utils/storage';
+
+const OWL = require('../assets/bilge-happy.png');
+const { width: SW } = Dimensions.get('window');
+
+const LANGUAGES = [
+  { code: 'tr', flag: '🇹🇷', name: 'Türkçe', native: 'Türkçe', available: true },
+  { code: 'en', flag: '🇬🇧', name: 'English', native: 'English', available: false },
+  { code: 'de', flag: '🇩🇪', name: 'Deutsch', native: 'Deutsch', available: false },
+  { code: 'fr', flag: '🇫🇷', name: 'Français', native: 'Français', available: false },
+  { code: 'es', flag: '🇪🇸', name: 'Español', native: 'Español', available: false },
+  { code: 'ar', flag: '🇸🇦', name: 'العربية', native: 'Arapça', available: false },
+];
+
+function LanguageSelector({ onSelect }) {
+  return (
+    <View style={lang.overlay}>
+      <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
+      <Image source={OWL} style={lang.owl} />
+      <Text style={lang.title}>Tılsım Solitaire</Text>
+      <Text style={lang.subtitle}>Dil Seçin / Choose Language</Text>
+      <View style={lang.list}>
+        {LANGUAGES.map((l) => (
+          <TouchableOpacity
+            key={l.code}
+            style={[lang.item, !l.available && lang.itemDisabled]}
+            onPress={() => l.available && onSelect(l.code)}
+            activeOpacity={l.available ? 0.7 : 1}
+          >
+            <Text style={lang.flag}>{l.flag}</Text>
+            <Text style={[lang.name, !l.available && { color: 'rgba(255,255,255,0.3)' }]}>{l.name}</Text>
+            {!l.available && <Text style={lang.soon}>Yakında</Text>}
+            {l.available && <View style={lang.check}><Text style={{ color: '#fff', fontSize: 12 }}>✓</Text></View>}
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+const lang = StyleSheet.create({
+  overlay: { ...StyleSheet.absoluteFillObject, zIndex: 10000, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  owl: { width: 100, height: 100, borderRadius: 20, marginBottom: 12 },
+  title: { fontFamily: 'Fondamento_400Regular_Italic', fontSize: 36, color: '#fff', marginBottom: 4 },
+  subtitle: { fontFamily: 'BeVietnamPro_400Regular', fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 24 },
+  list: { width: '100%', gap: 8 },
+  item: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: 'rgba(255,255,255,0.08)', paddingVertical: 14, paddingHorizontal: 18, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  itemDisabled: { opacity: 0.4 },
+  flag: { fontSize: 28 },
+  name: { flex: 1, fontFamily: 'PlusJakartaSans_700Bold', fontSize: 16, color: '#fff' },
+  soon: { fontFamily: 'BeVietnamPro_400Regular', fontSize: 11, color: 'rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
+  check: { width: 24, height: 24, borderRadius: 12, backgroundColor: COLORS.success, alignItems: 'center', justifyContent: 'center' },
+});
 
 const OWL = require('../assets/bilge-happy.png');
 
@@ -70,6 +122,7 @@ export default function RootLayout() {
   });
 
   const [splashDone, setSplashDone] = useState(false);
+  const [showLangPicker, setShowLangPicker] = useState(false);
 
   useEffect(() => {
     initAds();
@@ -80,9 +133,16 @@ export default function RootLayout() {
         setSoundEnabled(s.sound !== false);
         setBgmEnabled(s.bgm !== false);
         if (s.bgm !== false) startBgm();
+        // İlk açılışta dil seçimi göster
+        if (!s.languageSelected) setShowLangPicker(true);
       });
     });
   }, []);
+
+  const handleLanguageSelect = async (code) => {
+    await saveSettings({ language: code, languageSelected: true });
+    setShowLangPicker(false);
+  };
 
   if (!fontsLoaded) {
     return (
@@ -98,6 +158,7 @@ export default function RootLayout() {
       <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLORS.surface }, animation: 'fade' }} />
       {!splashDone && <AnimatedSplash onFinish={() => setSplashDone(true)} />}
+      {splashDone && showLangPicker && <LanguageSelector onSelect={handleLanguageSelect} />}
       <ConsentDialog />
     </GestureHandlerRootView>
   );
