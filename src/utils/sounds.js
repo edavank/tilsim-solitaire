@@ -3,12 +3,24 @@ import { Vibration } from 'react-native';
 
 let soundEnabled = true;
 let vibrationEnabled = true;
+let bgmEnabled = true;
 const sounds = {};
+let bgmSound = null;
 
 export function setSoundEnabled(v) { soundEnabled = v; }
 export function getSoundEnabled() { return soundEnabled; }
 export function setVibrationEnabled(v) { vibrationEnabled = v; }
 export function getVibrationEnabled() { return vibrationEnabled; }
+export function getBgmEnabled() { return bgmEnabled; }
+export async function setBgmEnabled(v) {
+  bgmEnabled = v;
+  if (bgmSound) {
+    try {
+      if (v) await bgmSound.playAsync();
+      else await bgmSound.pauseAsync();
+    } catch (e) {}
+  }
+}
 
 // Haptic patterns
 const HAPTIC = {
@@ -54,9 +66,30 @@ export async function loadSounds() {
         // Skip if sound file can't be loaded
       }
     }
+    // Load BGM
+    try {
+      const { sound } = await Audio.Sound.createAsync(
+        require('../../assets/sounds/bgm.mp3'),
+        { shouldPlay: false, isLooping: true, volume: 0.25 }
+      );
+      bgmSound = sound;
+    } catch (e) {}
   } catch (e) {
     // Audio not available (web or some devices)
   }
+}
+
+export async function startBgm() {
+  if (!bgmEnabled || !bgmSound) return;
+  try {
+    const status = await bgmSound.getStatusAsync();
+    if (!status.isPlaying) await bgmSound.playAsync();
+  } catch (e) {}
+}
+
+export async function stopBgm() {
+  if (!bgmSound) return;
+  try { await bgmSound.pauseAsync(); } catch (e) {}
 }
 
 export function playHaptic(event) {
@@ -85,5 +118,9 @@ export async function playSound(event) {
 export async function unloadSounds() {
   for (const key in sounds) {
     try { await sounds[key].unloadAsync(); } catch (e) {}
+  }
+  if (bgmSound) {
+    try { await bgmSound.unloadAsync(); } catch (e) {}
+    bgmSound = null;
   }
 }

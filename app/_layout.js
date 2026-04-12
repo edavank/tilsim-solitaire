@@ -21,7 +21,7 @@ import { COLORS } from '../src/constants/theme';
 import { initAds } from '../src/utils/ads';
 import ConsentDialog from '../src/components/ConsentDialog';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { setVibrationEnabled, setSoundEnabled, loadSounds } from '../src/utils/sounds';
+import { setVibrationEnabled, setSoundEnabled, setBgmEnabled, loadSounds, startBgm } from '../src/utils/sounds';
 import { loadSettings } from '../src/utils/storage';
 
 const OWL = require('../assets/bilge-happy.png');
@@ -74,10 +74,13 @@ export default function RootLayout() {
   useEffect(() => {
     initAds();
     try { require('../src/utils/auth').initAuth(); } catch (e) {}
-    loadSounds();
-    loadSettings().then((s) => {
-      setVibrationEnabled(s.vibration !== false);
-      setSoundEnabled(s.sound !== false);
+    loadSounds().then(() => {
+      loadSettings().then((s) => {
+        setVibrationEnabled(s.vibration !== false);
+        setSoundEnabled(s.sound !== false);
+        setBgmEnabled(s.bgm !== false);
+        if (s.bgm !== false) startBgm();
+      });
     });
   }, []);
 

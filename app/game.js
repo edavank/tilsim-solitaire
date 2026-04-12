@@ -473,15 +473,14 @@ export default function GameScreen() {
         const ns = removeFromSource(prev, source, sourceIndex, card.id);
         setHistory((h) => [...h, prev]);
         setFeedback('✅ ' + card.word + ' açıldı!');
-        playSound('flip');
+        setTimeout(() => playSound('flip'), 10);
         return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + 5, isFailed: prev.moves - 1 <= 0 };
       }
       if (!target.category && card.type === 'word') { setFeedback('⚠️ Önce kategori koy!'); return prev; }
       if (target.category && card.type === 'category') { setFeedback('⚠️ Zaten dolu!'); return prev; }
       if (target.category && card.type === 'word') {
         if (card.categoryIndex !== target.category.categoryIndex) {
-          Vibration.vibrate(100);
-          playSound('wrong');
+          setTimeout(() => { Vibration.vibrate(100); playSound('wrong'); }, 10);
           triggerShake(slotIndex);
           setFeedback('❌ Yanlış! (-1 hamle)');
           return { ...prev, moves: prev.moves - 1, isFailed: prev.moves - 1 <= 0 };
@@ -559,13 +558,14 @@ export default function GameScreen() {
 
         if (catCompleted && !isComplete) {
           setFeedback('🎉 ' + target.category.word + ' tamamlandı! Slot boşalıyor...');
-          playSound('complete');
+          setTimeout(() => playSound('complete'), 10);
         } else if (totalPlaced > 1) {
           setFeedback('✅ ' + totalPlaced + ' kart: ' + names + ' (+' + (totalPlaced * 10) + ')');
+          setTimeout(() => playSound('correct'), 10);
         } else {
           setFeedback('✅ Doğru! (+10)');
+          setTimeout(() => playSound('correct'), 10);
         }
-        playSound('correct');
         const catBonus = catCompleted ? 25 : 0;
         return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + (totalPlaced * 10) + catBonus, completedCats: newCompletedCats, isComplete, isFailed: prev.moves - 1 <= 0 && !isComplete };
       }
@@ -702,12 +702,12 @@ export default function GameScreen() {
           [recycled[i], recycled[j]] = [recycled[j], recycled[i]];
         }
         setFeedback('🔄 Deste karıştırıldı! (-1 hamle)');
-        playSound('draw');
+        setTimeout(() => playSound('draw'), 10);
         return { ...p, deck: recycled, drawnCards: [], moves: p.moves - 1, isFailed: p.moves - 1 <= 0 };
       }
       const d = [...p.deck]; const card = { ...d.pop(), faceUp: true };
       setFeedback('🎴 ' + card.word + ' çekildi (-1 hamle)');
-      playSound('draw');
+      setTimeout(() => playSound('draw'), 10);
       return { ...p, deck: d, drawnCards: [...p.drawnCards, card], moves: p.moves - 1, isFailed: p.moves - 1 <= 0 };
     });
     setSelected(null);
