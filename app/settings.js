@@ -160,7 +160,7 @@ const s = StyleSheet.create({
 
   resetBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-    borderWidth: 1.5, borderColor: COLORS.primary, paddingVertical: 14, borderRadius: 16, marginTop: 12,
+    borderWidth: 1.5, borderColor: COLORS.primary, paddingVertical: 14, borderRadius: 16, marginTop: 28,
   },
   resetText: { fontFamily: FONTS.headlineBlack, fontSize: 15, color: COLORS.primary },
 
