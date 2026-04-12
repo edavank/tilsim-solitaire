@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -30,8 +30,19 @@ export default function RootLayout() {
     Fondamento_400Regular_Italic,
   });
 
-  // Initialize AdMob (fails silently in Expo Go)
-  useEffect(() => { initAds(); }, []);
+  // Request ATT permission on iOS, then initialize ads
+  useEffect(() => {
+    async function setup() {
+      if (Platform.OS === 'ios') {
+        try {
+          const { requestTrackingPermissionsAsync } = require('expo-tracking-transparency');
+          await requestTrackingPermissionsAsync();
+        } catch (e) { /* Expo Go fallback */ }
+      }
+      initAds();
+    }
+    setup();
+  }, []);
 
   if (!fontsLoaded) {
     return (

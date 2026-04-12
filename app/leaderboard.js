@@ -28,12 +28,16 @@ export default function LeaderboardScreen() {
   const [userScore, setUserScore] = useState(0);
   const [userLevel, setUserLevel] = useState(1);
   const [coins, setCoins] = useState(0);
+  const [totalWins, setTotalWins] = useState(0);
+  const [totalGames, setTotalGames] = useState(0);
 
   useEffect(() => {
     loadProgress().then((p) => {
       setUserScore(p.bestScore || 0);
       setUserLevel(p.currentLevel || 1);
       setCoins(p.coins || 0);
+      setTotalWins(p.totalWins || 0);
+      setTotalGames(p.totalGames || 0);
     });
   }, []);
 
@@ -123,6 +127,22 @@ export default function LeaderboardScreen() {
           <View style={[s.dot, s.dotActive]} /><View style={s.dot} /><View style={s.dot} />
         </View>
 
+        {/* Stats */}
+        <View style={s.statsRow}>
+          <View style={s.statBox}>
+            <Text style={s.statValue}>{totalGames}</Text>
+            <Text style={s.statLabel}>Oyun</Text>
+          </View>
+          <View style={s.statBox}>
+            <Text style={s.statValue}>{totalWins}</Text>
+            <Text style={s.statLabel}>Kazanma</Text>
+          </View>
+          <View style={s.statBox}>
+            <Text style={s.statValue}>{totalGames > 0 ? Math.round(totalWins / totalGames * 100) : 0}%</Text>
+            <Text style={s.statLabel}>Başarı</Text>
+          </View>
+        </View>
+
         {/* User card */}
         <View style={s.userCard}>
           <Text style={s.userRank}>42</Text>
@@ -209,6 +229,11 @@ const s = StyleSheet.create({
   dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginVertical: 14 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.outlineVariant },
   dotActive: { backgroundColor: COLORS.onSurfaceVariant },
+
+  statsRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  statBox: { flex: 1, backgroundColor: COLORS.panelBg, borderRadius: 14, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: COLORS.panelBorder },
+  statValue: { fontFamily: FONTS.headlineBlack, fontSize: 20, color: COLORS.onSurface },
+  statLabel: { fontFamily: FONTS.body, fontSize: 10, color: COLORS.onSurfaceVariant, marginTop: 2 },
 
   userCard: {
     flexDirection: 'row', alignItems: 'center', gap: 10,

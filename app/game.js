@@ -415,18 +415,27 @@ export default function GameScreen() {
         const totalPlaced = cardsToPlace.length;
         setSparkle({ x: SW / 2, y: 200 });
         setTimeout(() => setSparkle(null), 700);
+
+        // Check if this placement completed a category
+        const catCompleted = target.placedCards.length >= target.category.totalWords;
+
         let done = true;
         for (const sl of newSlots) if (sl.category && sl.placedCards.length < sl.category.totalWords) done = false;
         const catsPlaced = newSlots.filter((sl) => sl.category).length;
         const isComplete = done && catsPlaced >= level.categories.length;
         setHistory((h) => [...h, prev]);
-        if (totalPlaced > 1) {
+
+        if (catCompleted && !isComplete) {
+          setFeedback('🎉 ' + target.category.word + ' tamamlandı!');
+          playHaptic('complete');
+        } else if (totalPlaced > 1) {
           setFeedback('✅ ' + totalPlaced + ' kart: ' + names + ' (+' + (totalPlaced * 10) + ')');
         } else {
           setFeedback('✅ Doğru! (+10)');
         }
         playHaptic('correct');
-        return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + (totalPlaced * 10), isComplete, isFailed: prev.moves - 1 <= 0 && !isComplete };
+        const catBonus = catCompleted ? 25 : 0;
+        return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + (totalPlaced * 10) + catBonus, isComplete, isFailed: prev.moves - 1 <= 0 && !isComplete };
       }
       return prev;
     });
@@ -589,11 +598,14 @@ export default function GameScreen() {
     const nextLevel = LEVELS.find((l) => l.id === nextId);
     if (!nextLevel) { router.back(); return; }
     const bonus = Math.floor(50 * (gs.moves / level.moves));
+    const prog = await loadProgress();
     await updateProgress({
       currentLevel: nextId,
-      coins: coins + 250 + bonus,
-      totalWins: (await loadProgress()).totalWins + 1,
-      bestScore: Math.max((await loadProgress()).bestScore, gs.score),
+      coins: (prog.coins || 0) + 250 + bonus,
+      totalGames: (prog.totalGames || 0) + 1,
+      totalWins: (prog.totalWins || 0) + 1,
+      bestScore: Math.max(prog.bestScore || 0, gs.score),
+      streak: (prog.streak || 0) + 1,
     });
     await clearSavedGame();
     // Show interstitial ad every 3 levels (not on every level — Better Ads Standards)
@@ -602,10 +614,12 @@ export default function GameScreen() {
     setGs(generateGameState(nextLevel));
     setHistory([]); setSelected(null);
     setHintCard(null); setHintSlot(null);
-    setCoins((c) => c + 250 + bonus);
+    setCoins((prog.coins || 0) + 250 + bonus);
   }, [levelId, gs, level, coins]);
 
   const handleReplay = useCallback(async () => {
+    const prog = await loadProgress();
+    await updateProgress({ totalGames: (prog.totalGames || 0) + 1 });
     await clearSavedGame();
     resetGame();
   }, [resetGame]);

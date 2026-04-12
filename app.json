@@ -18,7 +18,8 @@
       "bundleIdentifier": "com.edavank.tilsimsolitaire",
       "buildNumber": "1",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSUserTrackingUsageDescription": "Reklamları size özel hale getirmek için izninizi istiyoruz. İzin vermezseniz yine de uygulamamızı kullanabilirsiniz."
       }
     },
     "android": {
@@ -37,6 +38,7 @@
     "plugins": [
       "expo-router",
       "expo-font",
+      "expo-tracking-transparency",
       [
         "react-native-google-mobile-ads",
         {

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { LEVELS } from '../src/data/levels';
@@ -29,6 +29,12 @@ export default function LevelsScreen() {
   useEffect(() => {
     loadProgress().then((p) => setCurrentLevel(p.currentLevel));
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadProgress().then((p) => setCurrentLevel(p.currentLevel));
+    }, [])
+  );
 
   return (
     <View style={s.container}>
