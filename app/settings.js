@@ -6,23 +6,24 @@ import { router } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { loadSettings, saveSettings, loadProgress, resetAll } from '../src/utils/storage';
+import { setVibrationEnabled } from '../src/utils/sounds';
 
 const OWL = require('../assets/bilge-happy.png');
 
 export default function SettingsScreen() {
-  const [sound, setSound] = useState(true);
-  const [music, setMusic] = useState(true);
-  const [vibration, setVibration] = useState(false);
+  const [vibration, setVibration] = useState(true);
   const [coins, setCoins] = useState(0);
 
   useEffect(() => {
-    loadSettings().then((s) => { setSound(s.sound); setMusic(s.music); setVibration(s.vibration); });
+    loadSettings().then((s) => { setVibration(s.vibration !== false); });
     loadProgress().then((p) => setCoins(p.coins));
   }, []);
 
-  const toggleSound = (v) => { setSound(v); saveSettings({ sound: v, music, vibration }); };
-  const toggleMusic = (v) => { setMusic(v); saveSettings({ sound, music: v, vibration }); };
-  const toggleVibration = (v) => { setVibration(v); saveSettings({ sound, music, vibration: v }); };
+  const toggleVibration = (v) => {
+    setVibration(v);
+    setVibrationEnabled(v);
+    saveSettings({ vibration: v });
+  };
 
   const handleReset = () => {
     Alert.alert('İlerlemeyi Sıfırla', 'Tüm ilerleme ve kayıtlı veriler silinecek. Emin misin?', [
@@ -57,10 +58,6 @@ export default function SettingsScreen() {
           <Text style={s.sectionTitle}>Oyun Tercihleri</Text>
         </View>
         <View style={s.card}>
-          <SettingRow icon="volume-up" iconColor={COLORS.primary} label="Ses" right={<Switch value={sound} onValueChange={toggleSound} trackColor={trackColor} thumbColor="#fff" />} />
-          <View style={s.divider} />
-          <SettingRow icon="music-note" iconColor={COLORS.primary} label="Müzik" right={<Switch value={music} onValueChange={toggleMusic} trackColor={trackColor} thumbColor="#fff" />} />
-          <View style={s.divider} />
           <SettingRow icon="vibration" iconColor={COLORS.primary} label="Titreşim" right={<Switch value={vibration} onValueChange={toggleVibration} trackColor={trackColor} thumbColor="#fff" />} />
         </View>
 
@@ -74,11 +71,6 @@ export default function SettingsScreen() {
         </View>
 
         {/* Buttons */}
-        <TouchableOpacity style={s.googleBtn} activeOpacity={0.8}>
-          <MaterialIcons name="public" size={20} color="#fff" />
-          <Text style={s.googleText}>Google ile Bağla</Text>
-        </TouchableOpacity>
-
         <TouchableOpacity style={s.resetBtn} activeOpacity={0.8} onPress={handleReset}>
           <MaterialIcons name="refresh" size={20} color={COLORS.primary} />
           <Text style={s.resetText}>İlerlemeyi Sıfırla</Text>
@@ -165,12 +157,6 @@ const s = StyleSheet.create({
   rowLabel: { fontFamily: FONTS.bodyMedium, fontSize: 15, color: COLORS.onSurface },
   divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginHorizontal: 16 },
   chevronValue: { fontFamily: FONTS.bodyMedium, fontSize: 13, color: COLORS.secondary },
-
-  googleBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-    backgroundColor: COLORS.primary, paddingVertical: 16, borderRadius: 16, marginTop: 28,
-  },
-  googleText: { fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff' },
 
   resetBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,

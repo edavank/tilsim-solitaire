@@ -21,6 +21,8 @@ import { COLORS } from '../src/constants/theme';
 import { initAds } from '../src/utils/ads';
 import ConsentDialog from '../src/components/ConsentDialog';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { setVibrationEnabled } from '../src/utils/sounds';
+import { loadSettings } from '../src/utils/storage';
 
 const OWL = require('../assets/bilge-happy.png');
 
@@ -69,7 +71,10 @@ export default function RootLayout() {
 
   const [splashDone, setSplashDone] = useState(false);
 
-  useEffect(() => { initAds(); }, []);
+  useEffect(() => {
+    initAds();
+    loadSettings().then((s) => setVibrationEnabled(s.vibration !== false));
+  }, []);
 
   if (!fontsLoaded) {
     return (
