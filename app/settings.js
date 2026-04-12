@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView, Image, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView, Image, Alert, Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -89,8 +89,12 @@ export default function SettingsScreen() {
         {/* Footer */}
         <View style={s.footer}>
           <View style={s.footerLinks}>
-            <Text style={s.footerLink}>Gizlilik Politikası</Text>
-            <Text style={s.footerLink}>Kullanım Şartları</Text>
+            <TouchableOpacity onPress={() => Linking.openURL('https://tilsim-solitaire.vercel.app/privacy')}>
+              <Text style={s.footerLink}>Gizlilik Politikası</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => Linking.openURL('https://tilsim-solitaire.vercel.app/terms')}>
+              <Text style={s.footerLink}>Kullanım Şartları</Text>
+            </TouchableOpacity>
           </View>
           <View style={s.footerBrand}>
             <Image source={OWL} style={s.footerOwl} />

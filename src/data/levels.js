@@ -1,3 +1,5 @@
+import { generateLevels } from './levelGenerator';
+
 export const WORD_EMOJIS = {
   // Meyveler
   'Elma': '🍎', 'Armut': '🍐', 'Kiraz': '🍒', 'Portakal': '🍊',
@@ -227,7 +229,6 @@ export function generateGameState(level) {
   };
 }
 
-// Generate levels 11-50
-import { generateLevels } from './levelGenerator';
+// Auto-generate levels 11-50
 const GENERATED = generateLevels(11, 40);
 LEVELS.push(...GENERATED);
