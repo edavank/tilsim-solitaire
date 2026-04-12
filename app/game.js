@@ -319,7 +319,6 @@ export default function GameScreen() {
   }, []);
 
   const startDrag = useCallback((card, source, sourceIndex, isLast, pageX, pageY) => {
-    // Check if this card forms a valid stack
     let stackCards = [card];
     if (source === 'column' && !isLast) {
       const col = gs.columns[sourceIndex];
@@ -327,8 +326,8 @@ export default function GameScreen() {
       const cardIdx = col.cards.findIndex((c) => c.id === card.id);
       if (cardIdx < 0) return;
       const stack = col.cards.slice(cardIdx);
-      const allSameCat = stack.every((c) => c.faceUp && c.type === 'word' && c.categoryIndex === card.categoryIndex);
-      if (!allSameCat) { setFeedback('⚠️ Önce altındaki kartları kaldır!'); return; }
+      const allFaceUp = stack.every((c) => c.faceUp);
+      if (!allFaceUp) { setFeedback('⚠️ Önce altındaki kartları kaldır!'); return; }
       stackCards = stack;
     }
     dragRef.current = { card, source, sourceIndex, isLast, stackCards, startX: pageX, startY: pageY };
@@ -531,15 +530,29 @@ export default function GameScreen() {
 
         // Check if this placement completed a category
         const catCompleted = target.placedCards.length >= target.category.totalWords;
+        let newCompletedCats = prev.completedCats || 0;
 
-        let done = true;
-        for (const sl of newSlots) if (sl.category && sl.placedCards.length < sl.category.totalWords) done = false;
-        const catsPlaced = newSlots.filter((sl) => sl.category).length;
-        const isComplete = done && catsPlaced >= level.categories.length;
+        if (catCompleted) {
+          newCompletedCats++;
+          // Clear the slot — make it available for the next category
+          setTimeout(() => {
+            setGs((g) => {
+              const cleared = g.slots.map((sl, idx) => {
+                if (idx === slotIndex && sl.category && sl.placedCards.length >= sl.category.totalWords) {
+                  return { ...sl, category: null, placedCards: [], locked: false };
+                }
+                return sl;
+              });
+              return { ...g, slots: cleared };
+            });
+          }, 1200); // 1.2s delay for celebration
+        }
+
+        const isComplete = newCompletedCats >= level.categories.length;
         setHistory((h) => [...h, prev]);
 
         if (catCompleted && !isComplete) {
-          setFeedback('🎉 ' + target.category.word + ' tamamlandı!');
+          setFeedback('🎉 ' + target.category.word + ' tamamlandı! Slot boşalıyor...');
           playHaptic('complete');
         } else if (totalPlaced > 1) {
           setFeedback('✅ ' + totalPlaced + ' kart: ' + names + ' (+' + (totalPlaced * 10) + ')');
@@ -548,7 +561,7 @@ export default function GameScreen() {
         }
         playHaptic('correct');
         const catBonus = catCompleted ? 25 : 0;
-        return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + (totalPlaced * 10) + catBonus, isComplete, isFailed: prev.moves - 1 <= 0 && !isComplete };
+        return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + (totalPlaced * 10) + catBonus, completedCats: newCompletedCats, isComplete, isFailed: prev.moves - 1 <= 0 && !isComplete };
       }
       return prev;
     });
@@ -562,13 +575,7 @@ export default function GameScreen() {
       if (targetCol.cards.length > 0) {
         const bottomCard = targetCol.cards[targetCol.cards.length - 1];
         if (!bottomCard.faceUp) { setFeedback('⚠️ Buraya koyamazsın!'); return prev; }
-        // Category cards can't be stacking targets — only word on word
-        if (bottomCard.type === 'category') { setFeedback('⚠️ Kategori kartının üstüne konamazsın!'); return prev; }
-        if (card.type === 'category') { setFeedback('⚠️ Kategori kartı sütuna taşınamaz!'); return prev; }
-        if (card.categoryIndex !== bottomCard.categoryIndex) {
-          setFeedback('⚠️ Aynı kategori kartları üst üste konabilir!');
-          return prev;
-        }
+        // Sütunlar serbest — herhangi bir kart herhangi bir kartın üstüne konabilir
       }
       const ns = removeFromSource(prev, source, sourceIndex, card.id);
       ns.columns = ns.columns.map((col, i) => {
@@ -584,14 +591,14 @@ export default function GameScreen() {
 
   const handleCardTap = useCallback((card, source, sourceIndex, isLast = true) => {
     if (source === 'column' && !isLast) {
-      // Check if this card + all below form a valid same-category stack
+      // Check if this card + all below are face-up (any category OK for column moves)
       const col = gs.columns[sourceIndex];
       if (!col) return;
       const cardIdx = col.cards.findIndex((c) => c.id === card.id);
       if (cardIdx < 0) return;
       const stack = col.cards.slice(cardIdx);
-      const allSameCat = stack.every((c) => c.faceUp && c.type === 'word' && c.categoryIndex === card.categoryIndex);
-      if (!allSameCat) {
+      const allFaceUp = stack.every((c) => c.faceUp);
+      if (!allFaceUp) {
         setFeedback('⚠️ Önce altındaki kartları kaldır!');
         return;
       }
@@ -614,7 +621,7 @@ export default function GameScreen() {
       setFeedback('✋ ' + card.word + ' → Slot veya sütuna dokun');
       return { card, source, sourceIndex, stackCards: [card] };
     });
-  }, [moveToColumn, gs.columns]);
+  }, [moveToColumn, moveStackToColumn, gs.columns]);
 
   // Move entire stack to another column
   const moveStackToColumn = useCallback((stackCards, source, sourceIndex, targetColIndex) => {
@@ -626,11 +633,7 @@ export default function GameScreen() {
       if (targetCol.cards.length > 0) {
         const bottomCard = targetCol.cards[targetCol.cards.length - 1];
         if (!bottomCard.faceUp) { setFeedback('⚠️ Buraya koyamazsın!'); return prev; }
-        if (bottomCard.type === 'category') { setFeedback('⚠️ Kategori kartının üstüne konamazsın!'); return prev; }
-        if (stackCards[0].categoryIndex !== bottomCard.categoryIndex) {
-          setFeedback('⚠️ Aynı kategori kartları üst üste konabilir!');
-          return prev;
-        }
+        // Sütunlar serbest — yığınlar herhangi bir kartın üstüne konabilir
       }
 
       const stackIds = new Set(stackCards.map((c) => c.id));

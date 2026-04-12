@@ -233,7 +233,7 @@ export function generateGameState(level) {
   return {
     levelId: level.id, moves: level.moves, hints: level.hints, undos: level.undos,
     deck, drawnCards: [], columns, slots,
-    coins: 310, score: 0, isComplete: false, isFailed: false,
+    coins: 310, score: 0, completedCats: 0, isComplete: false, isFailed: false,
   };
 }
 
