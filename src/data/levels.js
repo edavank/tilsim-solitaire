@@ -177,6 +177,23 @@ export function generateGameState(level) {
   };
 }
 
-// Auto-generate levels 11-100
-const GENERATED = generateLevels(11, 90);
-LEVELS.push(...GENERATED);
+// Auto-generate levels 11+ for Turkish (default)
+const GENERATED_TR = generateLevels(11, 190, 'tr');
+LEVELS.push(...GENERATED_TR);
+
+// Language-aware level cache
+const langCache = {};
+
+export function getLevel(id, language = 'tr') {
+  if (language === 'tr') return LEVELS.find((l) => l.id === id) || generateLevels(id, 1, 'tr')[0];
+  const key = language;
+  if (!langCache[key]) {
+    langCache[key] = generateLevels(1, 200, language);
+  }
+  return langCache[key].find((l) => l.id === id) || generateLevels(id, 1, language)[0];
+}
+
+export function getTotalLevels(language = 'tr') {
+  if (language === 'tr') return LEVELS.length;
+  return 200;
+}

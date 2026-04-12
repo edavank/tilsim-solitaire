@@ -99,7 +99,7 @@ function AnimatedSplash({ onFinish }) {
       <Animated.Image source={OWL} style={[sp.owl, { transform: [{ scale }] }]} />
       <Animated.View style={{ opacity: textFade, alignItems: 'center' }}>
         <Text style={sp.title}>Tılsım</Text>
-        <Text style={sp.sub}>S O L İ T A İ R E</Text>
+        <Text style={sp.sub}>S O L I T A I R E</Text>
       </Animated.View>
     </Animated.View>
   );

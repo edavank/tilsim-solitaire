@@ -7,8 +7,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { COLORS, FONTS, SIZES, CATEGORY_COLORS } from '../src/constants/theme';
-import { LEVELS, generateGameState } from '../src/data/levels';
-import { loadProgress, updateProgress, clearSavedGame, saveSavedGame } from '../src/utils/storage';
+import { LEVELS, generateGameState, getLevel } from '../src/data/levels';
+import { loadProgress, updateProgress, clearSavedGame, saveSavedGame, loadSettings } from '../src/utils/storage';
 import { playHaptic, playSound } from '../src/utils/sounds';
 import { showRewarded, showInterstitial } from '../src/utils/ads';
 
@@ -212,7 +212,7 @@ function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedI
 
 /* ── Win Overlay ── */
 function LevelCompleteOverlay({ score, coins, movesLeft, maxMoves, levelId, onNext, onReplay, onHome }) {
-  const moveBonus = Math.floor(50 * (movesLeft / maxMoves));
+  const moveBonus = Math.floor(15 * (movesLeft / maxMoves));
   const totalCoins = coins + moveBonus;
   return (
     <View style={ov.overlay}>
@@ -291,15 +291,16 @@ function LevelFailedOverlay({ levelId, onAddMoves, onReplay, onHome }) {
 export default function GameScreen() {
   const params = useLocalSearchParams();
   const [levelId, setLevelId] = useState(parseInt(params.level) || 1);
-  const level = LEVELS.find((l) => l.id === levelId) || LEVELS[0];
+  const [gameLang, setGameLang] = useState('tr');
+  const level = getLevel(levelId, gameLang);
   const [gs, setGs] = useState(() => generateGameState(level));
   const [selected, setSelected] = useState(null);
-  const [feedback, setFeedback] = useState('Karta dokun, sonra slot\'a dokun!');
+  const [feedback, setFeedback] = useState('');
   const [history, setHistory] = useState([]);
   const [hintCard, setHintCard] = useState(null);
   const [hintSlot, setHintSlot] = useState(null);
   const [sparkle, setSparkle] = useState(null);
-  const [coins, setCoins] = useState(310);
+  const [coins, setCoins] = useState(50);
   const [paused, setPaused] = useState(false);
   const [shakeSlotIdx, setShakeSlotIdx] = useState(-1);
   const [showTutorial, setShowTutorial] = useState(false);
@@ -409,19 +410,21 @@ export default function GameScreen() {
     else if (gs.isFailed) playSound('lose');
   }, [gs.isComplete, gs.isFailed]);
 
-  // Load progress
+  // Load progress + language
   useEffect(() => {
+    loadSettings().then((s) => {
+      const lang = s.language || 'tr';
+      setGameLang(lang);
+    });
     loadProgress().then(async (p) => {
-      setCoins(p.coins);
-      if (!params.level) setLevelId(p.currentLevel);
-      if (p.currentLevel === 1) setShowTutorial(true);
-      // Restore saved game if available
+      setCoins(p.coins || 0);
+      if (!params.level) setLevelId(p.currentLevel || 1);
+      if ((p.currentLevel || 1) === 1) setShowTutorial(true);
       try {
         const { loadSavedGame } = require('../src/utils/storage');
         const saved = await loadSavedGame();
         if (saved && saved.levelId === (parseInt(params.level) || p.currentLevel) && !saved.isComplete && !saved.isFailed) {
           setGs(saved);
-          setFeedback('💾 Kayıtlı oyun yüklendi');
         }
       } catch (e) {}
     });
@@ -484,7 +487,7 @@ export default function GameScreen() {
         target.category = card;
         const ns = removeFromSource(prev, source, sourceIndex, card.id);
         setHistory((h) => [...h, prev]);
-        setFeedback('✅ ' + card.word + ' açıldı!');
+        
         setTimeout(() => playSound('flip'), 10);
         return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + 5, isFailed: prev.moves - 1 <= 0 };
       }
@@ -584,10 +587,10 @@ export default function GameScreen() {
           setFeedback('🎉 ' + target.category.word + ' tamamlandı! Slot boşalıyor...');
           setTimeout(() => playSound('complete'), 10);
         } else if (totalPlaced > 1) {
-          setFeedback('✅ ' + totalPlaced + ' kart: ' + names + ' (+' + (totalPlaced * 10) + ')');
+          
           setTimeout(() => playSound('correct'), 10);
         } else {
-          setFeedback('✅ Doğru! (+10)');
+          
           setTimeout(() => playSound('correct'), 10);
         }
         const catBonus = catCompleted ? 25 : 0;
@@ -622,7 +625,7 @@ export default function GameScreen() {
         return { ...col, cards: [...col.cards, { ...card, faceUp: true }] };
       });
       setHistory((h) => [...h, prev]);
-      setFeedback('📋 ' + card.word + ' taşındı (ücretsiz)');
+      
       return ns;
     });
     setSelected(null);
@@ -657,7 +660,7 @@ export default function GameScreen() {
         return null;
       }
       if (prev && prev.card.id === card.id) { setFeedback(''); return null; }
-      setFeedback('✋ ' + card.word + ' → Slot veya sütuna dokun');
+      
       return { card, source, sourceIndex, stackCards: [card] };
     });
   }, [moveToColumn, moveStackToColumn, gs.columns]);
@@ -700,7 +703,7 @@ export default function GameScreen() {
       });
 
       setHistory((h) => [...h, prev]);
-      setFeedback('📋 ' + stackCards.length + ' kart taşındı (ücretsiz)');
+      
       return { ...prev, columns: newColumns };
     });
     setSelected(null);
@@ -741,7 +744,7 @@ export default function GameScreen() {
         return { ...p, deck: recycled, drawnCards: [], moves: p.moves - 1, isFailed: p.moves - 1 <= 0 };
       }
       const d = [...p.deck]; const card = { ...d.pop(), faceUp: true };
-      setFeedback('🎴 ' + card.word + ' çekildi (-1 hamle)');
+      
       setTimeout(() => playSound('draw'), 10);
       return { ...p, deck: d, drawnCards: [...p.drawnCards, card], moves: p.moves - 1, isFailed: p.moves - 1 <= 0 };
     });
@@ -812,7 +815,7 @@ export default function GameScreen() {
   }, [gs]);
 
   const resetGame = useCallback(() => {
-    const newLevel = LEVELS.find((l) => l.id === levelId) || LEVELS[0];
+    const newLevel = getLevel(levelId, gameLang);
     setGs(generateGameState(newLevel)); setHistory([]); setSelected(null);
     setHintCard(null); setHintSlot(null);
   }, [levelId]);
@@ -832,13 +835,13 @@ export default function GameScreen() {
   // ── Level Complete → save & advance ──
   const handleNextLevel = useCallback(async () => {
     const nextId = levelId + 1;
-    const nextLevel = LEVELS.find((l) => l.id === nextId);
+    const nextLevel = getLevel(nextId, gameLang);
     if (!nextLevel) { router.back(); return; }
-    const bonus = Math.floor(50 * (gs.moves / level.moves));
+    const bonus = Math.floor(15 * (gs.moves / level.moves));
     const prog = await loadProgress();
     await updateProgress({
       currentLevel: nextId,
-      coins: (prog.coins || 0) + 250 + bonus,
+      coins: (prog.coins || 0) + 50 + bonus,
       totalGames: (prog.totalGames || 0) + 1,
       totalWins: (prog.totalWins || 0) + 1,
       bestScore: Math.max(prog.bestScore || 0, gs.score),
@@ -851,7 +854,7 @@ export default function GameScreen() {
     setGs(generateGameState(nextLevel));
     setHistory([]); setSelected(null);
     setHintCard(null); setHintSlot(null);
-    setCoins((prog.coins || 0) + 250 + bonus);
+    setCoins((prog.coins || 0) + 50 + bonus);
   }, [levelId, gs, level, coins]);
 
   const handleReplay = useCallback(async () => {
@@ -984,22 +987,18 @@ export default function GameScreen() {
           ))}
         </View>
 
-        <View style={{ height: 140 }} />
+        <View style={{ height: 200 }} />
       </ScrollView>
 
       {/* Toolbar */}
       <View style={st.toolbar}>
-        <ToolBtn icon="lightbulb" label="İPUCU" badge={gs.hints} badgeColor={COLORS.fail} onPress={useHint} />
-        <ToolBtn icon="undo" label="GERİ AL" badge="+" badgeColor={COLORS.success} onPress={useUndo} />
+        <ToolBtn icon="lightbulb" label="İPUCU" badge={gs.hints} badgeColor={COLORS.fail} onPress={useHint} big />
+        <ToolBtn icon="undo" label="GERİ AL" badge="+" badgeColor={COLORS.success} onPress={useUndo} big />
         <ToolBtn icon="auto-fix-normal" label="SİL" badge="+" badgeColor={COLORS.success} onPress={useDelete} big />
-        <View style={st.toolOwlWrap}>
-          <Image source={OWL_HAPPY} style={st.toolOwl} />
-          <TouchableOpacity style={st.searchBtn} onPress={() => setFeedback('🔍 Yakında!')}>
-            <MaterialIcons name="search" size={18} color="#fff" />
-          </TouchableOpacity>
-          <Text style={st.toolLabel}>ARAMA</Text>
-        </View>
       </View>
+
+      {/* Ad Banner Space */}
+      <View style={st.adBannerSpace} />
 
       {/* Tutorial */}
       {showTutorial && (
@@ -1058,7 +1057,7 @@ export default function GameScreen() {
 
       {/* Overlays */}
       {gs.isComplete && (
-        <LevelCompleteOverlay score={gs.score} coins={250} movesLeft={gs.moves} maxMoves={level.moves} levelId={gs.levelId} onNext={handleNextLevel} onReplay={handleReplay} onHome={handleHome} />
+        <LevelCompleteOverlay score={gs.score} coins={50} movesLeft={gs.moves} maxMoves={level.moves} levelId={gs.levelId} onNext={handleNextLevel} onReplay={handleReplay} onHome={handleHome} />
       )}
       {gs.isFailed && !gs.isComplete && (
         <LevelFailedOverlay levelId={gs.levelId} onAddMoves={addMoves} onReplay={handleReplay} onHome={handleHome} />
@@ -1125,8 +1124,8 @@ function ToolBtn({ icon, label, badge, badgeColor, onPress, big }) {
 /* ── Overlay Styles ── */
 const ov = StyleSheet.create({
   overlay: { ...StyleSheet.absoluteFillObject, zIndex: 999, justifyContent: 'center', alignItems: 'center' },
-  card: { width: SW - 48, backgroundColor: COLORS.surfaceContainerHigh, borderRadius: 28, padding: 24, alignItems: 'center', borderWidth: 1, borderColor: COLORS.panelBorder, overflow: 'visible' },
-  owl: { width: 180, height: 180, borderRadius: 20, marginTop: -50, marginBottom: 8 },
+  card: { width: SW - 48, backgroundColor: COLORS.surfaceContainerHigh, borderRadius: 28, paddingTop: 80, paddingBottom: 24, paddingHorizontal: 24, alignItems: 'center', borderWidth: 1, borderColor: COLORS.panelBorder },
+  owl: { width: 140, height: 140, borderRadius: 20, position: 'absolute', top: -70 },
   title: { fontFamily: FONTS.headlineBlack, fontSize: 36, color: COLORS.onSurface, fontStyle: 'italic' },
   subtitle: { fontFamily: FONTS.headlineBlack, fontSize: 13, color: COLORS.secondary, letterSpacing: 3, marginBottom: 16 },
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 16, width: '100%' },
@@ -1196,14 +1195,12 @@ const st = StyleSheet.create({
   slotTag: { position: 'absolute', top: 0, left: 0, right: 0, paddingVertical: 2, alignItems: 'center', borderTopLeftRadius: 8, borderTopRightRadius: 8 },
   slotTagText: { fontFamily: FONTS.headlineBlack, fontSize: 8, color: '#fff' },
   tableauRow: { flexDirection: 'row', gap: COL_GAP, alignItems: 'flex-start', marginTop: 2 },
-  toolbar: { position: 'absolute', bottom: 30, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end', gap: 12, paddingVertical: 6, paddingHorizontal: 16, zIndex: 100 },
+  toolbar: { position: 'absolute', bottom: 70, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end', gap: 16, paddingVertical: 8, paddingHorizontal: 20, zIndex: 100 },
   toolWrap: { alignItems: 'center', gap: 3 },
   toolBtn: { width: 46, height: 46, borderRadius: 13, backgroundColor: COLORS.buttonBlue, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.1)', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 5, elevation: 5 },
-  toolBtnBig: { width: 54, height: 54, borderRadius: 27, backgroundColor: COLORS.primary },
+  toolBtnBig: { width: 56, height: 56, borderRadius: 16, backgroundColor: COLORS.buttonBlue },
   toolBdg: { position: 'absolute', top: -4, right: -4, minWidth: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff', paddingHorizontal: 2 },
   toolBdgText: { fontFamily: FONTS.headlineBlack, fontSize: 8, color: '#fff' },
   toolLabel: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: COLORS.onSurfaceVariant, letterSpacing: 1 },
-  toolOwlWrap: { alignItems: 'center', gap: 3 },
-  toolOwl: { width: 56, height: 56, borderRadius: 12 },
-  searchBtn: { position: 'absolute', bottom: 0, right: -4, width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.buttonBlue, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.2)' },
+  adBannerSpace: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 60, backgroundColor: 'rgba(0,0,0,0.15)', zIndex: 99 },
 });

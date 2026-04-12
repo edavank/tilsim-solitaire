@@ -31,6 +31,19 @@ export const WORD_POOLS = {
     { name: 'Takılar', words: ['Yüzük', 'Kolye', 'Bilezik', 'Küpe', 'Broş', 'Saat'] },
     { name: 'Tatlılar', words: ['Baklava', 'Künefe', 'Sütlaç', 'Helva', 'Lokum', 'Kadayıf'] },
     { name: 'Baharat', words: ['Tuz', 'Biber', 'Kimyon', 'Kekik', 'Tarçın', 'Safran'] },
+    // Yeni çeşitli kategoriler
+    { name: 'Teknoloji', words: ['Telefon', 'Tablet', 'Laptop', 'Robot', 'Drone', 'Yazıcı'] },
+    { name: 'Bilgisayar', words: ['Klavye', 'Mouse', 'Ekran', 'İşlemci', 'Bellek', 'Disk'] },
+    { name: 'Sinema', words: ['Film', 'Yönetmen', 'Aktör', 'Sahne', 'Senaryo', 'Kamera'] },
+    { name: 'Mutfak', words: ['Tencere', 'Tava', 'Bıçak', 'Tabak', 'Bardak', 'Kaşık'] },
+    { name: 'Doğa', words: ['Dağ', 'Orman', 'Nehir', 'Göl', 'Şelale', 'Mağara'] },
+    { name: 'Tatil', words: ['Plaj', 'Otel', 'Bavul', 'Pasaport', 'Güneş kremi', 'Harita'] },
+    { name: 'Oyuncaklar', words: ['Bebek', 'Araba', 'Lego', 'Puzzle', 'Top', 'Uçurtma'] },
+    { name: 'Matematik', words: ['Toplama', 'Çıkarma', 'Çarpma', 'Bölme', 'Üçgen', 'Daire'] },
+    { name: 'Sanat', words: ['Resim', 'Heykel', 'Fırça', 'Tuval', 'Boya', 'Müze'] },
+    { name: 'Araçlar', words: ['Çekiç', 'Tornavida', 'Pense', 'Testere', 'Matkap', 'Anahtar'] },
+    { name: 'Kırtasiye', words: ['Makas', 'Yapıştırıcı', 'Bant', 'Zımba', 'Dosya', 'Klasör'] },
+    { name: 'Süper Kahramanlar', words: ['Maske', 'Pelerin', 'Güç', 'Kalkan', 'Kılıç', 'Zırh'] },
   ],
 
   en: [
@@ -62,6 +75,16 @@ export const WORD_POOLS = {
     { name: 'Jewelry', words: ['Ring', 'Necklace', 'Bracelet', 'Earring', 'Brooch', 'Watch'] },
     { name: 'Desserts', words: ['Brownie', 'Cookie', 'Pudding', 'Muffin', 'Donut', 'Pie'] },
     { name: 'Spices', words: ['Salt', 'Pepper', 'Cumin', 'Thyme', 'Cinnamon', 'Saffron'] },
+    { name: 'Technology', words: ['Phone', 'Tablet', 'Laptop', 'Robot', 'Drone', 'Printer'] },
+    { name: 'Computer', words: ['Keyboard', 'Mouse', 'Screen', 'Processor', 'Memory', 'Disk'] },
+    { name: 'Cinema', words: ['Film', 'Director', 'Actor', 'Scene', 'Script', 'Camera'] },
+    { name: 'Kitchen', words: ['Pot', 'Pan', 'Knife', 'Plate', 'Glass', 'Spoon'] },
+    { name: 'Nature', words: ['Mountain', 'Forest', 'River', 'Lake', 'Waterfall', 'Cave'] },
+    { name: 'Vacation', words: ['Beach', 'Hotel', 'Suitcase', 'Passport', 'Sunscreen', 'Map'] },
+    { name: 'Toys', words: ['Doll', 'Car', 'Lego', 'Puzzle', 'Ball', 'Kite'] },
+    { name: 'Math', words: ['Addition', 'Subtraction', 'Multiply', 'Division', 'Triangle', 'Circle'] },
+    { name: 'Art', words: ['Painting', 'Sculpture', 'Brush', 'Canvas', 'Paint', 'Museum'] },
+    { name: 'Tools', words: ['Hammer', 'Screwdriver', 'Pliers', 'Saw', 'Drill', 'Wrench'] },
   ],
 
   de: [
@@ -359,6 +382,30 @@ export const EMOJI_MAP = {
   // Spices
   'Tuz': '🧂', 'Salt': '🧂', 'Kimyon': '🌿', 'Cumin': '🌿', 'Kekik': '🌱', 'Thyme': '🌱',
   'Tarçın': '🪵', 'Cinnamon': '🪵', 'Safran': '🌾', 'Saffron': '🌾',
+  // Technology
+  'Telefon': '📱', 'Phone': '📱', 'Tablet': '📲', 'Laptop': '💻', 'Robot': '🤖', 'Drone': '🛸', 'Yazıcı': '🖨️', 'Printer': '🖨️',
+  // Computer
+  'Klavye': '⌨️', 'Keyboard': '⌨️', 'Mouse': '🖱️', 'Ekran': '🖥️', 'Screen': '🖥️', 'İşlemci': '🔲', 'Processor': '🔲', 'Bellek': '💾', 'Memory': '💾', 'Disk': '💿',
+  // Cinema
+  'Film': '🎬', 'Yönetmen': '🎥', 'Director': '🎥', 'Aktör': '🎭', 'Actor': '🎭', 'Sahne': '🎪', 'Scene': '🎪', 'Senaryo': '📝', 'Script': '📝', 'Kamera': '📷', 'Camera': '📷',
+  // Kitchen
+  'Tencere': '🍲', 'Pot': '🍲', 'Tava': '🍳', 'Pan': '🍳', 'Bıçak': '🔪', 'Knife': '🔪', 'Tabak': '🍽️', 'Plate': '🍽️', 'Bardak': '🥃', 'Glass': '🥃', 'Kaşık': '🥄', 'Spoon': '🥄',
+  // Nature
+  'Dağ': '🏔️', 'Mountain': '🏔️', 'Orman': '🌲', 'Forest': '🌲', 'Nehir': '🏞️', 'River': '🏞️', 'Göl': '💧', 'Lake': '💧', 'Şelale': '💦', 'Waterfall': '💦', 'Mağara': '🕳️', 'Cave': '🕳️',
+  // Vacation
+  'Plaj': '🏖️', 'Beach': '🏖️', 'Otel': '🏨', 'Hotel': '🏨', 'Bavul': '🧳', 'Suitcase': '🧳', 'Pasaport': '🛂', 'Passport': '🛂', 'Güneş kremi': '🧴', 'Sunscreen': '🧴', 'Harita': '🗺️', 'Map': '🗺️',
+  // Toys
+  'Bebek': '🧸', 'Doll': '🧸', 'Lego': '🧱', 'Puzzle': '🧩', 'Top': '⚽', 'Ball': '⚽', 'Uçurtma': '🪁', 'Kite': '🪁',
+  // Math
+  'Toplama': '➕', 'Addition': '➕', 'Çıkarma': '➖', 'Subtraction': '➖', 'Çarpma': '✖️', 'Multiply': '✖️', 'Bölme': '➗', 'Division': '➗', 'Üçgen': '🔺', 'Triangle': '🔺', 'Daire': '⭕', 'Circle': '⭕',
+  // Art
+  'Resim': '🖼️', 'Painting': '🖼️', 'Heykel': '🗿', 'Sculpture': '🗿', 'Fırça': '🖌️', 'Brush': '🖌️', 'Tuval': '🎨', 'Canvas': '🎨', 'Boya': '🎨', 'Paint': '🎨', 'Müze': '🏛️', 'Museum': '🏛️',
+  // Tools
+  'Çekiç': '🔨', 'Hammer': '🔨', 'Tornavida': '🪛', 'Screwdriver': '🪛', 'Pense': '🔧', 'Pliers': '🔧', 'Testere': '🪚', 'Saw': '🪚', 'Matkap': '🔩', 'Drill': '🔩', 'Anahtar': '🔑', 'Wrench': '🔑',
+  // Stationery
+  'Makas': '✂️', 'Yapıştırıcı': '🧴', 'Bant': '📎', 'Zımba': '📌', 'Dosya': '📁', 'Klasör': '📂',
+  // Heroes
+  'Maske': '🎭', 'Pelerin': '🦸', 'Güç': '💪', 'Kalkan': '🛡️', 'Kılıç': '⚔️', 'Zırh': '🛡️',
 };
 
 // Category emoji mapping
@@ -371,6 +418,9 @@ export const CATEGORY_EMOJIS = {
   'Giysiler': '👕', 'Kuşlar': '🐦', 'Çiçekler': '🌸', 'Deniz': '🐳',
   'Meslekler': '👨‍💼', 'Mobilya': '🪑', 'Vücut': '🫀', 'Uzay': '🚀',
   'Şehirler': '🏙️', 'Takılar': '💍', 'Tatlılar': '🍯', 'Baharat': '🌶️',
+  'Teknoloji': '📱', 'Bilgisayar': '💻', 'Sinema': '🎬', 'Mutfak': '🍳',
+  'Doğa': '🏔️', 'Tatil': '🏖️', 'Oyuncaklar': '🧸', 'Matematik': '🔢',
+  'Sanat': '🎨', 'Araçlar': '🔧', 'Kırtasiye': '📎', 'Süper Kahramanlar': '🦸',
   // EN
   'Fruits': '🍎', 'Animals': '🐾', 'Colors': '🎨', 'Sports': '🏆',
   'Drinks': '🥤', 'Trees': '🌳', 'Music': '🎵', 'Vegetables': '🥬',
@@ -379,6 +429,9 @@ export const CATEGORY_EMOJIS = {
   'Clothes': '👕', 'Birds': '🐦', 'Flowers': '🌸', 'Ocean': '🐳',
   'Jobs': '👨‍💼', 'Furniture': '🪑', 'Body': '🫀', 'Space': '🚀',
   'Cities': '🏙️', 'Jewelry': '💍', 'Desserts': '🍰', 'Spices': '🌶️',
+  'Technology': '📱', 'Computer': '💻', 'Cinema': '🎬', 'Kitchen': '🍳',
+  'Nature': '🏔️', 'Vacation': '🏖️', 'Toys': '🧸', 'Math': '🔢',
+  'Art': '🎨', 'Tools': '🔧',
   // DE
   'Früchte': '🍎', 'Tiere': '🐾', 'Farben': '🎨', 'Sport': '🏆',
   'Getränke': '🥤', 'Bäume': '🌳', 'Gemüse': '🥬',
