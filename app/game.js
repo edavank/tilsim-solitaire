@@ -186,19 +186,21 @@ function FaceUpCard({ card, selected, w, h, hinted, isDragging }) {
   const cw = w || CARD_W; const ch = h || CARD_H;
   const isCat = card.type === 'category';
   const catColor = CATEGORY_COLORS[card.categoryIndex % CATEGORY_COLORS.length];
+  const emojiSize = Math.max(18, Math.floor(cw * 0.35));
+  const textSize = Math.max(8, Math.floor(cw * 0.14));
   return (
     <View style={[st.faceUp, { width: cw, height: ch, borderBottomWidth: isCat ? 0 : 3, borderBottomColor: catColor }, selected && st.cardSelected, isCat && st.catCardBorder, hinted && st.cardHinted, isDragging && { opacity: 0.3 }]}>
       {isCat ? (
         <>
           <View style={st.catBadge}><Text style={st.catBadgeText}>0/{card.totalWords}</Text></View>
-          <Text style={st.catEmoji}>{card.emoji}</Text>
-          <Text style={st.catName} numberOfLines={1} adjustsFontSizeToFit>{card.word}</Text>
+          <Text style={{ fontSize: emojiSize + 4, textAlign: 'center' }}>{card.emoji}</Text>
+          <Text style={[st.catName, { fontSize: textSize }]} numberOfLines={1} adjustsFontSizeToFit>{card.word}</Text>
         </>
       ) : (
         <>
-          <Text style={st.emoji}>{card.emoji}</Text>
-          <Text style={st.word} numberOfLines={1} adjustsFontSizeToFit>{card.word}</Text>
-          <View style={{ position: 'absolute', top: 4, right: 4, width: 8, height: 8, borderRadius: 4, backgroundColor: catColor }} />
+          <Text style={{ fontSize: emojiSize, textAlign: 'center' }}>{card.emoji}</Text>
+          <Text style={[st.word, { fontSize: textSize }]} numberOfLines={1} adjustsFontSizeToFit>{card.word}</Text>
+          <View style={{ position: 'absolute', top: 3, right: 3, width: 6, height: 6, borderRadius: 3, backgroundColor: catColor }} />
         </>
       )}
     </View>
