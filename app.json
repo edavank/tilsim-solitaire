@@ -6,7 +6,7 @@
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "scheme": "tilsim-solitaire",
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -46,6 +46,14 @@
       "eas": {
         "projectId": ""
       }
+    },
+    "updates": {
+      "enabled": true,
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/tilsim-solitaire"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     }
   }
 }
