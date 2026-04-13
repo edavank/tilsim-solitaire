@@ -1272,7 +1272,7 @@ const st = StyleSheet.create({
   movesNum: { fontFamily: FONTS.headlineBlack, fontSize: 22, color: '#fff', lineHeight: 26 },
   addBtn: { backgroundColor: COLORS.success, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 9999, marginTop: 2 },
   addBtnText: { fontFamily: FONTS.headlineBlack, fontSize: 8, color: '#fff' },
-  drawnArea: { flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: 66 },
+  drawnArea: { flex: 1, justifyContent: 'center', alignItems: 'flex-end', minHeight: 66, paddingRight: 6 },
   emptyCard: { borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.panelBorder, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.03)' },
   deckBadge: { position: 'absolute', top: -5, right: -5, backgroundColor: COLORS.primary, minWidth: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff', paddingHorizontal: 3 },
   deckBadgeText: { fontFamily: FONTS.headlineBlack, fontSize: 9, color: '#fff' },
