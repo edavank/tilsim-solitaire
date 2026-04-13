@@ -53,8 +53,9 @@ export function getDailyChallenge(language = 'tr', customSeed) {
     // KRİTİK: slot < kategori (6 kat, 4 slot, 1 kilitli = 3 aktif!)
     totalSlots: 4,
     lockedSlots: 1,
-    // 5 sütun, KİLİTLİ SÜTUN YOK (alan sorununu çözer)
+    // 5 sütun + 1 kilitli (AD ile açılır)
     columns: [
+      { locked: true },
       { depth: 5 },
       { depth: 4 },
       { depth: 4 },

@@ -189,20 +189,23 @@ function FaceUpCard({ card, selected, w, h, hinted, isDragging }) {
   const isCat = card.type === 'category';
   const isJoker = card.isJoker;
   const catColor = isJoker ? '#FFD166' : CATEGORY_COLORS[card.categoryIndex % CATEGORY_COLORS.length];
-  const emojiSize = Math.max(18, Math.floor(cw * 0.35));
-  const textSize = Math.max(8, Math.floor(cw * 0.14));
+  // SABİT boyutlar — tüm kartlarda aynı, kart genişliğinden bağımsız
+  const catEmojiSize = 26;
+  const wordEmojiSize = 22;
+  const catTextSize = 10;
+  const wordTextSize = 10;
   return (
     <View style={[st.faceUp, { width: cw, height: ch, borderBottomWidth: isCat ? 0 : 3, borderBottomColor: catColor }, selected && st.cardSelected, isCat && st.catCardBorder, isJoker && { borderColor: '#FFD166', borderWidth: 2, shadowColor: '#FFD166', shadowOpacity: 0.8, shadowRadius: 12, backgroundColor: '#FFFBF0' }, hinted && st.cardHinted, isDragging && { opacity: 0.3 }]}>
       {isCat ? (
         <>
           <View style={st.catBadge}><Text style={st.catBadgeText}>0/{card.totalWords}</Text></View>
-          <Text style={{ fontSize: emojiSize + 4, textAlign: 'center' }}>{card.emoji}</Text>
-          <Text style={[st.catName, { fontSize: textSize }]} numberOfLines={1} adjustsFontSizeToFit>{card.word}</Text>
+          <Text style={{ fontSize: catEmojiSize, textAlign: 'center' }}>{card.emoji}</Text>
+          <Text style={[st.catName, { fontSize: catTextSize }]} numberOfLines={1} ellipsizeMode="tail">{card.word}</Text>
         </>
       ) : (
         <>
-          <Text style={{ fontSize: emojiSize, textAlign: 'center' }}>{card.emoji}</Text>
-          <Text style={[st.word, { fontSize: textSize, color: isJoker ? '#B8860B' : '#1e293b' }]} numberOfLines={1} adjustsFontSizeToFit>{card.word}</Text>
+          <Text style={{ fontSize: wordEmojiSize, textAlign: 'center' }}>{card.emoji}</Text>
+          <Text style={[st.word, { fontSize: wordTextSize, color: isJoker ? '#B8860B' : '#1e293b' }]} numberOfLines={1} ellipsizeMode="tail">{card.word}</Text>
           {!isJoker && <View style={{ position: 'absolute', top: 3, right: 3, width: 6, height: 6, borderRadius: 3, backgroundColor: catColor }} />}
         </>
       )}
@@ -235,9 +238,9 @@ function FoundationSlot({ t, slot, slotIndex, onPress, onUnlock, hinted }) {
         {isDone ? (
           <MaterialIcons name="check-circle" size={16} color={COLORS.success} style={{ marginTop: 8 }} />
         ) : (
-          <Text style={{ fontSize: 16, marginTop: 8 }}>{slot.category.emoji}</Text>
+          <Text style={{ fontSize: 18, marginTop: 8 }}>{slot.category.emoji}</Text>
         )}
-        <Text style={[st.word, { fontSize: 8, marginTop: 2, color: isDone ? COLORS.success : '#1e293b' }]} numberOfLines={1} adjustsFontSizeToFit>{slot.category.word}</Text>
+        <Text style={[st.word, { fontSize: 9, marginTop: 2, color: isDone ? COLORS.success : '#1e293b' }]} numberOfLines={1} ellipsizeMode="tail">{slot.category.word}</Text>
       </TouchableOpacity>
     );
   }
