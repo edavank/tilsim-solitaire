@@ -13,120 +13,119 @@ function shuffle(arr) {
 }
 
 export const LEVELS = [
-  // Bölüm 1-2: 3 kat × 3 kel = 12 kart. 4 sütun (geçici depo)
+  // Bölüm 1: Kolay giriş
   {
     id: 1, moves: 35, hints: 3, undos: 0,
     categories: [
-      { name: 'Meyveler', words: ['Elma', 'Armut', 'Kiraz'] },
-      { name: 'Hayvanlar', words: ['Kedi', 'Köpek', 'Kuş'] },
+      { name: 'Kahvaltı', words: ['Peynir', 'Zeytin', 'Bal'] },
       { name: 'Renkler', words: ['Kırmızı', 'Mavi', 'Yeşil'] },
+      { name: 'Meyveler', words: ['Elma', 'Armut', 'Kiraz'] },
     ],
     totalSlots: 3, lockedSlots: 0,
     columns: [{ depth: 2 }, { depth: 2 }, { depth: 2 }, { depth: 2 }],
   },
   {
-    id: 2, moves: 30, hints: 3, undos: 0,
+    id: 2, moves: 35, hints: 3, undos: 0,
     categories: [
-      { name: 'Sporlar', words: ['Futbol', 'Basketbol', 'Tenis'] },
-      { name: 'İçecekler', words: ['Çay', 'Kahve', 'Su'] },
-      { name: 'Mevsimler', words: ['İlkbahar', 'Yaz', 'Kış'] },
+      { name: 'Masal', words: ['Prenses', 'Ejderha', 'Hazine'] },
+      { name: 'Doğa', words: ['Dağ', 'Orman', 'Nehir'] },
+      { name: 'Teknoloji', words: ['Telefon', 'Tablet', 'Laptop'] },
     ],
     totalSlots: 3, lockedSlots: 0,
     columns: [{ depth: 2 }, { depth: 2 }, { depth: 2 }, { depth: 2 }],
   },
-  // Bölüm 3-4: 3 kat × 4 kel
   {
     id: 3, moves: 40, hints: 2, undos: 0,
     categories: [
-      { name: 'Sebzeler', words: ['Domates', 'Biber', 'Havuç', 'Patates'] },
-      { name: 'Okul', words: ['Kalem', 'Defter', 'Silgi', 'Cetvel'] },
-      { name: 'Duygular', words: ['Mutluluk', 'Üzüntü', 'Korku', 'Heyecan'] },
+      { name: 'Simya', words: ['Altın', 'Gümüş', 'Bakır', 'Elmas'] },
+      { name: 'Oyunlar', words: ['Satranç', 'Dama', 'Tavla', 'Dart'] },
+      { name: 'Tatlılar', words: ['Baklava', 'Künefe', 'Sütlaç', 'Lokum'] },
     ],
     totalSlots: 3, lockedSlots: 0,
-    columns: [{ depth: 3 }, { depth: 3 }, { depth: 2 }, { depth: 2 }],
+    columns: [{ depth: 3 }, { depth: 2 }, { depth: 2 }, { depth: 2 }],
   },
   {
     id: 4, moves: 40, hints: 2, undos: 0,
     categories: [
-      { name: 'Müzik', words: ['Gitar', 'Piyano', 'Davul', 'Keman'] },
-      { name: 'Giysiler', words: ['Gömlek', 'Pantolon', 'Şapka', 'Çorap'] },
-      { name: 'Ağaçlar', words: ['Çam', 'Meşe', 'Kavak', 'Ceviz'] },
+      { name: 'Deniz Araçları', words: ['Tekne', 'Yat', 'Kayık', 'Yelkenli'] },
+      { name: 'Müzik Türleri', words: ['Pop', 'Rock', 'Caz', 'Rap'] },
+      { name: 'Fitness', words: ['Koşu', 'Plank', 'Squat', 'Kardiyo'] },
     ],
     totalSlots: 3, lockedSlots: 0,
-    columns: [{ depth: 3 }, { depth: 3 }, { depth: 3 }, { depth: 2 }],
+    columns: [{ depth: 3 }, { depth: 3 }, { depth: 2 }, { depth: 2 }],
   },
-  // Bölüm 5-6: 4 kat × 4 kel
+  // Bölüm 5-6: 4 kategori
   {
     id: 5, moves: 55, hints: 2, undos: 0,
     categories: [
-      { name: 'Ülkeler', words: ['Türkiye', 'Japonya', 'Brezilya', 'İtalya'] },
-      { name: 'Yiyecekler', words: ['Pizza', 'Hamburger', 'Sushi', 'Makarna'] },
-      { name: 'Ulaşım', words: ['Araba', 'Otobüs', 'Tren', 'Uçak'] },
-      { name: 'Kuşlar', words: ['Papağan', 'Serçe', 'Kartal', 'Martı'] },
+      { name: 'Türk Mutfağı', words: ['Kebap', 'Lahmacun', 'Pide', 'Mantı'] },
+      { name: 'Uzay', words: ['Ay', 'Güneş', 'Yıldız', 'Galaksi'] },
+      { name: 'Kuşlar', words: ['Papağan', 'Kartal', 'Baykuş', 'Flamingo'] },
+      { name: 'Hastane', words: ['Hemşire', 'İlaç', 'Ameliyat', 'Ambulans'] },
     ],
     totalSlots: 5, lockedSlots: 1,
-    columns: [{ locked: true }, { depth: 4 }, { depth: 3 }, { depth: 3 }, { depth: 3 }],
+    columns: [{ locked: true }, { depth: 3 }, { depth: 3 }, { depth: 2 }, { depth: 2 }],
   },
   {
     id: 6, moves: 55, hints: 2, undos: 0,
     categories: [
-      { name: 'Gezegenler', words: ['Mars', 'Jüpiter', 'Satürn', 'Venüs'] },
-      { name: 'Sporlar', words: ['Voleybol', 'Boks', 'Bisiklet', 'Koşu'] },
-      { name: 'Kahvaltı', words: ['Peynir', 'Zeytin', 'Bal', 'Yumurta'] },
-      { name: 'Çiçekler', words: ['Gül', 'Papatya', 'Lale', 'Menekşe'] },
+      { name: 'Plaj', words: ['Kum', 'Dalga', 'Şemsiye', 'Kabuk'] },
+      { name: 'Gemi', words: ['Kaptan', 'Dümen', 'Çapa', 'Pusula'] },
+      { name: 'Sabah', words: ['Alarm', 'Kahve', 'Duş', 'Gazete'] },
+      { name: 'Trafik', words: ['Işık', 'Tabela', 'Köprü', 'Tünel'] },
     ],
     totalSlots: 5, lockedSlots: 1,
-    columns: [{ locked: true }, { depth: 4 }, { depth: 3 }, { depth: 3 }, { depth: 3 }],
+    columns: [{ locked: true }, { depth: 3 }, { depth: 3 }, { depth: 3 }, { depth: 2 }],
   },
-  // Bölüm 7-8: 5 kat × 4 kel
+  // Bölüm 7-8: 5 kategori
   {
     id: 7, moves: 70, hints: 1, undos: 0,
     categories: [
-      { name: 'Hava durumu', words: ['Güneşli', 'Yağmurlu', 'Karlı', 'Bulutlu'] },
-      { name: 'Türk Mutfağı', words: ['Kebap', 'Lahmacun', 'Pide', 'Mantı'] },
-      { name: 'Duygular', words: ['Öfke', 'Heyecan', 'Mutluluk', 'Korku'] },
-      { name: 'Mobilya', words: ['Masa', 'Sandalye', 'Dolap', 'Koltuk'] },
-      { name: 'Tatlılar', words: ['Baklava', 'Künefe', 'Sütlaç', 'Lokum'] },
+      { name: 'Orman', words: ['Mantar', 'Sincap', 'Geyik', 'Kurt'] },
+      { name: 'Market', words: ['Sepet', 'Kasa', 'Raf', 'Poşet'] },
+      { name: 'Sinema', words: ['Film', 'Yönetmen', 'Sahne', 'Kamera'] },
+      { name: 'Bina', words: ['Kapı', 'Pencere', 'Çatı', 'Balkon'] },
+      { name: 'Kış Sporları', words: ['Kayak', 'Hokey', 'Snowboard', 'Kızak'] },
     ],
     totalSlots: 6, lockedSlots: 1,
-    columns: [{ locked: true }, { depth: 6 }, { depth: 5 }, { depth: 5 }, { depth: 5 }],
+    columns: [{ locked: true }, { depth: 4 }, { depth: 3 }, { depth: 3 }, { depth: 3 }],
   },
   {
     id: 8, moves: 70, hints: 1, undos: 0,
     categories: [
-      { name: 'İçecekler', words: ['Limonata', 'Ayran', 'Smoothie', 'Kahve'] },
-      { name: 'Deniz', words: ['Yunus', 'Köpekbalığı', 'Ahtapot', 'Yengeç'] },
-      { name: 'Meyveler', words: ['Ananas', 'Nar', 'İncir', 'Şeftali'] },
-      { name: 'Masal', words: ['Prenses', 'Ejderha', 'Büyücü', 'Hazine'] },
-      { name: 'Baharat', words: ['Tuz', 'Kimyon', 'Kekik', 'Tarçın'] },
+      { name: 'Süt Ürünleri', words: ['Yoğurt', 'Peynir', 'Kaymak', 'Kefir'] },
+      { name: 'Partisyon', words: ['Nota', 'Akor', 'Ritim', 'Melodi'] },
+      { name: 'Meslekler', words: ['Doktor', 'Pilot', 'Aşçı', 'Polis'] },
+      { name: 'Deniz', words: ['Yunus', 'Ahtapot', 'Yengeç', 'İstakoz'] },
+      { name: 'Baharat', words: ['Kimyon', 'Kekik', 'Tarçın', 'Safran'] },
     ],
     totalSlots: 6, lockedSlots: 1,
-    columns: [{ locked: true }, { depth: 6 }, { depth: 6 }, { depth: 5 }, { depth: 5 }],
+    columns: [{ locked: true }, { depth: 4 }, { depth: 4 }, { depth: 3 }, { depth: 3 }],
   },
   // Bölüm 9-10: 5 kat × 5 kel
   {
     id: 9, moves: 85, hints: 1, undos: 0,
     categories: [
-      { name: 'Hayvanlar', words: ['Aslan', 'Fil', 'Zürafa', 'Penguen', 'Kedi'] },
-      { name: 'Teknoloji', words: ['Telefon', 'Tablet', 'Laptop', 'Robot', 'Drone'] },
-      { name: 'Doğa', words: ['Dağ', 'Orman', 'Nehir', 'Göl', 'Şelale'] },
-      { name: 'Meslekler', words: ['Doktor', 'Öğretmen', 'Pilot', 'Aşçı', 'Polis'] },
+      { name: 'Mobilya', words: ['Masa', 'Sandalye', 'Dolap', 'Koltuk', 'Ayna'] },
       { name: 'Şehirler', words: ['İstanbul', 'Ankara', 'İzmir', 'Antalya', 'Bursa'] },
+      { name: 'Çiçekler', words: ['Gül', 'Papatya', 'Lale', 'Menekşe', 'Orkide'] },
+      { name: 'Tatil', words: ['Plaj', 'Otel', 'Bavul', 'Pasaport', 'Harita'] },
+      { name: 'Sanat', words: ['Resim', 'Heykel', 'Fırça', 'Tuval', 'Müze'] },
     ],
     totalSlots: 6, lockedSlots: 1,
-    columns: [{ locked: true }, { depth: 7 }, { depth: 6 }, { depth: 6 }, { depth: 5 }],
+    columns: [{ locked: true }, { depth: 4 }, { depth: 4 }, { depth: 3 }, { depth: 3 }],
   },
   {
     id: 10, moves: 85, hints: 1, undos: 0,
     categories: [
-      { name: 'Orman', words: ['Mantar', 'Yaprak', 'Sincap', 'Geyik', 'Tilki'] },
-      { name: 'Oyunlar', words: ['Satranç', 'Dama', 'Tavla', 'Bilardo', 'Dart'] },
-      { name: 'Market', words: ['Sepet', 'Kasa', 'Raf', 'Etiket', 'Poşet'] },
-      { name: 'Simya', words: ['Altın', 'Gümüş', 'Bakır', 'Demir', 'Elmas'] },
-      { name: 'Plaj', words: ['Kum', 'Dalga', 'Şemsiye', 'Kabuk', 'Palet'] },
+      { name: 'Ağırlık Birimleri', words: ['Gram', 'Kilogram', 'Ton', 'Ons', 'Libre'] },
+      { name: 'Hayvanlar', words: ['Aslan', 'Fil', 'Zürafa', 'Penguen', 'Kedi'] },
+      { name: 'Mutfak', words: ['Tencere', 'Tava', 'Bıçak', 'Tabak', 'Kaşık'] },
+      { name: 'Sporlar', words: ['Futbol', 'Basketbol', 'Tenis', 'Yüzme', 'Koşu'] },
+      { name: 'Takılar', words: ['Yüzük', 'Kolye', 'Bilezik', 'Küpe', 'Saat'] },
     ],
     totalSlots: 6, lockedSlots: 1,
-    columns: [{ locked: true }, { depth: 7 }, { depth: 7 }, { depth: 6 }, { depth: 5 }],
+    columns: [{ locked: true }, { depth: 5 }, { depth: 4 }, { depth: 4 }, { depth: 3 }],
   },
 ];
 
