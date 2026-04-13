@@ -185,11 +185,12 @@ function FaceDownCard() {
 function FaceUpCard({ card, selected, w, h, hinted, isDragging }) {
   const cw = w || CARD_W; const ch = h || CARD_H;
   const isCat = card.type === 'category';
-  const catColor = CATEGORY_COLORS[card.categoryIndex % CATEGORY_COLORS.length];
+  const isJoker = card.isJoker;
+  const catColor = isJoker ? '#FFD166' : CATEGORY_COLORS[card.categoryIndex % CATEGORY_COLORS.length];
   const emojiSize = Math.max(18, Math.floor(cw * 0.35));
   const textSize = Math.max(8, Math.floor(cw * 0.14));
   return (
-    <View style={[st.faceUp, { width: cw, height: ch, borderBottomWidth: isCat ? 0 : 3, borderBottomColor: catColor }, selected && st.cardSelected, isCat && st.catCardBorder, hinted && st.cardHinted, isDragging && { opacity: 0.3 }]}>
+    <View style={[st.faceUp, { width: cw, height: ch, borderBottomWidth: isCat ? 0 : 3, borderBottomColor: catColor }, selected && st.cardSelected, isCat && st.catCardBorder, isJoker && { borderColor: '#FFD166', borderWidth: 2, shadowColor: '#FFD166', shadowOpacity: 0.8, shadowRadius: 12, backgroundColor: '#FFFBF0' }, hinted && st.cardHinted, isDragging && { opacity: 0.3 }]}>
       {isCat ? (
         <>
           <View style={st.catBadge}><Text style={st.catBadgeText}>0/{card.totalWords}</Text></View>
@@ -199,8 +200,8 @@ function FaceUpCard({ card, selected, w, h, hinted, isDragging }) {
       ) : (
         <>
           <Text style={{ fontSize: emojiSize, textAlign: 'center' }}>{card.emoji}</Text>
-          <Text style={[st.word, { fontSize: textSize }]} numberOfLines={1} adjustsFontSizeToFit>{card.word}</Text>
-          <View style={{ position: 'absolute', top: 3, right: 3, width: 6, height: 6, borderRadius: 3, backgroundColor: catColor }} />
+          <Text style={[st.word, { fontSize: textSize, color: isJoker ? '#B8860B' : '#1e293b' }]} numberOfLines={1} adjustsFontSizeToFit>{card.word}</Text>
+          {!isJoker && <View style={{ position: 'absolute', top: 3, right: 3, width: 6, height: 6, borderRadius: 3, backgroundColor: catColor }} />}
         </>
       )}
     </View>
@@ -609,7 +610,7 @@ export default function GameScreen() {
       if (!target.category && card.type === 'word') { setFeedback(t.putCategoryFirst); return prev; }
       if (target.category && card.type === 'category') { setFeedback(t.alreadyFull); return prev; }
       if (target.category && card.type === 'word') {
-        if (card.categoryIndex !== target.category.categoryIndex) {
+        if (card.categoryIndex !== target.category.categoryIndex && !card.isJoker) {
           setTimeout(() => { Vibration.vibrate(100); playSound('wrong'); }, 10);
           triggerShake(slotIndex);
           setFeedback(t.wrongPlace);
@@ -739,7 +740,7 @@ export default function GameScreen() {
         const topCard = targetCol.cards[targetCol.cards.length - 1];
         if (!topCard.faceUp) { setFeedback(t.cantPlace); return prev; }
         // KURAL: Sadece AYNI KATEGORİ üst üste gelebilir (solitaire renk kuralı gibi)
-        if (topCard.type === 'word' && card.categoryIndex !== topCard.categoryIndex) {
+        if (topCard.type === 'word' && card.categoryIndex !== topCard.categoryIndex && !card.isJoker) {
           setFeedback('⛔ Farklı kategori! Sadece aynı kategoriden kartlar üst üste gelir.');
           return prev;
         }
@@ -919,6 +920,31 @@ export default function GameScreen() {
     setGs((p) => ({ ...p, drawnCards: p.drawnCards.slice(0, -1), moves: p.moves - 1 })); setSelected(null);
     setFeedback('🗑️ Kart silindi' + (method === 'coin' ? ' (-500 🪙)' : '')); setToolModal(null);
   }, [gs.drawnCards, coins]);
+
+  // ── Joker Card (Wildcard) ──
+  const useJoker = useCallback(async () => {
+    // Joker: desteden çekilen kartı joker'e çevirir — herhangi bir kategoriye uyar
+    if (gs.drawnCards.length === 0) { setFeedback('🃏 Önce desteden kart çek!'); return; }
+    setToolModal('joker');
+  }, [gs.drawnCards]);
+
+  const executeJoker = useCallback(async (method) => {
+    if (method === 'coin') {
+      if (coins < 750) { setFeedback('🪙 750 coin gerekli!'); setToolModal(null); return; }
+      setCoins(coins - 750); await updateProgress({ coins: coins - 750 });
+    }
+    if (method === 'ad') await showRewarded();
+    // Üstteki drawn kartı joker yap — tüm kategorilere uyar
+    setGs((p) => {
+      if (p.drawnCards.length === 0) return p;
+      const newDrawn = [...p.drawnCards];
+      const lastCard = { ...newDrawn[newDrawn.length - 1], isJoker: true, word: '✦ Joker', emoji: '🃏' };
+      newDrawn[newDrawn.length - 1] = lastCard;
+      return { ...p, drawnCards: newDrawn };
+    });
+    setFeedback('🃏 Joker aktif! Herhangi bir kategoriye koyabilirsin.' + (method === 'coin' ? ' (-750 🪙)' : ''));
+    setToolModal(null);
+  }, [coins]);
 
   // ── Smart Hint ──
   const useHint = useCallback(async () => {
@@ -1198,8 +1224,9 @@ export default function GameScreen() {
       {/* Toolbar */}
       <View style={st.toolbar}>
         <ToolBtn icon="lightbulb" label={t.hint} badge={gs.hints > 0 ? gs.hints : '🪙'} badgeColor={gs.hints > 0 ? COLORS.fail : COLORS.coin} onPress={useHint} big />
-        <ToolBtn icon="undo" label={t.undo} badge="🪙" badgeColor={COLORS.coin} onPress={useUndo} big />
-        <ToolBtn icon="auto-fix-normal" label={t.delete} badge="🪙" badgeColor={COLORS.coin} onPress={useDelete} big />
+        <ToolBtn icon="undo" label={t.undo} badge="🪙" badgeColor={COLORS.coin} onPress={useUndo} />
+        <ToolBtn icon="style" label="JOKER" badge="🪙" badgeColor={COLORS.coin} onPress={useJoker} />
+        <ToolBtn icon="auto-fix-normal" label={t.delete} badge="🪙" badgeColor={COLORS.coin} onPress={useDelete} />
       </View>
 
       {/* Ad Banner Space */}
@@ -1211,26 +1238,26 @@ export default function GameScreen() {
           <View style={[ov.card, { paddingTop: 20, paddingBottom: 20 }]}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginBottom: 12 }}>
               <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 20, color: COLORS.onSurface }}>
-                {toolModal === 'hint' ? t.hint : toolModal === 'undo' ? t.undo : t.delete}
+                {toolModal === 'hint' ? t.hint : toolModal === 'undo' ? t.undo : toolModal === 'joker' ? 'Joker' : t.delete}
               </Text>
               <TouchableOpacity onPress={() => setToolModal(null)}><Text style={{ fontSize: 22, color: COLORS.fail }}>✕</Text></TouchableOpacity>
             </View>
             <View style={{ backgroundColor: COLORS.panelBg, borderRadius: 16, padding: 20, alignItems: 'center', width: '100%', marginBottom: 16 }}>
-              <MaterialIcons name={toolModal === 'hint' ? 'lightbulb' : toolModal === 'undo' ? 'undo' : 'auto-fix-normal'} size={48} color={COLORS.secondary} />
+              <MaterialIcons name={toolModal === 'hint' ? 'lightbulb' : toolModal === 'undo' ? 'undo' : toolModal === 'joker' ? 'style' : 'auto-fix-normal'} size={48} color={COLORS.secondary} />
               <Text style={{ fontFamily: FONTS.body, fontSize: 13, color: COLORS.onSurfaceVariant, marginTop: 8, textAlign: 'center' }}>
-                {toolModal === 'hint' ? (t.hintDesc || 'Doğru hamleyi göster') : toolModal === 'undo' ? (t.undoDesc || 'Önceki adımı geri al') : (t.deleteDesc || 'Bir kartı sil')}
+                {toolModal === 'hint' ? (t.hintDesc || 'Doğru hamleyi göster') : toolModal === 'undo' ? (t.undoDesc || 'Önceki adımı geri al') : toolModal === 'joker' ? 'Üstteki kartı joker yap — herhangi bir kategoriye uyar' : (t.deleteDesc || 'Bir kartı sil')}
               </Text>
             </View>
             <TouchableOpacity 
               style={{ backgroundColor: COLORS.coin, borderRadius: 14, paddingVertical: 14, alignItems: 'center', width: '100%', marginBottom: 10 }} 
-              onPress={() => { const fn = toolModal === 'hint' ? executeHint : toolModal === 'undo' ? executeUndo : executeDelete; fn('coin'); }}
+              onPress={() => { const fn = toolModal === 'hint' ? executeHint : toolModal === 'undo' ? executeUndo : toolModal === 'joker' ? executeJoker : executeDelete; fn('coin'); }}
               activeOpacity={0.8}
             >
-              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#000' }}>🪙 500</Text>
+              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#000' }}>🪙 {toolModal === 'joker' ? '750' : '500'}</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={{ backgroundColor: COLORS.success, borderRadius: 14, paddingVertical: 14, alignItems: 'center', width: '100%' }} 
-              onPress={() => { const fn = toolModal === 'hint' ? executeHint : toolModal === 'undo' ? executeUndo : executeDelete; fn('ad'); }}
+              onPress={() => { const fn = toolModal === 'hint' ? executeHint : toolModal === 'undo' ? executeUndo : toolModal === 'joker' ? executeJoker : executeDelete; fn('ad'); }}
               activeOpacity={0.8}
             >
               <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff' }}>▶ AD Kullan</Text>
