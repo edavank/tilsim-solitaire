@@ -36,7 +36,7 @@ export async function submitScore({ score, level, totalWins, displayName, langua
     
     // Check if user exists
     const { data: existing } = await supabase
-      .from('leaderboard')
+      .from('tilsim_leaderboard')
       .select('id, score, avatar_emoji')
       .eq('device_id', deviceId)
       .single();
@@ -53,7 +53,7 @@ export async function submitScore({ score, level, totalWins, displayName, langua
       if (displayName) updates.display_name = displayName;
       
       const { error } = await supabase
-        .from('leaderboard')
+        .from('tilsim_leaderboard')
         .update(updates)
         .eq('id', existing.id);
       
@@ -61,7 +61,7 @@ export async function submitScore({ score, level, totalWins, displayName, langua
     } else {
       // Create new entry
       const { error } = await supabase
-        .from('leaderboard')
+        .from('tilsim_leaderboard')
         .insert({
           device_id: deviceId,
           display_name: displayName || 'Player',
@@ -84,7 +84,7 @@ export async function fetchLeaderboard(period = 'all', limit = 20) {
   if (!supabase) return { data: null, error: 'Supabase not configured' };
   try {
     let query = supabase
-      .from('leaderboard')
+      .from('tilsim_leaderboard')
       .select('id, display_name, avatar_emoji, score, level, total_wins')
       .order('score', { ascending: false })
       .limit(limit);
@@ -112,7 +112,7 @@ export async function getUserRank() {
     const deviceId = await getDeviceId();
     
     const { data: entry } = await supabase
-      .from('leaderboard')
+      .from('tilsim_leaderboard')
       .select('id, display_name, avatar_emoji, score, level')
       .eq('device_id', deviceId)
       .single();
@@ -121,7 +121,7 @@ export async function getUserRank() {
 
     // Count how many have higher score
     const { count } = await supabase
-      .from('leaderboard')
+      .from('tilsim_leaderboard')
       .select('id', { count: 'exact', head: true })
       .gt('score', entry.score);
 
@@ -137,7 +137,7 @@ export async function updateDisplayName(name) {
   try {
     const deviceId = await getDeviceId();
     await supabase
-      .from('leaderboard')
+      .from('tilsim_leaderboard')
       .update({ display_name: name })
       .eq('device_id', deviceId);
   } catch (e) {}
