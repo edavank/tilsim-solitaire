@@ -442,6 +442,11 @@ export const CATEGORY_EMOJIS = {
   'Teknoloji': '📱', 'Bilgisayar': '💻', 'Sinema': '🎬', 'Mutfak': '🍳',
   'Doğa': '🏔️', 'Tatil': '🏖️', 'Oyuncaklar': '🧸', 'Matematik': '🔢',
   'Sanat': '🎨', 'Araçlar': '🔧', 'Kırtasiye': '📎', 'Süper Kahramanlar': '🦸',
+  'Kahvaltı': '🥐', 'Türk Mutfağı': '🥙', 'Masal': '🏰', 'Deniz Araçları': '⛵',
+  'Kış Sporları': '⛷️', 'Süt Ürünleri': '🥛', 'Bina': '🏗️', 'Orman': '🌲',
+  'Plaj': '🏖️', 'Müzik Türleri': '🎶', 'Trafik': '🚦', 'Market': '🛒',
+  'Hastane': '🏥', 'Oyunlar': '♟️', 'Gemi': '🚢', 'Sabah': '🌅',
+  'Ağırlık Birimleri': '⚖️', 'Partisyon': '🎼', 'Simya': '⚗️', 'Fitness': '💪',
   // EN
   'Fruits': '🍎', 'Animals': '🐾', 'Colors': '🎨', 'Sports': '🏆',
   'Drinks': '🥤', 'Trees': '🌳', 'Music': '🎵', 'Vegetables': '🥬',
