@@ -6,7 +6,7 @@
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "scheme": "tilsim-solitaire",
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -29,7 +29,7 @@
       },
       "package": "com.edavank.tilsimsolitaire",
       "versionCode": 1,
-      "newArchEnabled": false
+      "newArchEnabled": true
     },
     "web": {
       "bundler": "metro",
