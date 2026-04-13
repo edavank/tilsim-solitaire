@@ -427,6 +427,50 @@ export const EMOJI_MAP = {
   'Makas': '✂️', 'Yapıştırıcı': '🧴', 'Bant': '📎', 'Zımba': '📌', 'Dosya': '📁', 'Klasör': '📂',
   // Heroes
   'Maske': '🎭', 'Pelerin': '🦸', 'Güç': '💪', 'Kalkan': '🛡️', 'Kılıç': '⚔️', 'Zırh': '🛡️',
+  // Kahvaltı
+  'Peynir': '🧀', 'Bal': '🍯', 'Yumurta': '🥚', 'Reçel': '🍓', 'Tereyağı': '🧈',
+  // Masal
+  'Prenses': '👸', 'Ejderha': '🐉', 'Büyücü': '🧙', 'Şövalye': '⚔️', 'Hazine': '💎', 'Kale': '🏰',
+  // Deniz Araçları
+  'Tekne': '🚤', 'Yat': '🛥️', 'Feribot': '⛴️', 'Kayık': '🛶', 'Sürat': '🏎️', 'Yelkenli': '⛵',
+  // Kış Sporları
+  'Kayak': '⛷️', 'Buz pateni': '⛸️', 'Hokey': '🏒', 'Snowboard': '🏂', 'Kızak': '🛷', 'Curling': '🥌',
+  // Süt Ürünleri
+  'Yoğurt': '🥛', 'Kaymak': '🍶', 'Kefir': '🥛',
+  // Bina
+  'Kapı': '🚪', 'Pencere': '🪟', 'Çatı': '🏠', 'Merdiven': '🪜', 'Balkon': '🏢', 'Asansör': '🛗',
+  // Orman
+  'Mantar': '🍄', 'Yaprak': '🍃', 'Sincap': '🐿️', 'Geyik': '🦌', 'Tilki': '🦊', 'Kurt': '🐺',
+  // Plaj
+  'Kum': '🏖️', 'Dalga': '🌊', 'Şemsiye': '☂️', 'Deniz yıldızı': '⭐', 'Kabuk': '🐚', 'Palet': '🤿',
+  // Müzik Türleri
+  'Pop': '🎤', 'Rock': '🎸', 'Caz': '🎷', 'Klasik': '🎻', 'Rap': '🎧', 'Blues': '🎺',
+  // Trafik
+  'Işık': '🚦', 'Tabela': '🪧', 'Yol': '🛣️', 'Kavşak': '🔀', 'Köprü': '🌉', 'Tünel': '🚇',
+  // Market
+  'Sepet': '🧺', 'Kasa': '💰', 'Raf': '📦', 'Etiket': '🏷️', 'Poşet': '🛍️', 'Fatura': '🧾',
+  // Hastane
+  'Hemşire': '👩‍⚕️', 'İlaç': '💊', 'Ameliyat': '🏥', 'Muayene': '🩺', 'Röntgen': '🦴', 'Ambulans': '🚑',
+  // Oyunlar
+  'Satranç': '♟️', 'Dama': '🔲', 'Tavla': '🎲', 'Bilardo': '🎱', 'Dart': '🎯', 'Bowling': '🎳',
+  // Gemi
+  'Kaptan': '🧑‍✈️', 'Dümen': '🧭', 'Çapa': '⚓', 'Güverte': '🚢', 'Pusula': '🧭', 'Yelken': '⛵',
+  // Sabah
+  'Alarm': '⏰', 'Duş': '🚿', 'Diş fırçası': '🪥', 'Gazete': '📰', 'Erken': '🌅',
+  // Ağırlık Birimleri
+  'Gram': '⚖️', 'Kilogram': '⚖️', 'Ton': '🏋️', 'Ons': '⚖️', 'Miligram': '🔬', 'Libre': '⚖️',
+  // Partisyon / Müzik
+  'Nota': '🎵', 'Akor': '🎸', 'Ritim': '🥁', 'Melodi': '🎶', 'Tempo': '⏱️', 'Armoni': '🎼',
+  // Simya
+  'Altın': '🥇', 'Gümüş': '🥈', 'Bakır': '🟤', 'Demir': '⚙️', 'Kristal': '💠',
+  // Fitness
+  'Plank': '🏋️', 'Squat': '🦵', 'Dambıl': '🏋️', 'Kardiyo': '❤️',
+  // Türk Mutfağı
+  'Kebap': '🍖', 'Lahmacun': '🫓', 'Pide': '🫓', 'Mantı': '🥟', 'Börek': '🥧', 'Dolma': '🫑',
+  // Sinema  
+  'Yönetmen': '🎬', 'Aktör': '🎭', 'Senaryo': '📝',
+  // Tatil
+  'Bavul': '🧳', 'Güneş kremi': '🧴',
 };
 
 // Category emoji mapping
