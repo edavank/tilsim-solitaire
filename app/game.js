@@ -185,8 +185,9 @@ function FaceDownCard() {
 function FaceUpCard({ card, selected, w, h, hinted, isDragging }) {
   const cw = w || CARD_W; const ch = h || CARD_H;
   const isCat = card.type === 'category';
+  const catColor = CATEGORY_COLORS[card.categoryIndex % CATEGORY_COLORS.length];
   return (
-    <View style={[st.faceUp, { width: cw, height: ch }, selected && st.cardSelected, isCat && st.catCardBorder, hinted && st.cardHinted, isDragging && { opacity: 0.3 }]}>
+    <View style={[st.faceUp, { width: cw, height: ch, borderBottomWidth: isCat ? 0 : 3, borderBottomColor: catColor }, selected && st.cardSelected, isCat && st.catCardBorder, hinted && st.cardHinted, isDragging && { opacity: 0.3 }]}>
       {isCat ? (
         <>
           <View style={st.catBadge}><Text style={st.catBadgeText}>0/{card.totalWords}</Text></View>
@@ -197,6 +198,7 @@ function FaceUpCard({ card, selected, w, h, hinted, isDragging }) {
         <>
           <Text style={{ fontSize: Math.max(22, cw * 0.4) }}>{card.emoji}</Text>
           <Text style={st.word} numberOfLines={1} adjustsFontSizeToFit>{card.word}</Text>
+          <View style={{ position: 'absolute', top: 4, right: 4, width: 8, height: 8, borderRadius: 4, backgroundColor: catColor }} />
         </>
       )}
     </View>
