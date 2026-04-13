@@ -187,7 +187,7 @@ function FaceDownCard({ w, h }) {
 }
 
 function FaceUpCard({ card, selected, w, h, hinted, isDragging }) {
-  const cw = w || CARD_W; const ch = h || CARD_H;
+  const cw = w || '100%'; const ch = h || CARD_H;
   const isCat = card.type === 'category';
   const isJoker = card.isJoker;
   const catColor = isJoker ? '#FFD166' : CATEGORY_COLORS[card.categoryIndex % CATEGORY_COLORS.length];
@@ -1534,7 +1534,7 @@ export default function GameScreen() {
             transform: [{ scale: dragScale }],
           }}
         >
-          <FaceUpCard card={dragCard.card} selected={true} />
+          <FaceUpCard card={dragCard.card} selected={true} w={CARD_W} h={CARD_H} />
           {dragCard.stackCards && dragCard.stackCards.length > 1 && (
             <View style={{ position: 'absolute', top: -10, right: -10, backgroundColor: COLORS.primary, width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' }}>
               <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 11, color: '#fff' }}>{dragCard.stackCards.length}</Text>
