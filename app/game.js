@@ -15,13 +15,46 @@ import { useLang } from '../src/context/LanguageContext';
 import { submitScore } from '../src/utils/leaderboardService';
 import { getDailyChallenge, markDailyChallengeCompleted } from '../src/utils/dailyChallenge';
 
-const { width: SW, height: SH } = Dimensions.get('window');
-const COL_COUNT = 5;
-const COL_GAP = 4;
-const CARD_W = Math.floor((SW - 16 - (COL_COUNT - 1) * COL_GAP) / COL_COUNT);
-const CARD_H = Math.floor(CARD_W * 1.3);
-const OVERLAP = -Math.floor(CARD_H * 0.75);
+import { IS_TABLET, rs, fs, getGameLayout } from '../src/utils/responsive';
+
 const OWL_HAPPY = require('../assets/bilge-happy.png');
+
+/* ── Responsive Game Dimensions (recalculated on rotation) ── */
+function useGameDimensions() {
+  const [dims, setDims] = useState(() => getGameLayout());
+  useEffect(() => {
+    const sub = Dimensions.addEventListener('change', () => setDims(getGameLayout()));
+    return () => sub?.remove?.();
+  }, []);
+  return dims;
+}
+
+/* ── Score Popup Animation ── */
+function ScorePopup({ text, x, y }) {
+  const anim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(anim, { toValue: 1, duration: 800, useNativeDriver: true }).start();
+  }, []);
+  return (
+    <Animated.Text style={{
+      position: 'absolute', left: x - 30, top: y - 20, zIndex: 999,
+      fontFamily: FONTS.headlineBlack, fontSize: fs(16), color: COLORS.coin,
+      opacity: anim.interpolate({ inputRange: [0, 0.8, 1], outputRange: [1, 1, 0] }),
+      transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [0, -40] }) },
+                  { scale: anim.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0.5, 1.3, 1] }) }],
+    }}>{text}</Animated.Text>
+  );
+}
+
+/* ── Initial Layout Constants ── */
+const _layout = getGameLayout();
+const SW = _layout.sw;
+const SH = _layout.sh;
+const COL_COUNT = _layout.colCount;
+const COL_GAP = _layout.colGap;
+const CARD_W = _layout.cardW;
+const CARD_H = _layout.cardH;
+const OVERLAP = _layout.overlap;
 
 /* ── Sparkle Particle ── */
 function SparkleEffect({ visible, x, y }) {
@@ -59,6 +92,48 @@ function SparkleEffect({ visible, x, y }) {
           }} />
         );
       })}
+    </View>
+  );
+}
+
+/* ── Confetti Effect (Win Screen) ── */
+function ConfettiEffect() {
+  const pieces = useRef([...Array(30)].map(() => ({
+    anim: new Animated.Value(0),
+    x: Math.random() * SW,
+    delay: Math.random() * 500,
+    color: ['#FFD166', '#FF8AA7', '#6ECB8B', '#B794F6', '#9B7DFF', '#FFB074'][Math.floor(Math.random() * 6)],
+    size: 6 + Math.random() * 8,
+    rotation: Math.random() * 360,
+    drift: (Math.random() - 0.5) * 100,
+  }))).current;
+
+  useEffect(() => {
+    pieces.forEach((p) => {
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(p.delay),
+          Animated.timing(p.anim, { toValue: 1, duration: 2000 + Math.random() * 1000, useNativeDriver: true }),
+        ])
+      ).start();
+    });
+  }, []);
+
+  return (
+    <View style={{ ...StyleSheet.absoluteFillObject, zIndex: 998 }} pointerEvents="none">
+      {pieces.map((p, i) => (
+        <Animated.View key={i} style={{
+          position: 'absolute', left: p.x, top: -20,
+          width: p.size, height: p.size * 0.6, borderRadius: 2,
+          backgroundColor: p.color,
+          opacity: p.anim.interpolate({ inputRange: [0, 0.1, 0.9, 1], outputRange: [0, 1, 1, 0] }),
+          transform: [
+            { translateY: p.anim.interpolate({ inputRange: [0, 1], outputRange: [0, SH + 40] }) },
+            { translateX: p.anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, p.drift, p.drift * 1.5] }) },
+            { rotate: p.anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', p.rotation + 'deg'] }) },
+          ],
+        }} />
+      ))}
     </View>
   );
 }
@@ -327,6 +402,14 @@ export default function GameScreen() {
   const [shakeSlotIdx, setShakeSlotIdx] = useState(-1);
   const [showTutorial, setShowTutorial] = useState(false);
   const [toolModal, setToolModal] = useState(null); // 'hint' | 'undo' | 'delete' | null
+  const [scorePopups, setScorePopups] = useState([]); // [{id, text, x, y}]
+  
+  const showScorePopup = useCallback((text, x, y) => {
+    const id = Date.now() + Math.random();
+    setScorePopups((prev) => [...prev.slice(-5), { id, text, x: x || SW / 2, y: y || 200 }]);
+    setTimeout(() => setScorePopups((prev) => prev.filter((p) => p.id !== id)), 1000);
+  }, []);
+  
   const shakeAnim = useRef(new Animated.Value(0)).current;
 
   // ── Drag & Drop System ──
@@ -512,6 +595,7 @@ export default function GameScreen() {
         setTimeout(() => playSound('flip'), 10);
         setCombo((c) => c + 1);
         const comboBonus = combo * 5;
+        showScorePopup('+' + (5 + comboBonus));
         return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + 5 + comboBonus, isFailed: prev.moves - 1 <= 0 };
       }
       if (!target.category && card.type === 'word') { setFeedback(t.putCategoryFirst); return prev; }
@@ -620,6 +704,7 @@ export default function GameScreen() {
         const catBonus = catCompleted ? 25 : 0;
         setCombo((c) => c + totalPlaced);
         const comboBonus = combo * 5;
+        showScorePopup('+' + ((totalPlaced * 10) + catBonus + comboBonus));
         if (combo >= 3) setFeedback('🔥 ' + combo + 'x Combo! +' + comboBonus);
         return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + (totalPlaced * 10) + catBonus + comboBonus, completedCats: newCompletedCats, isComplete, isFailed: prev.moves - 1 <= 0 && !isComplete };
       }
@@ -994,6 +1079,7 @@ export default function GameScreen() {
 
       {/* Sparkle */}
       {sparkle && <SparkleEffect visible={true} x={sparkle.x} y={sparkle.y} />}
+      {scorePopups.map((sp) => <ScorePopup key={sp.id} text={sp.text} x={sp.x} y={sp.y} />)}
 
       <View style={st.header}>
         <View style={st.coinBadge}>
@@ -1185,7 +1271,10 @@ export default function GameScreen() {
 
       {/* Overlays */}
       {gs.isComplete && (
-        <LevelCompleteOverlay t={t} score={gs.score} coins={isDaily ? 100 : 30} movesLeft={gs.moves} maxMoves={level.moves} levelId={gs.levelId} combo={combo} isDaily={isDaily} onNext={handleNextLevel} onReplay={handleReplay} onHome={handleHome} />
+        <>
+          <ConfettiEffect />
+          <LevelCompleteOverlay t={t} score={gs.score} coins={isDaily ? 100 : 30} movesLeft={gs.moves} maxMoves={level.moves} levelId={gs.levelId} combo={combo} isDaily={isDaily} onNext={handleNextLevel} onReplay={handleReplay} onHome={handleHome} />
+        </>
       )}
       {gs.isFailed && !gs.isComplete && (
         <LevelFailedOverlay t={t} levelId={gs.levelId} onAddMovesAd={addMovesAd} onAddMovesCoin={addMovesCoin} onReplay={handleReplay} onHome={handleHome} />
