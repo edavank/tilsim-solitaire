@@ -3,6 +3,8 @@ import { WORD_POOLS } from '../data/wordPools';
 
 function seededRandom(seed) {
   let s = seed;
+  // Warmup: skip first 10 values to avoid similar sequences from close seeds
+  for (let i = 0; i < 10; i++) s = (s * 16807 + 0) % 2147483647;
   return () => {
     s = (s * 16807 + 0) % 2147483647;
     return s / 2147483647;

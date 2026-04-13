@@ -29,7 +29,7 @@ function SparkleEffect({ visible, x, y }) {
     anim: new Animated.Value(0),
     angle: Math.random() * Math.PI * 2,
     dist: 30 + Math.random() * 40,
-    color: ['#FFD166', '#FF8AA7', '#5DBE6E', '#00D2FD', '#FF9F4A'][Math.floor(Math.random() * 5)],
+    color: ['#FFD166', '#FF8AA7', '#5DBE6E', '#B794F6', '#9B7DFF'][Math.floor(Math.random() * 5)],
     size: 4 + Math.random() * 6,
   }))).current;
 
@@ -313,7 +313,7 @@ export default function GameScreen() {
 
   // Sync game language with context
   useEffect(() => { setGameLang(lang); }, [lang]);
-  const level = isDaily ? getDailyChallenge(gameLang) : getLevel(levelId, gameLang);
+  const level = isDaily ? getDailyChallenge(gameLang) : (getLevel(levelId, gameLang) || getLevel(1, gameLang));
   const [gs, setGs] = useState(() => generateGameState(level));
   const [selected, setSelected] = useState(null);
   const [feedback, setFeedback] = useState('');
@@ -438,14 +438,16 @@ export default function GameScreen() {
     loadProgress().then(async (p) => {
       setCoins(p.coins || 0);
       if (!params.level) setLevelId(p.currentLevel || 1);
-      if ((p.currentLevel || 1) === 1) setShowTutorial(true);
-      try {
-        const { loadSavedGame } = require('../src/utils/storage');
-        const saved = await loadSavedGame();
-        if (saved && saved.levelId === (parseInt(params.level) || p.currentLevel) && !saved.isComplete && !saved.isFailed) {
-          setGs(saved);
-        }
-      } catch (e) {}
+      if ((p.currentLevel || 1) === 1 && !isDaily) setShowTutorial(true);
+      if (!isDaily) {
+        try {
+          const { loadSavedGame } = require('../src/utils/storage');
+          const saved = await loadSavedGame();
+          if (saved && saved.levelId === (parseInt(params.level) || p.currentLevel) && !saved.isComplete && !saved.isFailed) {
+            setGs(saved);
+          }
+        } catch (e) {}
+      }
     });
   }, []);
 
@@ -464,7 +466,7 @@ export default function GameScreen() {
 
   // Auto-save game state
   useEffect(() => {
-    if (!gs.isComplete && !gs.isFailed) {
+    if (!gs.isComplete && !gs.isFailed && !isDaily) {
       saveSavedGame({ ...gs, levelId });
     }
   }, [gs]);
@@ -878,10 +880,10 @@ export default function GameScreen() {
   }, [gs]);
 
   const resetGame = useCallback(() => {
-    const newLevel = getLevel(levelId, gameLang);
+    const newLevel = isDaily ? getDailyChallenge(gameLang) : getLevel(levelId, gameLang);
     setGs(generateGameState(newLevel)); setHistory([]); setSelected(null);
-    setHintCard(null); setHintSlot(null);
-  }, [levelId]);
+    setHintCard(null); setHintSlot(null); setCombo(0);
+  }, [levelId, isDaily]);
 
   const addMovesAd = useCallback(async () => {
     const result = await showRewarded();
@@ -895,7 +897,7 @@ export default function GameScreen() {
     setCoins(newCoins);
     await updateProgress({ coins: newCoins });
     setGs((p) => ({ ...p, moves: p.moves + 20, isFailed: false }));
-    setFeedback('⚡ +20! (-100 🪙)');
+    setFeedback('⚡ +20! (-500 🪙)');
   }, [coins]);
 
   // ── Level Complete → save & advance ──
@@ -905,12 +907,14 @@ export default function GameScreen() {
 
     if (isDaily) {
       // Daily challenge: 100 coin bonus, mark done, go home
+      const newCoins = (prog.coins || 0) + 100 + bonus;
       await updateProgress({
-        coins: (prog.coins || 0) + 100 + bonus,
+        coins: newCoins,
         totalGames: (prog.totalGames || 0) + 1,
         totalWins: (prog.totalWins || 0) + 1,
         bestScore: Math.max(prog.bestScore || 0, gs.score),
       });
+      setCoins(newCoins);
       await markDailyChallengeCompleted();
       router.back();
       return;
@@ -942,7 +946,7 @@ export default function GameScreen() {
     setLevelId(nextId);
     setGs(generateGameState(nextLevel));
     setHistory([]); setSelected(null);
-    setHintCard(null); setHintSlot(null);
+    setHintCard(null); setHintSlot(null); setCombo(0);
     setCoins((prog.coins || 0) + 30 + bonus);
   }, [levelId, gs, level, coins]);
 
@@ -1103,7 +1107,7 @@ export default function GameScreen() {
             <View style={{ backgroundColor: COLORS.panelBg, borderRadius: 16, padding: 20, alignItems: 'center', width: '100%', marginBottom: 16 }}>
               <MaterialIcons name={toolModal === 'hint' ? 'lightbulb' : toolModal === 'undo' ? 'undo' : 'auto-fix-normal'} size={48} color={COLORS.secondary} />
               <Text style={{ fontFamily: FONTS.body, fontSize: 13, color: COLORS.onSurfaceVariant, marginTop: 8, textAlign: 'center' }}>
-                {toolModal === 'hint' ? 'Doğru hamleyi göster' : toolModal === 'undo' ? 'Önceki adımı geri al' : 'Bir kartı sil'}
+                {toolModal === 'hint' ? (t.hintDesc || 'Doğru hamleyi göster') : toolModal === 'undo' ? (t.undoDesc || 'Önceki adımı geri al') : (t.deleteDesc || 'Bir kartı sil')}
               </Text>
             </View>
             <TouchableOpacity 
