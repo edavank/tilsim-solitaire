@@ -214,7 +214,7 @@ function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedI
 
 /* ── Win Overlay ── */
 function LevelCompleteOverlay({ t, score, coins, movesLeft, maxMoves, levelId, onNext, onReplay, onHome }) {
-  const moveBonus = Math.floor(15 * (movesLeft / maxMoves));
+  const moveBonus = Math.floor(8 * (movesLeft / maxMoves));
   const totalCoins = coins + moveBonus;
   return (
     <View style={ov.overlay}>
@@ -258,31 +258,37 @@ function LevelCompleteOverlay({ t, score, coins, movesLeft, maxMoves, levelId, o
 }
 
 /* ── Fail Overlay ── */
-function LevelFailedOverlay({ t, levelId, onAddMoves, onReplay, onHome }) {
+function LevelFailedOverlay({ t, levelId, onAddMovesAd, onAddMovesCoin, onReplay, onHome }) {
   return (
     <View style={ov.overlay}>
       <LinearGradient colors={['rgba(21,6,41,0.95)', 'rgba(61,53,96,0.95)']} style={StyleSheet.absoluteFillObject} />
       <View style={ov.card}>
         <Image source={OWL_HAPPY} style={ov.owl} />
         <View style={ov.speechBubble}><Text style={ov.speechText}>{t.failSpeech}</Text></View>
-          <Text style={ov.failTitle}>{t.outOfMoves}</Text>
-          <Text style={ov.failSub}>{t.failMsg}</Text>
-          <TouchableOpacity onPress={onAddMoves} activeOpacity={0.85}>
-            <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={ov.addMovesBtn}>
-              <MaterialIcons name="play-circle-filled" size={22} color="#fff" />
-              <Text style={ov.addMovesText}>{t.addMoves}</Text>
-              <View style={ov.freeBadge}><Text style={ov.freeText}>{t.free}</Text></View>
-            </LinearGradient>
-          </TouchableOpacity>
-          <View style={ov.bottomRow}>
-            <TouchableOpacity style={ov.replayBtn} onPress={onReplay} activeOpacity={0.7}>
-              <MaterialIcons name="refresh" size={18} color={COLORS.secondary} />
-              <Text style={ov.replayText}>{t.replay}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={ov.homeBtn} onPress={onHome} activeOpacity={0.7}>
-              <MaterialIcons name="home" size={20} color={COLORS.onSurface} />
-            </TouchableOpacity>
+        <Text style={ov.failTitle}>{t.outOfMoves}</Text>
+        <Text style={ov.failSub}>{t.failMsg}</Text>
+        <TouchableOpacity onPress={onAddMovesAd} activeOpacity={0.85}>
+          <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={ov.addMovesBtn}>
+            <MaterialIcons name="play-circle-filled" size={22} color="#fff" />
+            <Text style={ov.addMovesText}>{t.addMoves}</Text>
+            <View style={ov.freeBadge}><Text style={ov.freeText}>{t.free}</Text></View>
+          </LinearGradient>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={onAddMovesCoin} activeOpacity={0.85} style={{ marginTop: 8, width: '100%' }}>
+          <View style={[ov.addMovesBtn, { backgroundColor: COLORS.panelBg, borderWidth: 1.5, borderColor: COLORS.coin, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 9999 }]}>
+            <Text style={{ fontSize: 16 }}>🪙</Text>
+            <Text style={[ov.addMovesText, { color: COLORS.coin }]}>100 Coin → +20</Text>
           </View>
+        </TouchableOpacity>
+        <View style={ov.bottomRow}>
+          <TouchableOpacity style={ov.replayBtn} onPress={onReplay} activeOpacity={0.7}>
+            <MaterialIcons name="refresh" size={18} color={COLORS.secondary} />
+            <Text style={ov.replayText}>{t.replay}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={ov.homeBtn} onPress={onHome} activeOpacity={0.7}>
+            <MaterialIcons name="home" size={20} color={COLORS.onSurface} />
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -305,7 +311,7 @@ export default function GameScreen() {
   const [hintCard, setHintCard] = useState(null);
   const [hintSlot, setHintSlot] = useState(null);
   const [sparkle, setSparkle] = useState(null);
-  const [coins, setCoins] = useState(50);
+  const [coins, setCoins] = useState(100);
   const [paused, setPaused] = useState(false);
   const [shakeSlotIdx, setShakeSlotIdx] = useState(-1);
   const [showTutorial, setShowTutorial] = useState(false);
@@ -836,28 +842,31 @@ export default function GameScreen() {
     setHintCard(null); setHintSlot(null);
   }, [levelId]);
 
-  const addMoves = useCallback(async () => {
+  const addMovesAd = useCallback(async () => {
     const result = await showRewarded();
-    if (result.success) {
-      setGs((p) => ({ ...p, moves: p.moves + 20, isFailed: false }));
-      setFeedback('⚡ +20!');
-    } else {
-      // Fallback: give moves anyway (ad might not be available in Expo Go)
-      setGs((p) => ({ ...p, moves: p.moves + 20, isFailed: false }));
-      setFeedback('⚡ +20!');
-    }
+    setGs((p) => ({ ...p, moves: p.moves + 20, isFailed: false }));
+    setFeedback('⚡ +20!');
   }, []);
+
+  const addMovesCoin = useCallback(async () => {
+    if (coins < 100) { setFeedback('🪙 100 coin gerekli!'); return; }
+    const newCoins = coins - 100;
+    setCoins(newCoins);
+    await updateProgress({ coins: newCoins });
+    setGs((p) => ({ ...p, moves: p.moves + 20, isFailed: false }));
+    setFeedback('⚡ +20! (-100 🪙)');
+  }, [coins]);
 
   // ── Level Complete → save & advance ──
   const handleNextLevel = useCallback(async () => {
     const nextId = levelId + 1;
     const nextLevel = getLevel(nextId, gameLang);
     if (!nextLevel) { router.back(); return; }
-    const bonus = Math.floor(15 * (gs.moves / level.moves));
+    const bonus = Math.floor(8 * (gs.moves / level.moves));
     const prog = await loadProgress();
     await updateProgress({
       currentLevel: nextId,
-      coins: (prog.coins || 0) + 50 + bonus,
+      coins: (prog.coins || 0) + 20 + bonus,
       totalGames: (prog.totalGames || 0) + 1,
       totalWins: (prog.totalWins || 0) + 1,
       bestScore: Math.max(prog.bestScore || 0, gs.score),
@@ -879,7 +888,7 @@ export default function GameScreen() {
     setGs(generateGameState(nextLevel));
     setHistory([]); setSelected(null);
     setHintCard(null); setHintSlot(null);
-    setCoins((prog.coins || 0) + 50 + bonus);
+    setCoins((prog.coins || 0) + 20 + bonus);
   }, [levelId, gs, level, coins]);
 
   const handleReplay = useCallback(async () => {
@@ -946,7 +955,7 @@ export default function GameScreen() {
           <View style={st.movesPanel}>
             <Text style={st.movesLabel}>{t.moves}</Text>
             <Text style={st.movesNum}>{gs.moves}</Text>
-            <TouchableOpacity style={st.addBtn} onPress={addMoves}><Text style={st.addBtnText}>+20 ▶</Text></TouchableOpacity>
+            <TouchableOpacity style={st.addBtn} onPress={addMovesAd}><Text style={st.addBtnText}>+20 ▶</Text></TouchableOpacity>
           </View>
 
           <TouchableOpacity onPress={drawCard} activeOpacity={0.7}>
@@ -1082,10 +1091,10 @@ export default function GameScreen() {
 
       {/* Overlays */}
       {gs.isComplete && (
-        <LevelCompleteOverlay t={t} score={gs.score} coins={50} movesLeft={gs.moves} maxMoves={level.moves} levelId={gs.levelId} onNext={handleNextLevel} onReplay={handleReplay} onHome={handleHome} />
+        <LevelCompleteOverlay t={t} score={gs.score} coins={20} movesLeft={gs.moves} maxMoves={level.moves} levelId={gs.levelId} onNext={handleNextLevel} onReplay={handleReplay} onHome={handleHome} />
       )}
       {gs.isFailed && !gs.isComplete && (
-        <LevelFailedOverlay t={t} levelId={gs.levelId} onAddMoves={addMoves} onReplay={handleReplay} onHome={handleHome} />
+        <LevelFailedOverlay t={t} levelId={gs.levelId} onAddMovesAd={addMovesAd} onAddMovesCoin={addMovesCoin} onReplay={handleReplay} onHome={handleHome} />
       )}
 
       {/* Floating drag card */}
