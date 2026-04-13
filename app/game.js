@@ -315,6 +315,7 @@ export default function GameScreen() {
   const [paused, setPaused] = useState(false);
   const [shakeSlotIdx, setShakeSlotIdx] = useState(-1);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [toolModal, setToolModal] = useState(null); // 'hint' | 'undo' | 'delete' | null
   const shakeAnim = useRef(new Animated.Value(0)).current;
 
   // ── Drag & Drop System ──
@@ -765,34 +766,57 @@ export default function GameScreen() {
 
   const useUndo = useCallback(async () => {
     if (history.length === 0) { setFeedback(t.nothingToUndo); return; }
-    if (coins < 30) { setFeedback('🪙 30 coin gerekli!'); return; }
-    const newCoins = coins - 30;
-    setCoins(newCoins);
-    await updateProgress({ coins: newCoins });
+    setToolModal('undo');
+  }, [history]);
+
+  const executeUndo = useCallback(async (method) => {
+    if (method === 'coin') {
+      if (coins < 100) { setFeedback('🪙 100 coin gerekli!'); setToolModal(null); return; }
+      setCoins(coins - 100); await updateProgress({ coins: coins - 100 });
+    }
+    // method === 'ad' → free (ad watched)
+    if (method === 'ad') await showRewarded();
     setGs(history[history.length - 1]); setHistory((h) => h.slice(0, -1)); setSelected(null);
-    setFeedback(t.undone);
+    setFeedback(t.undone); setToolModal(null);
   }, [history, coins]);
 
   const useDelete = useCallback(async () => {
     if (gs.drawnCards.length === 0) { setFeedback(t.nothingToDelete); return; }
-    if (coins < 20) { setFeedback('🪙 20 coin gerekli!'); return; }
-    const newCoins = coins - 20;
-    setCoins(newCoins);
-    await updateProgress({ coins: newCoins });
-    setFeedback(t.deleted);
+    setToolModal('delete');
+  }, [gs.drawnCards]);
+
+  const executeDelete = useCallback(async (method) => {
+    if (method === 'coin') {
+      if (coins < 100) { setFeedback('🪙 100 coin gerekli!'); setToolModal(null); return; }
+      setCoins(coins - 100); await updateProgress({ coins: coins - 100 });
+    }
+    if (method === 'ad') await showRewarded();
     setGs((p) => ({ ...p, drawnCards: p.drawnCards.slice(0, -1), moves: p.moves - 1 })); setSelected(null);
+    setFeedback(t.deleted); setToolModal(null);
   }, [gs.drawnCards, coins]);
 
   // ── Smart Hint ──
   const useHint = useCallback(async () => {
-    if (gs.hints <= 0) {
-      // Buy hint with coins
-      if (coins < 50) { setFeedback('🪙 50 coin gerekli!'); return; }
-      const newCoins = coins - 50;
-      setCoins(newCoins);
-      await updateProgress({ coins: newCoins });
-      setGs((prev) => ({ ...prev, hints: prev.hints + 1 }));
+    if (gs.hints > 0) {
+      // Free hint available, use directly
+      runHintLogic();
+      return;
     }
+    setToolModal('hint');
+  }, [gs]);
+
+  const executeHint = useCallback(async (method) => {
+    if (method === 'coin') {
+      if (coins < 100) { setFeedback('🪙 100 coin gerekli!'); setToolModal(null); return; }
+      setCoins(coins - 100); await updateProgress({ coins: coins - 100 });
+    }
+    if (method === 'ad') await showRewarded();
+    setGs((prev) => ({ ...prev, hints: prev.hints + 1 }));
+    setToolModal(null);
+    setTimeout(() => runHintLogic(), 100);
+  }, [coins]);
+
+  const runHintLogic = useCallback(() => {
 
     // 1. Find playable cards (all face-up in columns + top of drawn)
     const playable = [];
@@ -834,7 +858,7 @@ export default function GameScreen() {
     }
     setFeedback(t.noHintFound);
     setGs((prev) => ({ ...prev, hints: prev.hints - 1 }));
-  }, [gs, coins]);
+  }, [gs]);
 
   const resetGame = useCallback(() => {
     const newLevel = getLevel(levelId, gameLang);
@@ -958,6 +982,31 @@ export default function GameScreen() {
             <TouchableOpacity style={st.addBtn} onPress={addMovesAd}><Text style={st.addBtnText}>+20 ▶</Text></TouchableOpacity>
           </View>
 
+          <TouchableOpacity
+            style={st.drawnArea}
+            onPress={handleDrawnTap}
+            onLongPress={(e) => {
+              if (gs.drawnCards.length > 0) {
+                const card = gs.drawnCards[gs.drawnCards.length - 1];
+                handleCardLongPress(card, 'drawn', null, true, e);
+              }
+            }}
+            delayLongPress={200}
+            activeOpacity={0.7}
+          >
+            {gs.drawnCards.length === 0 ? (
+              <View style={[st.emptyCard, { width: DCW, height: DCH }]} />
+            ) : (
+              <View style={{ width: DCW + 40, height: DCH, justifyContent: 'center', alignItems: 'flex-end' }}>
+                {gs.drawnCards.slice(-3).map((card, i, arr) => (
+                  <View key={card.id} style={{ position: 'absolute', right: i * 18, zIndex: arr.length - i, opacity: i === 0 ? 1 : 0.4 }}>
+                    <FaceUpCard card={card} selected={i === 0 && selId === card.id} hinted={card.id === hintCard} isDragging={card.id === dragCard?.card?.id} w={DCW} h={DCH} />
+                  </View>
+                ))}
+              </View>
+            )}
+          </TouchableOpacity>
+
           <TouchableOpacity onPress={drawCard} activeOpacity={0.7}>
             {gs.deck.length > 0 ? (
               <View>
@@ -973,33 +1022,6 @@ export default function GameScreen() {
                 ) : (
                   <MaterialIcons name="block" size={18} color="rgba(255,255,255,0.12)" />
                 )}
-              </View>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={st.drawnArea}
-            onPress={handleDrawnTap}
-            onLongPress={(e) => {
-              if (gs.drawnCards.length > 0) {
-                const card = gs.drawnCards[gs.drawnCards.length - 1];
-                handleCardLongPress(card, 'drawn', null, true, e);
-              }
-            }}
-            delayLongPress={200}
-            activeOpacity={0.7}
-          >
-            {gs.drawnCards.length === 0 ? (
-              <View style={[st.emptyCard, { width: DCW, height: DCH }]}>
-                <Text style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>{t.empty}</Text>
-              </View>
-            ) : (
-              <View style={{ width: DCW + 40, height: DCH, justifyContent: 'center', alignItems: 'flex-start' }}>
-                {gs.drawnCards.slice(-3).map((card, i, arr) => (
-                  <View key={card.id} style={{ position: 'absolute', left: i * 18, zIndex: i, opacity: i === arr.length - 1 ? 1 : 0.4 }}>
-                    <FaceUpCard card={card} selected={i === arr.length - 1 && selId === card.id} hinted={card.id === hintCard} isDragging={card.id === dragCard?.card?.id} w={DCW} h={DCH} />
-                  </View>
-                ))}
               </View>
             )}
           </TouchableOpacity>
@@ -1026,13 +1048,47 @@ export default function GameScreen() {
 
       {/* Toolbar */}
       <View style={st.toolbar}>
-        <ToolBtn icon="lightbulb" label={t.hint} badge={gs.hints > 0 ? gs.hints : '🪙50'} badgeColor={gs.hints > 0 ? COLORS.fail : COLORS.coin} onPress={useHint} big />
-        <ToolBtn icon="undo" label={t.undo} badge="🪙30" badgeColor={COLORS.coin} onPress={useUndo} big />
-        <ToolBtn icon="auto-fix-normal" label={t.delete} badge="🪙20" badgeColor={COLORS.coin} onPress={useDelete} big />
+        <ToolBtn icon="lightbulb" label={t.hint} badge={gs.hints > 0 ? gs.hints : '🪙'} badgeColor={gs.hints > 0 ? COLORS.fail : COLORS.coin} onPress={useHint} big />
+        <ToolBtn icon="undo" label={t.undo} badge="🪙" badgeColor={COLORS.coin} onPress={useUndo} big />
+        <ToolBtn icon="auto-fix-normal" label={t.delete} badge="🪙" badgeColor={COLORS.coin} onPress={useDelete} big />
       </View>
 
       {/* Ad Banner Space */}
       <View style={st.adBannerSpace} />
+
+      {/* Tool Purchase Modal */}
+      {toolModal && (
+        <View style={ov.overlay}>
+          <View style={[ov.card, { paddingTop: 20, paddingBottom: 20 }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginBottom: 12 }}>
+              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 20, color: COLORS.onSurface }}>
+                {toolModal === 'hint' ? t.hint : toolModal === 'undo' ? t.undo : t.delete}
+              </Text>
+              <TouchableOpacity onPress={() => setToolModal(null)}><Text style={{ fontSize: 22, color: COLORS.fail }}>✕</Text></TouchableOpacity>
+            </View>
+            <View style={{ backgroundColor: COLORS.panelBg, borderRadius: 16, padding: 20, alignItems: 'center', width: '100%', marginBottom: 16 }}>
+              <MaterialIcons name={toolModal === 'hint' ? 'lightbulb' : toolModal === 'undo' ? 'undo' : 'auto-fix-normal'} size={48} color={COLORS.secondary} />
+              <Text style={{ fontFamily: FONTS.body, fontSize: 13, color: COLORS.onSurfaceVariant, marginTop: 8, textAlign: 'center' }}>
+                {toolModal === 'hint' ? 'Doğru hamleyi göster' : toolModal === 'undo' ? 'Önceki adımı geri al' : 'Bir kartı sil'}
+              </Text>
+            </View>
+            <TouchableOpacity 
+              style={{ backgroundColor: COLORS.coin, borderRadius: 14, paddingVertical: 14, alignItems: 'center', width: '100%', marginBottom: 10 }} 
+              onPress={() => { const fn = toolModal === 'hint' ? executeHint : toolModal === 'undo' ? executeUndo : executeDelete; fn('coin'); }}
+              activeOpacity={0.8}
+            >
+              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#000' }}>🪙 100</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={{ backgroundColor: COLORS.success, borderRadius: 14, paddingVertical: 14, alignItems: 'center', width: '100%' }} 
+              onPress={() => { const fn = toolModal === 'hint' ? executeHint : toolModal === 'undo' ? executeUndo : executeDelete; fn('ad'); }}
+              activeOpacity={0.8}
+            >
+              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff' }}>▶ AD Kullan</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {/* Tutorial */}
       {showTutorial && (
