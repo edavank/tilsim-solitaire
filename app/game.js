@@ -440,11 +440,11 @@ export default function GameScreen() {
   // Araç açılma sırası
   const TOOL_UNLOCK = { hint: 2, undo: 3, joker: 5, shuffle: 7, delete: 10 };
   const TOOL_INFO = {
-    hint: { icon: 'lightbulb', title: 'İpucu Açıldı!', desc: 'Doğru hamleyi gösterir. 3 adet hediye!' },
-    undo: { icon: 'undo', title: 'Geri Al Açıldı!', desc: 'Son hamleyi geri alır. 3 adet hediye!' },
-    joker: { icon: 'style', title: 'Joker Açıldı!', desc: 'Kartı jokere çevirir — her kategoriye uyar. 3 adet hediye!' },
-    shuffle: { icon: 'shuffle', title: 'Karıştır Açıldı!', desc: 'Sütunlardaki kartları karıştırır. 3 adet hediye!' },
-    delete: { icon: 'auto-fix-normal', title: 'Sil Açıldı!', desc: 'İstemediğin kartı siler. 3 adet hediye!' },
+    hint: { icon: 'lightbulb', title: t.toolUnlockedHint || 'İpucu Açıldı!', desc: t.toolDescHint || 'Doğru hamleyi gösterir. 3 adet hediye!' },
+    undo: { icon: 'undo', title: t.toolUnlockedUndo || 'Geri Al Açıldı!', desc: t.toolDescUndo || 'Son hamleyi geri alır. 3 adet hediye!' },
+    joker: { icon: 'style', title: t.toolUnlockedJoker || 'Joker Açıldı!', desc: t.toolDescJoker || 'Kartı jokere çevirir. 3 adet hediye!' },
+    shuffle: { icon: 'shuffle', title: t.toolUnlockedShuffle || 'Karıştır Açıldı!', desc: t.toolDescShuffle || 'Kartları karıştırır. 3 adet hediye!' },
+    delete: { icon: 'auto-fix-normal', title: t.toolUnlockedDelete || 'Sil Açıldı!', desc: t.toolDescDelete || 'Kartı siler. 3 adet hediye!' },
   };
   
   const isToolUnlocked = useCallback((tool) => {
@@ -1472,7 +1472,7 @@ export default function GameScreen() {
 
       {/* Toolbar */}
       <View style={st.toolbar}>
-        <ToolBtn icon="lightbulb" label={t.hint} badge={toolCredits.hint > 0 ? toolCredits.hint : '🪙'} badgeColor={toolCredits.hint > 0 ? COLORS.fail : COLORS.coin} onPress={useHint} big locked={!isToolUnlocked('hint')} unlockLevel={TOOL_UNLOCK.hint} pulse={gs.moves <= 5 && !isTimed} />
+        <ToolBtn icon="lightbulb" label={t.hint} badge={toolCredits.hint > 0 ? toolCredits.hint : '🪙'} badgeColor={toolCredits.hint > 0 ? COLORS.fail : COLORS.coin} onPress={useHint} locked={!isToolUnlocked('hint')} unlockLevel={TOOL_UNLOCK.hint} pulse={gs.moves <= 5 && !isTimed} />
         <ToolBtn icon="undo" label={t.undo} badge={toolCredits.undo > 0 ? toolCredits.undo : '🪙'} badgeColor={toolCredits.undo > 0 ? COLORS.success : COLORS.coin} onPress={useUndo} locked={!isToolUnlocked('undo')} unlockLevel={TOOL_UNLOCK.undo} pulse={gs.moves <= 3 && !isTimed} />
         <ToolBtn icon="style" label="JOKER" badge={toolCredits.joker > 0 ? toolCredits.joker : '🪙'} badgeColor={toolCredits.joker > 0 ? COLORS.success : COLORS.coin} onPress={useJoker} locked={!isToolUnlocked('joker')} unlockLevel={TOOL_UNLOCK.joker} />
         <ToolBtn icon="shuffle" label="KARIŞTIR" badge={toolCredits.shuffle > 0 ? toolCredits.shuffle : '🪙'} badgeColor={toolCredits.shuffle > 0 ? COLORS.success : COLORS.coin} onPress={useShuffle} locked={!isToolUnlocked('shuffle')} unlockLevel={TOOL_UNLOCK.shuffle} />
@@ -1539,14 +1539,14 @@ export default function GameScreen() {
             <Text style={{ fontFamily: FONTS.body, fontSize: 14, color: COLORS.onSurfaceVariant, textAlign: 'center', marginBottom: 16, paddingHorizontal: 10 }}>{toolIntro.desc}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, marginBottom: 16 }}>
               <Text style={{ fontSize: 20 }}>🎁</Text>
-              <Text style={{ fontFamily: FONTS.headline, fontSize: 14, color: '#fff' }}>3 adet ücretsiz hak eklendi!</Text>
+              <Text style={{ fontFamily: FONTS.headline, fontSize: 14, color: '#fff' }}>{t.toolGift || '3 adet ücretsiz hak eklendi!'}</Text>
             </View>
             <TouchableOpacity
               style={{ backgroundColor: COLORS.primary, borderRadius: 14, paddingVertical: 14, alignItems: 'center', width: '100%' }}
               onPress={() => setToolIntro(null)}
               activeOpacity={0.8}
             >
-              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff' }}>Harika! 🎉</Text>
+              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff' }}>{t.toolGreat || 'Harika!'} 🎉</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1558,18 +1558,18 @@ export default function GameScreen() {
           <View style={[ov.card, { paddingTop: 24, paddingBottom: 24 }]}>
             <Image source={OWL_HAPPY} style={{ width: 100, height: 75, resizeMode: 'contain', marginBottom: 12 }} />
             <Text style={{ fontSize: 40, marginBottom: 8 }}>📅</Text>
-            <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 20, color: COLORS.coin, textAlign: 'center', marginBottom: 6 }}>Günlük Meydan Okuma Açıldı!</Text>
-            <Text style={{ fontFamily: FONTS.body, fontSize: 14, color: COLORS.onSurfaceVariant, textAlign: 'center', marginBottom: 16, paddingHorizontal: 10 }}>Her gün yeni bir bulmaca! Tamamla, özel ödüller kazan ve serinizi sürdür.</Text>
+            <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 20, color: COLORS.coin, textAlign: 'center', marginBottom: 6 }}>{t.dailyUnlocked || 'Günlük Meydan Okuma Açıldı!'}</Text>
+            <Text style={{ fontFamily: FONTS.body, fontSize: 14, color: COLORS.onSurfaceVariant, textAlign: 'center', marginBottom: 16, paddingHorizontal: 10 }}>{t.dailyUnlockedDesc || 'Her gün yeni bir bulmaca!'}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, marginBottom: 16 }}>
               <Text style={{ fontSize: 20 }}>🏆</Text>
-              <Text style={{ fontFamily: FONTS.headline, fontSize: 14, color: '#fff' }}>Ana sayfadan her gün oyna!</Text>
+              <Text style={{ fontFamily: FONTS.headline, fontSize: 14, color: '#fff' }}>{t.dailyUnlockedPlay || 'Ana sayfadan her gün oyna!'}</Text>
             </View>
             <TouchableOpacity
               style={{ backgroundColor: COLORS.primary, borderRadius: 14, paddingVertical: 14, alignItems: 'center', width: '100%' }}
               onPress={() => setDailyIntro(false)}
               activeOpacity={0.8}
             >
-              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff' }}>Anladım! 🎯</Text>
+              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff' }}>{t.dailyGotIt || 'Anladım!'} 🎯</Text>
             </TouchableOpacity>
           </View>
         </View>

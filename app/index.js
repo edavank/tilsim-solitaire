@@ -138,13 +138,13 @@ export default function HomeScreen() {
           <TouchableOpacity style={[s.levelSelectBtn, { borderColor: '#FF7043', borderWidth: 1.5 }]} activeOpacity={0.7}
             onPress={() => router.push({ pathname: '/game', params: { level: currentLevel, timed: '1' } })}>
             <MaterialIcons name="timer" size={20} color="#FF7043" />
-            <Text style={s.levelSelectText}>{t.timedMode || 'Zamanlı Mod'}</Text>
+            <Text style={s.levelSelectText}>{t.timedMode}</Text>
             <MaterialIcons name="chevron-right" size={20} color={COLORS.onSurfaceVariant} />
           </TouchableOpacity>
         ) : (
           <View style={[s.levelSelectBtn, { opacity: 0.4 }]}>
             <MaterialIcons name="timer" size={20} color="#FF7043" />
-            <Text style={s.levelSelectText}>{t.timedMode || 'Zamanlı Mod'}</Text>
+            <Text style={s.levelSelectText}>{t.timedMode}</Text>
             <Text style={{ fontFamily: FONTS.body, fontSize: 10, color: COLORS.onSurfaceVariant }}>Lv.5</Text>
           </View>
         )}
@@ -157,13 +157,13 @@ export default function HomeScreen() {
             onPress={() => router.push('/daily')}
           >
             <Text style={{ fontSize: 18 }}>📅</Text>
-            <Text style={s.levelSelectText}>Günlük Meydan Okuma {dailyDone ? '✅' : ''}</Text>
+            <Text style={s.levelSelectText}>{t.dailyChallengeHome} {dailyDone ? '✅' : ''}</Text>
             <MaterialIcons name="chevron-right" size={20} color={COLORS.onSurfaceVariant} />
           </TouchableOpacity>
         ) : (
           <View style={[s.levelSelectBtn, { opacity: 0.4 }]}>
             <Text style={{ fontSize: 18 }}>🔒</Text>
-            <Text style={s.levelSelectText}>Günlük Meydan Okuma</Text>
+            <Text style={s.levelSelectText}>{t.dailyChallengeHome}</Text>
             <Text style={{ fontFamily: FONTS.body, fontSize: 10, color: COLORS.onSurfaceVariant }}>Lv.10</Text>
           </View>
         )}
@@ -178,21 +178,21 @@ export default function HomeScreen() {
         {/* Collection album */}
         <TouchableOpacity style={s.levelSelectBtn} activeOpacity={0.7} onPress={() => router.push('/collection')}>
           <MaterialIcons name="collections-bookmark" size={20} color={COLORS.primary} />
-          <Text style={s.levelSelectText}>Koleksiyon Albümü</Text>
+          <Text style={s.levelSelectText}>{t.collectionAlbum}</Text>
           <MaterialIcons name="chevron-right" size={20} color={COLORS.onSurfaceVariant} />
         </TouchableOpacity>
 
         {/* Weekly Tournament */}
         <TouchableOpacity style={[s.levelSelectBtn, { borderColor: COLORS.coin, borderWidth: 1 }]} activeOpacity={0.7} onPress={() => router.push('/tournament')}>
           <MaterialIcons name="emoji-events" size={20} color={COLORS.coin} />
-          <Text style={s.levelSelectText}>Haftalık Turnuva</Text>
+          <Text style={s.levelSelectText}>{t.weeklyTournament}</Text>
           <MaterialIcons name="chevron-right" size={20} color={COLORS.onSurfaceVariant} />
         </TouchableOpacity>
 
         {/* Theme shop */}
         <TouchableOpacity style={s.levelSelectBtn} activeOpacity={0.7} onPress={() => router.push('/themes')}>
           <MaterialIcons name="palette" size={20} color={COLORS.secondary} />
-          <Text style={s.levelSelectText}>Tema Mağazası</Text>
+          <Text style={s.levelSelectText}>{t.themeStore}</Text>
           <MaterialIcons name="chevron-right" size={20} color={COLORS.onSurfaceVariant} />
         </TouchableOpacity>
 
