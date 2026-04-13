@@ -228,8 +228,8 @@ const s = StyleSheet.create({
     borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: 'rgba(255,255,255,0.1)',
   },
 
-  owlWrap: { width: SW * 0.55, height: SW * 0.55, marginBottom: 16 },
-  owlImage: { width: '100%', height: '100%', resizeMode: 'contain', borderRadius: 16 },
+  owlWrap: { width: SW * 0.7, height: SW * 0.4, marginBottom: 16 },
+  owlImage: { width: '100%', height: '100%', resizeMode: 'contain' },
 
   ctaOuter: { width: '100%', maxWidth: 340, marginBottom: 16 },
   ctaGlow: {
