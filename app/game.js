@@ -114,12 +114,12 @@ function FaceUpCard({ card, selected, w, h, hinted, isDragging }) {
       {isCat ? (
         <>
           <View style={st.catBadge}><Text style={st.catBadgeText}>0/{card.totalWords}</Text></View>
-          <Text style={{ fontSize: Math.max(20, cw * 0.35), marginBottom: 2 }}>{card.emoji}</Text>
+          <Text style={{ fontSize: Math.max(22, cw * 0.4) }}>{card.emoji}</Text>
           <Text style={st.catName} numberOfLines={2}>{card.word}</Text>
         </>
       ) : (
         <>
-          <Text style={{ fontSize: Math.max(20, cw * 0.35), marginBottom: 2 }}>{card.emoji}</Text>
+          <Text style={{ fontSize: Math.max(22, cw * 0.4) }}>{card.emoji}</Text>
           <Text style={st.word} numberOfLines={2}>{card.word}</Text>
         </>
       )}
@@ -1149,7 +1149,7 @@ function ToolBtn({ icon, label, badge, badgeColor, onPress, big }) {
     <View style={st.toolWrap}>
       <Animated.View style={{ transform: [{ scale: glowScale }], opacity: glowOpacity }}>
         <TouchableOpacity style={[st.toolBtn, big && st.toolBtnBig]} onPress={onPress} activeOpacity={0.6}>
-          <MaterialIcons name={icon} size={big ? 22 : 20} color="#fff" />
+          <MaterialIcons name={icon} size={big ? 26 : 22} color="#fff" />
           {badge !== undefined && <View style={[st.toolBdg, { backgroundColor: badgeColor }]}><Text style={st.toolBdgText}>{badge}</Text></View>}
         </TouchableOpacity>
       </Animated.View>
@@ -1218,10 +1218,10 @@ const st = StyleSheet.create({
   cardSelected: { borderColor: COLORS.primary, borderWidth: 2.5, shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 14, elevation: 10, transform: [{ scale: 1.05 }] },
   cardHinted: { borderColor: COLORS.coin, borderWidth: 2.5, shadowColor: COLORS.coin, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 16, elevation: 12, transform: [{ scale: 1.08 }] },
   catCardBorder: { borderColor: COLORS.cardBackBorder, borderWidth: 2, shadowColor: COLORS.cardBackTop, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 4 },
-  word: { fontFamily: FONTS.headlineBlack, fontSize: 9, color: '#1e293b', textAlign: 'center', lineHeight: 12 },
+  word: { fontFamily: FONTS.headlineBlack, fontSize: 10, color: '#1e293b', textAlign: 'center', lineHeight: 13 },
   catBadge: { position: 'absolute', top: 3, right: 4, backgroundColor: COLORS.cardBackTop, paddingHorizontal: 4, paddingVertical: 1, borderRadius: 6 },
   catBadgeText: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: '#fff' },
-  catName: { fontFamily: FONTS.headlineBlack, fontSize: 9, color: '#1e293b', textAlign: 'center', lineHeight: 12, marginTop: 1 },
+  catName: { fontFamily: FONTS.headlineBlack, fontSize: 10, color: '#1e293b', textAlign: 'center', lineHeight: 13, marginTop: 1 },
   slotsRow: { flexDirection: 'row', gap: 2 },
   slotBox: { borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', gap: 2 },
   slotDashed: { borderColor: COLORS.panelBorder, borderStyle: 'dashed', backgroundColor: 'rgba(255,255,255,0.03)' },
@@ -1234,10 +1234,10 @@ const st = StyleSheet.create({
   tableauRow: { flexDirection: 'row', gap: COL_GAP, alignItems: 'flex-start', marginTop: 2 },
   toolbar: { position: 'absolute', bottom: 70, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end', gap: 16, paddingVertical: 8, paddingHorizontal: 20, zIndex: 100 },
   toolWrap: { alignItems: 'center', gap: 3 },
-  toolBtn: { width: 46, height: 46, borderRadius: 13, backgroundColor: COLORS.buttonBlue, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(140,180,255,0.3)', shadowColor: '#6B8AFF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 10, elevation: 8 },
-  toolBtnBig: { width: 56, height: 56, borderRadius: 16, backgroundColor: COLORS.buttonBlue, shadowColor: '#6B8AFF', shadowOpacity: 0.6, shadowRadius: 14, elevation: 10 },
-  toolBdg: { position: 'absolute', top: -4, right: -4, minWidth: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff', paddingHorizontal: 2 },
+  toolBtn: { width: 52, height: 52, borderRadius: 15, backgroundColor: COLORS.buttonBlue, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(140,180,255,0.3)', shadowColor: '#6B8AFF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 10, elevation: 8 },
+  toolBtnBig: { width: 62, height: 62, borderRadius: 18, backgroundColor: COLORS.buttonBlue, shadowColor: '#6B8AFF', shadowOpacity: 0.6, shadowRadius: 14, elevation: 10 },
+  toolBdg: { position: 'absolute', top: -6, right: -6, minWidth: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff', paddingHorizontal: 4 },
   toolBdgText: { fontFamily: FONTS.headlineBlack, fontSize: 8, color: '#fff' },
-  toolLabel: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: COLORS.onSurfaceVariant, letterSpacing: 1 },
+  toolLabel: { fontFamily: FONTS.headlineBlack, fontSize: 8, color: COLORS.onSurfaceVariant, letterSpacing: 1 },
   adBannerSpace: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 60, backgroundColor: 'rgba(0,0,0,0.15)', zIndex: 99 },
 });
