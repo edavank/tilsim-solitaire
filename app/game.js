@@ -721,19 +721,11 @@ export default function GameScreen() {
     setGs((prev) => {
       const targetCol = prev.columns[targetColIndex];
       if (targetCol.locked) { setFeedback(t.isLocked); return prev; }
+      // Sütunlara HERHANGİ bir kart konabilir (geçici depo)
+      // Tek kural: kapalı kartın üstüne konamazsın
       if (targetCol.cards.length > 0) {
-        const bottomCard = targetCol.cards[targetCol.cards.length - 1];
-        if (!bottomCard.faceUp) { setFeedback(t.cantPlace); return prev; }
-        // Kelime kartı kategori kartının üstüne konamaz
-        if (card.type === 'word' && bottomCard.type === 'category') {
-          setFeedback(t.wordOnCategory);
-          return prev;
-        }
-        // Aynı kategorideki kelime kartları üst üste konabilir
-        if (card.type === 'word' && bottomCard.type === 'word' && card.categoryIndex !== bottomCard.categoryIndex) {
-          setFeedback(t.wrongCategory);
-          return prev;
-        }
+        const topCard = targetCol.cards[targetCol.cards.length - 1];
+        if (!topCard.faceUp) { setFeedback(t.cantPlace); return prev; }
       }
       const ns = removeFromSource(prev, source, sourceIndex, card.id);
       ns.columns = ns.columns.map((col, i) => {
@@ -741,28 +733,29 @@ export default function GameScreen() {
         return { ...col, cards: [...col.cards, { ...card, faceUp: true }] };
       });
       setHistory((h) => [...h, prev]);
-      
-      return ns;
+      // Sütun hamlesi de 1 hamle harcar
+      const newMoves = prev.moves - 1;
+      return { ...ns, moves: newMoves, isFailed: newMoves <= 0 };
     });
     setSelected(null);
   }, []);
 
   const handleCardTap = useCallback((card, source, sourceIndex, isLast = true) => {
     if (source === 'column' && !isLast) {
-      // Check if this card + all below form a same-category stack
+      // Select this card + all cards BELOW it (if all face-up)
       const col = gs.columns[sourceIndex];
       if (!col) return;
       const cardIdx = col.cards.findIndex((c) => c.id === card.id);
       if (cardIdx < 0) return;
       const stack = col.cards.slice(cardIdx);
-      const allValid = stack.every((c) => c.faceUp && c.categoryIndex === card.categoryIndex);
-      if (!allValid) {
+      const allFaceUp = stack.every((c) => c.faceUp);
+      if (!allFaceUp) {
         setFeedback(t.stackSelectError);
         return;
       }
       // Valid stack — select it
       setSelected({ card, source, sourceIndex, stackCards: stack });
-      setFeedback('✋ ' + stack.length + ' kart seçildi → Sütuna veya slot\'a dokun');
+      setFeedback('✋ ' + stack.length + ' kart seçildi');
       return;
     }
     setSelected((prev) => {
@@ -787,20 +780,10 @@ export default function GameScreen() {
     setGs((prev) => {
       const targetCol = prev.columns[targetColIndex];
       if (targetCol.locked) { setFeedback(t.isLocked); return prev; }
-
+      // Kapalı kartın üstüne konamazsın
       if (targetCol.cards.length > 0) {
-        const bottomCard = targetCol.cards[targetCol.cards.length - 1];
-        if (!bottomCard.faceUp) { setFeedback(t.cantPlace); return prev; }
-        // Kelime kartı kategori kartının üstüne konamaz
-        if (stackCards[0].type === 'word' && bottomCard.type === 'category') {
-          setFeedback(t.wordOnCategory);
-          return prev;
-        }
-        // Aynı kategorideki kelime kartları üst üste konabilir
-        if (stackCards[0].type === 'word' && bottomCard.type === 'word' && stackCards[0].categoryIndex !== bottomCard.categoryIndex) {
-          setFeedback(t.wrongCategory);
-          return prev;
-        }
+        const topCard = targetCol.cards[targetCol.cards.length - 1];
+        if (!topCard.faceUp) { setFeedback(t.cantPlace); return prev; }
       }
 
       const stackIds = new Set(stackCards.map((c) => c.id));
@@ -819,8 +802,8 @@ export default function GameScreen() {
       });
 
       setHistory((h) => [...h, prev]);
-      
-      return { ...prev, columns: newColumns };
+      const newMoves = prev.moves - 1;
+      return { ...prev, columns: newColumns, moves: newMoves, isFailed: newMoves <= 0 };
     });
     setSelected(null);
   }, []);

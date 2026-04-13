@@ -33,26 +33,20 @@ export function generateLevels(startId, count, language = 'tr') {
     // Kelimeler: 3 → 4 → 5 → 6
     const wordsPerCat = Math.min(3 + Math.floor(tier / 4), 6);
     
-    // Sütunlar: KATEGORİDEN AZ (zorluk burada!)
-    // 3 kat → 3 sütun (kolay başlangıç)
-    // 4 kat → 4 sütun
-    // 5 kat → 4 sütun (1 eksik = zor)
-    // 6 kat → 4-5 sütun (2 eksik = çok zor)
-    // 7 kat → 5 sütun (2 eksik = cehennem)
-    const playableCols = numCats <= 4 ? numCats : Math.max(4, numCats - Math.floor(tier / 6) - 1);
-    
-    // Kilitli sütunlar
+    // Sütunlar: sabit 4-5 (geçici depo alanı)
+    // Referans oyundaki gibi: sınırlı alan, çok kart
+    const playableCols = tier < 6 ? 4 : 5;
     const lockedCols = tier < 4 ? 0 : 1;
     
     // Hints
     const hints = Math.max(3 - Math.floor(tier / 3), 0);
     
-    // Kilitli slotlar (kategori slotları)
+    // Kilitli slotlar (foundation)
     const lockedSlots = tier < 3 ? 0 : tier < 8 ? 1 : 2;
 
-    // Sütun derinlikleri: artan zorlukla derinleşir
-    const minDepth = Math.min(2 + Math.floor(tier / 5), 4);
-    const maxDepth = Math.min(3 + Math.floor(tier / 3), 6);
+    // Sütun derinlikleri: derin = çok kapalı kart
+    const minDepth = Math.min(3 + Math.floor(tier / 4), 5);
+    const maxDepth = Math.min(4 + Math.floor(tier / 3), 7);
     
     const columns = [];
     if (lockedCols > 0) columns.push({ locked: true });
@@ -69,10 +63,12 @@ export function generateLevels(startId, count, language = 'tr') {
     }));
 
     const totalCards = categories.reduce((sum, c) => sum + c.words.length, 0) + numCats;
-    const colCards = columns.reduce((s, c) => c.locked ? s : s + (c.depth || 0), 0);
-    const deckCards = Math.max(0, totalCards - colCards);
-    const buffer = Math.max(6 - Math.floor(tier / 3), 1);
-    const moves = deckCards + totalCards + buffer;
+    
+    // Hamle bütçesi: kart sayısı + sütun taşıma payı + buffer
+    // Referans oyun gibi: 150-250 hamle (çünkü sütun hamleleri de harcar)
+    const columnMoveBudget = Math.floor(totalCards * 1.5); // sütun yönetimi için
+    const buffer = Math.max(8 - Math.floor(tier / 3), 2);
+    const moves = totalCards + columnMoveBudget + buffer;
 
     levels.push({
       id, moves, hints, undos: 0, categories,
