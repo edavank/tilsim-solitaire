@@ -213,16 +213,24 @@ function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedI
 }
 
 /* ── Win Overlay ── */
-function LevelCompleteOverlay({ t, score, coins, movesLeft, maxMoves, levelId, onNext, onReplay, onHome }) {
+function LevelCompleteOverlay({ t, score, coins, movesLeft, maxMoves, levelId, combo, onNext, onReplay, onHome }) {
   const moveBonus = Math.floor(8 * (movesLeft / maxMoves));
   const totalCoins = coins + moveBonus;
+  const moveRatio = movesLeft / maxMoves;
+  const stars = moveRatio > 0.5 ? 3 : moveRatio > 0.25 ? 2 : 1;
   return (
     <View style={ov.overlay}>
       <LinearGradient colors={['rgba(21,6,41,0.95)', 'rgba(61,53,96,0.95)']} style={StyleSheet.absoluteFillObject} />
       <View style={ov.card}>
+        <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+          {[1, 2, 3].map((s) => (
+            <MaterialIcons key={s} name="star" size={32} color={s <= stars ? COLORS.coin : 'rgba(255,255,255,0.15)'} />
+          ))}
+        </View>
         <Image source={OWL_HAPPY} style={ov.owl} />
         <Text style={ov.title}>{t.congrats}</Text>
         <Text style={ov.subtitle}>{t.level} {levelId} {t.levelComplete}</Text>
+        {combo > 0 && <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 12, color: COLORS.tertiary, marginBottom: 8 }}>🔥 Max Combo: {combo}x</Text>}
         <View style={ov.statsRow}>
           <View style={ov.statBox}>
             <Text style={ov.statLabel}>{t.score}</Text>
@@ -312,6 +320,7 @@ export default function GameScreen() {
   const [hintSlot, setHintSlot] = useState(null);
   const [sparkle, setSparkle] = useState(null);
   const [coins, setCoins] = useState(500);
+  const [combo, setCombo] = useState(0);
   const [paused, setPaused] = useState(false);
   const [shakeSlotIdx, setShakeSlotIdx] = useState(-1);
   const [showTutorial, setShowTutorial] = useState(false);
@@ -497,7 +506,9 @@ export default function GameScreen() {
         setHistory((h) => [...h, prev]);
         
         setTimeout(() => playSound('flip'), 10);
-        return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + 5, isFailed: prev.moves - 1 <= 0 };
+        setCombo((c) => c + 1);
+        const comboBonus = combo * 5;
+        return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + 5 + comboBonus, isFailed: prev.moves - 1 <= 0 };
       }
       if (!target.category && card.type === 'word') { setFeedback(t.putCategoryFirst); return prev; }
       if (target.category && card.type === 'category') { setFeedback(t.alreadyFull); return prev; }
@@ -506,6 +517,7 @@ export default function GameScreen() {
           setTimeout(() => { Vibration.vibrate(100); playSound('wrong'); }, 10);
           triggerShake(slotIndex);
           setFeedback(t.wrongPlace);
+          setCombo(0);
           return { ...prev, moves: prev.moves - 1, isFailed: prev.moves - 1 <= 0 };
         }
 
@@ -602,7 +614,10 @@ export default function GameScreen() {
           setTimeout(() => playSound('correct'), 10);
         }
         const catBonus = catCompleted ? 25 : 0;
-        return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + (totalPlaced * 10) + catBonus, completedCats: newCompletedCats, isComplete, isFailed: prev.moves - 1 <= 0 && !isComplete };
+        setCombo((c) => c + totalPlaced);
+        const comboBonus = combo * 5;
+        if (combo >= 3) setFeedback('🔥 ' + combo + 'x Combo! +' + comboBonus);
+        return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + (totalPlaced * 10) + catBonus + comboBonus, completedCats: newCompletedCats, isComplete, isFailed: prev.moves - 1 <= 0 && !isComplete };
       }
       return prev;
     });
@@ -965,7 +980,10 @@ export default function GameScreen() {
           <Text style={{ fontSize: 14 }}>🪙</Text>
           <Text style={st.coinText}>{coins}</Text>
         </View>
-        <Text style={st.headerTitle}>{t.level} {gs.levelId}</Text>
+        <View style={{ alignItems: 'center' }}>
+          <Text style={st.headerTitle}>{t.level} {gs.levelId}</Text>
+          {combo >= 2 && <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 11, color: COLORS.coin }}>🔥 {combo}x Combo</Text>}
+        </View>
         <TouchableOpacity style={st.settingsBtn} onPress={() => setPaused(true)}>
           <MaterialIcons name="settings" size={20} color={COLORS.onSurfaceVariant} />
         </TouchableOpacity>
@@ -1147,7 +1165,7 @@ export default function GameScreen() {
 
       {/* Overlays */}
       {gs.isComplete && (
-        <LevelCompleteOverlay t={t} score={gs.score} coins={30} movesLeft={gs.moves} maxMoves={level.moves} levelId={gs.levelId} onNext={handleNextLevel} onReplay={handleReplay} onHome={handleHome} />
+        <LevelCompleteOverlay t={t} score={gs.score} coins={30} movesLeft={gs.moves} maxMoves={level.moves} levelId={gs.levelId} combo={combo} onNext={handleNextLevel} onReplay={handleReplay} onHome={handleHome} />
       )}
       {gs.isFailed && !gs.isComplete && (
         <LevelFailedOverlay t={t} levelId={gs.levelId} onAddMovesAd={addMovesAd} onAddMovesCoin={addMovesCoin} onReplay={handleReplay} onHome={handleHome} />

@@ -8,6 +8,7 @@ import BottomNav from '../src/components/BottomNav';
 import { loadProgress, updateProgress } from '../src/utils/storage';
 import { showRewarded } from '../src/utils/ads';
 import { useLang } from '../src/context/LanguageContext';
+import { getDailyDateString, isDailyChallengeCompleted } from '../src/utils/dailyChallenge';
 
 const { width: SW } = Dimensions.get('window');
 const OWL_IMAGE = require('../assets/bilge-happy.png');
@@ -18,6 +19,7 @@ export default function HomeScreen() {
   const { lang, t } = useLang();
   const [currentLevel, setCurrentLevel] = useState(1);
   const [coins, setCoins] = useState(0);
+  const [dailyDone, setDailyDone] = useState(false);
   const [bilgeMsg] = useState(() => {
     const msgs = t.bilgeMessages || [];
     return msgs[Math.floor(Math.random() * msgs.length)] || '';
@@ -27,6 +29,7 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       loadProgress().then((p) => { setCurrentLevel(p.currentLevel); setCoins(p.coins); });
+      isDailyChallengeCompleted().then(setDailyDone);
     }, [])
   );
   const owlBounce = useRef(new Animated.Value(0)).current;
