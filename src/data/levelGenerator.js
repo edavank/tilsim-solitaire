@@ -56,6 +56,15 @@ export function generateLevels(startId, count, language = 'tr') {
       columns.push({ depth });
     }
     
+    const eligible = pools.filter((p) => p.words.length >= wordsPerCat);
+    const picked = seededShuffle(eligible, rand).slice(0, numCats);
+    const categories = picked.map((pool) => ({
+      name: pool.name,
+      words: seededShuffle(pool.words, rand).slice(0, wordsPerCat),
+    }));
+
+    const totalCards = categories.reduce((sum, c) => sum + c.words.length, 0) + numCats;
+
     // Toplam sütun kapasitesini kontrol et — en fazla kartların %60'ı sütunlarda
     const totalColCapacity = columns.reduce((s, c) => s + (c.depth || 0), 0);
     const maxInCols = Math.floor(totalCards * 0.6);
@@ -69,15 +78,6 @@ export function generateLevels(startId, count, language = 'tr') {
         }
       }
     }
-
-    const eligible = pools.filter((p) => p.words.length >= wordsPerCat);
-    const picked = seededShuffle(eligible, rand).slice(0, numCats);
-    const categories = picked.map((pool) => ({
-      name: pool.name,
-      words: seededShuffle(pool.words, rand).slice(0, wordsPerCat),
-    }));
-
-    const totalCards = categories.reduce((sum, c) => sum + c.words.length, 0) + numCats;
     
     // Hamle bütçesi: kart sayısı + sütun taşıma payı + buffer
     // Referans oyun gibi: 150-250 hamle (çünkü sütun hamleleri de harcar)

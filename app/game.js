@@ -486,8 +486,8 @@ export default function GameScreen() {
     const { card, source, sourceIndex, stackCards } = dragInfo;
     const stack = stackCards || [card];
 
-    // Check slots (foundation) — top area
-    if (dropY < 380) {
+    // Check slots (foundation) — top area (relative to screen height)
+    if (dropY < SH * 0.4) {
       const slotWidth = (SW - 20) / gs.slots.length;
       const slotIdx = Math.floor((dropX - 10) / slotWidth);
       if (slotIdx >= 0 && slotIdx < gs.slots.length) {
@@ -497,8 +497,9 @@ export default function GameScreen() {
       }
     }
 
-    // Check columns — bottom area
-    const colWidth = (SW - 20) / COL_COUNT;
+    // Check columns — bottom area (use actual column count)
+    const actualColCount = gs.columns.length;
+    const colWidth = (SW - 20) / actualColCount;
     const colIdx = Math.floor((dropX - 10) / colWidth);
     if (colIdx >= 0 && colIdx < gs.columns.length) {
       if (stack.length > 1) {
