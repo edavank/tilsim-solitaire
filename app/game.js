@@ -433,6 +433,7 @@ export default function GameScreen() {
   const [toolCredits, setToolCredits] = useState({ hint: 0, joker: 0, shuffle: 0, undo: 0, delete: 0 });
   const [unlockedTools, setUnlockedTools] = useState([]);
   const [toolIntro, setToolIntro] = useState(null); // { tool, icon, title, desc }
+  const [dailyIntro, setDailyIntro] = useState(false);
   const [scorePopups, setScorePopups] = useState([]); // [{id, text, x, y}]
   const [achievementPopup, setAchievementPopup] = useState(null); // { icon, title }
   
@@ -1295,6 +1296,11 @@ export default function GameScreen() {
     if (introTool) {
       setTimeout(() => { playSound('unlock'); setToolIntro(TOOL_INFO[introTool]); }, 500);
     }
+    // Günlük Meydan Okuma tanıtımı (Lv.10)
+    if (nextId === 10 && !(prog.dailyIntroShown)) {
+      await updateProgress({ dailyIntroShown: true });
+      setTimeout(() => { setDailyIntro(true); playSound('unlock'); }, introTool ? 1500 : 500);
+    }
   }, [levelId, gs, level, coins]);
 
   const handleReplay = useCallback(async () => {
@@ -1351,7 +1357,9 @@ export default function GameScreen() {
 
       <View style={st.header}>
         <View style={st.coinBadge}>
-          <Text style={{ fontSize: 14 }}>🪙</Text>
+          <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#FFD700', borderWidth: 1.5, borderColor: '#DAA520', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#8B6914' }}>₺</Text>
+          </View>
           <Text style={st.coinText}>{coins}</Text>
         </View>
         <View style={{ alignItems: 'center', flex: 1 }}>
@@ -1539,6 +1547,29 @@ export default function GameScreen() {
               activeOpacity={0.8}
             >
               <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff' }}>Harika! 🎉</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* Daily Challenge Introduction */}
+      {dailyIntro && (
+        <View style={ov.overlay}>
+          <View style={[ov.card, { paddingTop: 24, paddingBottom: 24 }]}>
+            <Image source={OWL_HAPPY} style={{ width: 100, height: 75, resizeMode: 'contain', marginBottom: 12 }} />
+            <Text style={{ fontSize: 40, marginBottom: 8 }}>📅</Text>
+            <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 20, color: COLORS.coin, textAlign: 'center', marginBottom: 6 }}>Günlük Meydan Okuma Açıldı!</Text>
+            <Text style={{ fontFamily: FONTS.body, fontSize: 14, color: COLORS.onSurfaceVariant, textAlign: 'center', marginBottom: 16, paddingHorizontal: 10 }}>Her gün yeni bir bulmaca! Tamamla, özel ödüller kazan ve serinizi sürdür.</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, marginBottom: 16 }}>
+              <Text style={{ fontSize: 20 }}>🏆</Text>
+              <Text style={{ fontFamily: FONTS.headline, fontSize: 14, color: '#fff' }}>Ana sayfadan her gün oyna!</Text>
+            </View>
+            <TouchableOpacity
+              style={{ backgroundColor: COLORS.primary, borderRadius: 14, paddingVertical: 14, alignItems: 'center', width: '100%' }}
+              onPress={() => setDailyIntro(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff' }}>Anladım! 🎯</Text>
             </TouchableOpacity>
           </View>
         </View>
