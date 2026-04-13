@@ -730,9 +730,25 @@ export default function GameScreen() {
 
   const moveToColumn = useCallback((card, source, sourceIndex, targetColIndex) => {
     if (source === 'column' && sourceIndex === targetColIndex) return;
-    // Kategori kartları sütuna KONAMAZ
+    // Kategori kartları sütuna KONAMAZ — AMA boş sütuna park edilebilir
     if (card.type === 'category') {
-      setFeedback('📂 Kategori kartını üstteki boş slota koy!');
+      setGs((prev) => {
+        const targetCol = prev.columns[targetColIndex];
+        if (targetCol.locked) { setFeedback(t.isLocked); return prev; }
+        // Sadece BOŞ sütuna park edilebilir
+        if (targetCol.cards.length > 0) {
+          setFeedback('📂 Kategori kartı sadece boş sütuna konabilir!');
+          return prev;
+        }
+        const ns = removeFromSource(prev, source, sourceIndex, card.id);
+        ns.columns = ns.columns.map((col, i) => {
+          if (i !== targetColIndex) return col;
+          return { ...col, cards: [{ ...card, faceUp: true }] };
+        });
+        setHistory((h) => [...h, prev]);
+        return { ...ns, moves: prev.moves - 1, isFailed: prev.moves - 1 <= 0 };
+      });
+      setSelected(null);
       return;
     }
     setGs((prev) => {
@@ -1343,7 +1359,7 @@ export default function GameScreen() {
         <View style={ov.overlay}>
           <LinearGradient colors={['rgba(21,6,41,0.92)', 'rgba(61,53,96,0.92)']} style={StyleSheet.absoluteFillObject} />
           <View style={ov.card}>
-            <Image source={OWL_HAPPY} style={{ width: 100, height: 100, borderRadius: 16, marginBottom: 12 }} />
+            <Image source={OWL_HAPPY} style={{ width: 120, height: 90, resizeMode: 'contain', marginBottom: 12 }} />
             <Text style={[ov.title, { fontSize: 24 }]}>{t.howToPlay}</Text>
             <View style={s_tut.steps}>
               <TutStep n="1" text={t.tutStep1} icon="touch-app" />
@@ -1478,7 +1494,7 @@ function ToolBtn({ icon, label, badge, badgeColor, onPress, big }) {
 const ov = StyleSheet.create({
   overlay: { ...StyleSheet.absoluteFillObject, zIndex: 999, justifyContent: 'center', alignItems: 'center' },
   card: { width: SW - 48, backgroundColor: COLORS.surfaceContainerHigh, borderRadius: 28, paddingTop: 16, paddingBottom: 24, paddingHorizontal: 24, alignItems: 'center', borderWidth: 1, borderColor: COLORS.panelBorder },
-  owl: { width: 100, height: 100, borderRadius: 16, marginBottom: 8 },
+  owl: { width: 120, height: 90, resizeMode: 'contain', marginBottom: 8 },
   title: { fontFamily: FONTS.headlineBlack, fontSize: 36, color: COLORS.onSurface, fontStyle: 'italic' },
   subtitle: { fontFamily: FONTS.headlineBlack, fontSize: 13, color: COLORS.secondary, letterSpacing: 3, marginBottom: 16 },
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 16, width: '100%' },
