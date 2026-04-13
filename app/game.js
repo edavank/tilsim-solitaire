@@ -389,10 +389,13 @@ export default function GameScreen() {
   const [levelId, setLevelId] = useState(parseInt(params.level) || 1);
   const [gameLang, setGameLang] = useState(lang);
   const [isDaily, setIsDaily] = useState(params.daily === 'true');
+  const [dailyDate, setDailyDate] = useState(params.dailyDate || null);
 
   // Sync game language with context
   useEffect(() => { setGameLang(lang); }, [lang]);
-  const level = isDaily ? getDailyChallenge(gameLang) : (getLevel(levelId, gameLang) || getLevel(1, gameLang));
+  const level = isDaily
+    ? getDailyChallenge(gameLang, params.dailySeed ? parseInt(params.dailySeed) : undefined)
+    : (getLevel(levelId, gameLang) || getLevel(1, gameLang));
   const [gs, setGs] = useState(() => generateGameState(level));
   const [selected, setSelected] = useState(null);
   const [feedback, setFeedback] = useState('');
@@ -1010,7 +1013,7 @@ export default function GameScreen() {
         bestScore: Math.max(prog.bestScore || 0, gs.score),
       });
       setCoins(newCoins);
-      await markDailyChallengeCompleted();
+      await markDailyChallengeCompleted(dailyDate);
       router.back();
       return;
     }
@@ -1103,7 +1106,7 @@ export default function GameScreen() {
           <Text style={st.coinText}>{coins}</Text>
         </View>
         <View style={{ alignItems: 'center', flex: 1 }}>
-          <Text style={st.headerTitle}>{isDaily ? '📅 GÜNLÜK' : t.level + ' ' + gs.levelId}</Text>
+          <Text style={st.headerTitle}>{isDaily ? '📅 ' + (dailyDate || 'GÜNLÜK') : t.level + ' ' + gs.levelId}</Text>
           {combo >= 2 && <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: fs(11), color: COLORS.coin }}>🔥 {combo}x Combo</Text>}
           {/* Category progress bar */}
           <View style={{ flexDirection: 'row', gap: 3, marginTop: 4 }}>

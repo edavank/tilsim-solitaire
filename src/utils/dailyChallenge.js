@@ -19,9 +19,9 @@ function seededShuffle(arr, rand) {
   return a;
 }
 
-export function getDailyChallenge(language = 'tr') {
+export function getDailyChallenge(language = 'tr', customSeed) {
   const today = new Date();
-  const dateSeed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+  const dateSeed = customSeed || (today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate());
   const rand = seededRandom(dateSeed);
 
   const pools = WORD_POOLS[language] || WORD_POOLS.tr;
@@ -80,11 +80,11 @@ export async function isDailyChallengeCompleted(dateStr) {
   } catch (e) { return false; }
 }
 
-export async function markDailyChallengeCompleted() {
+export async function markDailyChallengeCompleted(dateStr) {
   try {
     const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-    const today = new Date().toISOString().split('T')[0];
-    return AsyncStorage.setItem('@tilsim_daily_' + today, 'done');
+    const key = dateStr || new Date().toISOString().split('T')[0];
+    return AsyncStorage.setItem('@tilsim_daily_' + key, 'done');
   } catch (e) {}
 }
 

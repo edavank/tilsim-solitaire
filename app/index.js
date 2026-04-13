@@ -143,22 +143,18 @@ export default function HomeScreen() {
         {/* Günlük Meydan Okuma — Seviye 10'dan sonra açılır */}
         {currentLevel > 10 ? (
           <TouchableOpacity 
-            style={[s.dailyBtn, dailyDone && { opacity: 0.5 }]} 
+            style={[s.dailyBtn, dailyDone && { opacity: 0.7 }]} 
             activeOpacity={0.7} 
-            onPress={() => { if (!dailyDone) router.push({ pathname: '/game', params: { daily: 'true' } }); }}
+            onPress={() => router.push('/daily')}
           >
             <View style={s.dailyLeft}>
               <Text style={{ fontSize: 28 }}>📅</Text>
               <View style={{ flex: 1 }}>
                 <Text style={s.dailyTitle}>Günlük Meydan Okuma</Text>
-                <Text style={s.dailyDate}>{getDailyDateString()} — 6 kategori, zor!</Text>
+                <Text style={s.dailyDate}>{getDailyDateString()} {dailyDone ? '✅' : '— 6 kategori, zor!'}</Text>
               </View>
             </View>
-            {dailyDone ? (
-              <View style={s.dailyDoneBadge}><MaterialIcons name="check" size={16} color="#fff" /></View>
-            ) : (
-              <View style={s.dailyRewardBadge}><Text style={s.dailyRewardText}>+100 🪙</Text></View>
-            )}
+            <MaterialIcons name="chevron-right" size={24} color={COLORS.onSurfaceVariant} />
           </TouchableOpacity>
         ) : (
           <View style={[s.dailyBtn, { opacity: 0.4 }]}>
