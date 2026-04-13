@@ -64,7 +64,7 @@ export const LEVELS = [
       { name: 'Hastane', words: ['Hemşire', 'İlaç', 'Ameliyat', 'Ambulans'] },
     ],
     totalSlots: 3, lockedSlots: 0,
-    columns: [{ locked: true }, { depth: 3 }, { depth: 3 }, { depth: 2 }, { depth: 2 }],
+    columns: [{ depth: 3 }, { depth: 3 }, { depth: 2 }, { depth: 2 }],
   },
   {
     id: 6, moves: 65, hints: 2, undos: 0,
@@ -75,7 +75,7 @@ export const LEVELS = [
       { name: 'Trafik', words: ['Işık', 'Tabela', 'Köprü', 'Tünel'] },
     ],
     totalSlots: 3, lockedSlots: 0,
-    columns: [{ locked: true }, { depth: 3 }, { depth: 3 }, { depth: 3 }, { depth: 2 }],
+    columns: [{ depth: 3 }, { depth: 3 }, { depth: 3 }, { depth: 2 }],
   },
   // Bölüm 7-8: 5 kategori
   {
