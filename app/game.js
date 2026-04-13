@@ -865,10 +865,9 @@ export default function GameScreen() {
       if (coins < 500) { setFeedback('🪙 500 coin gerekli!'); setToolModal(null); return; }
       setCoins(coins - 500); await updateProgress({ coins: coins - 500 });
     }
-    // method === 'ad' → free (ad watched)
     if (method === 'ad') await showRewarded();
     setGs(history[history.length - 1]); setHistory((h) => h.slice(0, -1)); setSelected(null);
-    setFeedback(t.undone); setToolModal(null);
+    setFeedback('↩️ Geri alındı' + (method === 'coin' ? ' (-500 🪙)' : '')); setToolModal(null);
   }, [history, coins]);
 
   const useDelete = useCallback(async () => {
@@ -883,7 +882,7 @@ export default function GameScreen() {
     }
     if (method === 'ad') await showRewarded();
     setGs((p) => ({ ...p, drawnCards: p.drawnCards.slice(0, -1), moves: p.moves - 1 })); setSelected(null);
-    setFeedback(t.deleted); setToolModal(null);
+    setFeedback('🗑️ Kart silindi' + (method === 'coin' ? ' (-500 🪙)' : '')); setToolModal(null);
   }, [gs.drawnCards, coins]);
 
   // ── Smart Hint ──
@@ -900,8 +899,9 @@ export default function GameScreen() {
     if (method === 'coin') {
       if (coins < 500) { setFeedback('🪙 500 coin gerekli!'); setToolModal(null); return; }
       setCoins(coins - 500); await updateProgress({ coins: coins - 500 });
+      setFeedback('✅ İpucu satın alındı! (-500 🪙)');
     }
-    if (method === 'ad') await showRewarded();
+    if (method === 'ad') { await showRewarded(); setFeedback('✅ İpucu kazanıldı!'); }
     setGs((prev) => ({ ...prev, hints: prev.hints + 1 }));
     setToolModal(null);
     setTimeout(() => runHintLogic(), 100);
@@ -1152,7 +1152,7 @@ export default function GameScreen() {
 
         <View style={st.slotsRow}>
           {gs.slots.map((slot, i) => (
-            <Animated.View key={i} style={{ width: Math.floor((SW - 24) / Math.max(gs.slots.length, 3)), transform: [{ translateX: shakeSlotIdx === i ? shakeAnim : 0 }] }}>
+            <Animated.View key={i} style={{ flex: 1, maxWidth: CARD_W + 8, transform: [{ translateX: shakeSlotIdx === i ? shakeAnim : 0 }] }}>
               <FoundationSlot t={t} slot={slot} slotIndex={i} onPress={() => handleSlotTap(i)} onUnlock={handleUnlock} hinted={hintSlot === i} />
             </Animated.View>
           ))}
@@ -1160,7 +1160,7 @@ export default function GameScreen() {
 
         <View style={st.tableauRow}>
           {gs.columns.map((col, i) => (
-            <View key={i} style={{ width: Math.floor((SW - 24) / Math.max(gs.columns.length, 4)) }}>
+            <View key={i} style={{ flex: 1, maxWidth: CARD_W + 8 }}>
               <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard} dragCardId={dragCard?.card?.id} dragStackIds={dragStackIds} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onCardLongPress={handleCardLongPress} onUnlock={handleUnlock} />
             </View>
           ))}
