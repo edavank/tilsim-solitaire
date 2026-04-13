@@ -833,8 +833,8 @@ export default function GameScreen() {
       if (targetCol.cards.length > 0) {
         const topCard = targetCol.cards[targetCol.cards.length - 1];
         if (!topCard.faceUp) { setFeedback(t.cantPlace); return prev; }
-        // AYNI KATEGORİ KURALI
-        if (topCard.type === 'word' && stackCards[0].categoryIndex !== topCard.categoryIndex) {
+        // AYNI KATEGORİ KURALI (Joker bypass)
+        if (topCard.type === 'word' && stackCards[0].categoryIndex !== topCard.categoryIndex && !stackCards[0].isJoker && !topCard.isJoker) {
           setFeedback('⛔ Farklı kategori!');
           return prev;
         }
@@ -1107,7 +1107,10 @@ export default function GameScreen() {
       try {
         const achStats = { ...prog, coins: newCoins, totalWins: (prog.totalWins || 0) + 1, dailyCount: 1, noHintWin: gs.hints === level.hints, speedWin: gs.moves > level.moves / 2, maxCombo: combo };
         const newAch = await checkAchievements(achStats);
-        if (newAch.length > 0) setAchievementPopup(newAch[0]);
+        if (newAch.length > 0) {
+          setAchievementPopup(newAch[0]);
+          setTimeout(() => setAchievementPopup(null), 3000);
+        }
       } catch (e) {}
       await markDailyChallengeCompleted(dailyDate);
       router.back();
