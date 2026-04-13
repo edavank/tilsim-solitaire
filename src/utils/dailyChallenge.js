@@ -1,9 +1,8 @@
-// Daily Challenge — generates a unique level for each day
+// Günlük Meydan Okuma — her gün benzersiz bir bölüm
 import { WORD_POOLS } from '../data/wordPools';
 
 function seededRandom(seed) {
-  let s = seed;
-  // Warmup: skip first 10 values to avoid similar sequences from close seeds
+  let s = Math.abs(seed) || 1;
   for (let i = 0; i < 10; i++) s = (s * 16807 + 0) % 2147483647;
   return () => {
     s = (s * 16807 + 0) % 2147483647;
@@ -27,11 +26,10 @@ export function getDailyChallenge(language = 'tr') {
 
   const pools = WORD_POOLS[language] || WORD_POOLS.tr;
   const numCats = 5;
-  const wordsPerCat = 5;
+  const wordsPerCat = 4;
 
   const eligible = pools.filter((p) => p.words.length >= wordsPerCat);
-  const shuffled = seededShuffle(eligible, rand);
-  const picked = shuffled.slice(0, numCats);
+  const picked = seededShuffle(eligible, rand).slice(0, numCats);
 
   const categories = picked.map((pool) => ({
     name: pool.name,
@@ -39,22 +37,25 @@ export function getDailyChallenge(language = 'tr') {
   }));
 
   const totalCards = categories.reduce((sum, c) => sum + c.words.length, 0) + numCats;
+  // Solitaire tarzı: bol hamle (sütun taşıma da hamle harcar)
+  const moves = totalCards + Math.floor(totalCards * 1.5) + 10;
 
   return {
     id: dateSeed,
     isDaily: true,
-    moves: totalCards + 8,
+    moves,
     hints: 2,
     undos: 0,
     categories,
-    totalSlots: numCats,
+    totalSlots: numCats + 1,
     lockedSlots: 1,
+    // 4 sütun geçici depo, sığ (kartlar desteye düşsün)
     columns: [
       { locked: true },
-      { depth: 4 },
-      { depth: 4 },
       { depth: 3 },
       { depth: 3 },
+      { depth: 2 },
+      { depth: 2 },
     ],
   };
 }

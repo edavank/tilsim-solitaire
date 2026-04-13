@@ -155,17 +155,17 @@ export default function HomeScreen() {
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* Daily Challenge */}
+        {/* Günlük Meydan Okuma */}
         <TouchableOpacity 
           style={[s.dailyBtn, dailyDone && { opacity: 0.5 }]} 
           activeOpacity={0.7} 
           onPress={() => { if (!dailyDone) router.push({ pathname: '/game', params: { daily: 'true' } }); }}
         >
           <View style={s.dailyLeft}>
-            <Text style={{ fontSize: 22 }}>📅</Text>
-            <View>
-              <Text style={s.dailyTitle}>Günlük Görev</Text>
-              <Text style={s.dailyDate}>{getDailyDateString()}</Text>
+            <Text style={{ fontSize: 28 }}>📅</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={s.dailyTitle}>Günlük Meydan Okuma</Text>
+              <Text style={s.dailyDate}>{getDailyDateString()} — Özel bölüm</Text>
             </View>
           </View>
           {dailyDone ? (
