@@ -946,6 +946,48 @@ export default function GameScreen() {
     setToolModal(null);
   }, [coins]);
 
+  // ── Shuffle (Karıştır) ──
+  const useShuffle = useCallback(async () => {
+    // Sütunlardaki kapalı kartları karıştırır
+    const hasFaceDown = gs.columns.some(col => !col.locked && col.cards.some(c => !c.faceUp));
+    if (!hasFaceDown) { setFeedback('🔀 Karıştırılacak kapalı kart yok!'); return; }
+    setToolModal('shuffle');
+  }, [gs.columns]);
+
+  const executeShuffle = useCallback(async (method) => {
+    if (method === 'coin') {
+      if (coins < 500) { setFeedback('🪙 500 coin gerekli!'); setToolModal(null); return; }
+      setCoins(coins - 500); await updateProgress({ coins: coins - 500 });
+    }
+    if (method === 'ad') await showRewarded();
+    setGs((prev) => {
+      // Tüm kapalı kartları topla
+      const faceDownCards = [];
+      prev.columns.forEach(col => {
+        if (!col.locked) col.cards.forEach(c => { if (!c.faceUp) faceDownCards.push({ ...c }); });
+      });
+      // Karıştır
+      for (let i = faceDownCards.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [faceDownCards[i], faceDownCards[j]] = [faceDownCards[j], faceDownCards[i]];
+      }
+      // Geri yerleştir
+      let idx = 0;
+      const newColumns = prev.columns.map(col => {
+        if (col.locked) return col;
+        const newCards = col.cards.map(c => {
+          if (!c.faceUp) return { ...faceDownCards[idx++], faceUp: false };
+          return c;
+        });
+        return { ...col, cards: newCards };
+      });
+      setHistory((h) => [...h, prev]);
+      return { ...prev, columns: newColumns };
+    });
+    setFeedback('🔀 Kapalı kartlar karıştırıldı!' + (method === 'coin' ? ' (-500 🪙)' : ''));
+    setToolModal(null);
+  }, [coins]);
+
   // ── Smart Hint ──
   const useHint = useCallback(async () => {
     if (gs.hints > 0) {
@@ -1226,6 +1268,7 @@ export default function GameScreen() {
         <ToolBtn icon="lightbulb" label={t.hint} badge={gs.hints > 0 ? gs.hints : '🪙'} badgeColor={gs.hints > 0 ? COLORS.fail : COLORS.coin} onPress={useHint} big />
         <ToolBtn icon="undo" label={t.undo} badge="🪙" badgeColor={COLORS.coin} onPress={useUndo} />
         <ToolBtn icon="style" label="JOKER" badge="🪙" badgeColor={COLORS.coin} onPress={useJoker} />
+        <ToolBtn icon="shuffle" label="KARIŞTIR" badge="🪙" badgeColor={COLORS.coin} onPress={useShuffle} />
         <ToolBtn icon="auto-fix-normal" label={t.delete} badge="🪙" badgeColor={COLORS.coin} onPress={useDelete} />
       </View>
 
@@ -1238,26 +1281,26 @@ export default function GameScreen() {
           <View style={[ov.card, { paddingTop: 20, paddingBottom: 20 }]}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginBottom: 12 }}>
               <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 20, color: COLORS.onSurface }}>
-                {toolModal === 'hint' ? t.hint : toolModal === 'undo' ? t.undo : toolModal === 'joker' ? 'Joker' : t.delete}
+                {toolModal === 'hint' ? t.hint : toolModal === 'undo' ? t.undo : toolModal === 'joker' ? 'Joker' : toolModal === 'shuffle' ? 'Karıştır' : t.delete}
               </Text>
               <TouchableOpacity onPress={() => setToolModal(null)}><Text style={{ fontSize: 22, color: COLORS.fail }}>✕</Text></TouchableOpacity>
             </View>
             <View style={{ backgroundColor: COLORS.panelBg, borderRadius: 16, padding: 20, alignItems: 'center', width: '100%', marginBottom: 16 }}>
-              <MaterialIcons name={toolModal === 'hint' ? 'lightbulb' : toolModal === 'undo' ? 'undo' : toolModal === 'joker' ? 'style' : 'auto-fix-normal'} size={48} color={COLORS.secondary} />
+              <MaterialIcons name={toolModal === 'hint' ? 'lightbulb' : toolModal === 'undo' ? 'undo' : toolModal === 'joker' ? 'style' : toolModal === 'shuffle' ? 'shuffle' : 'auto-fix-normal'} size={48} color={COLORS.secondary} />
               <Text style={{ fontFamily: FONTS.body, fontSize: 13, color: COLORS.onSurfaceVariant, marginTop: 8, textAlign: 'center' }}>
-                {toolModal === 'hint' ? (t.hintDesc || 'Doğru hamleyi göster') : toolModal === 'undo' ? (t.undoDesc || 'Önceki adımı geri al') : toolModal === 'joker' ? 'Üstteki kartı joker yap — herhangi bir kategoriye uyar' : (t.deleteDesc || 'Bir kartı sil')}
+                {toolModal === 'hint' ? (t.hintDesc || 'Doğru hamleyi göster') : toolModal === 'undo' ? (t.undoDesc || 'Önceki adımı geri al') : toolModal === 'joker' ? 'Üstteki kartı joker yap — herhangi bir kategoriye uyar' : toolModal === 'shuffle' ? 'Sütunlardaki kapalı kartları karıştır' : (t.deleteDesc || 'Bir kartı sil')}
               </Text>
             </View>
             <TouchableOpacity 
               style={{ backgroundColor: COLORS.coin, borderRadius: 14, paddingVertical: 14, alignItems: 'center', width: '100%', marginBottom: 10 }} 
-              onPress={() => { const fn = toolModal === 'hint' ? executeHint : toolModal === 'undo' ? executeUndo : toolModal === 'joker' ? executeJoker : executeDelete; fn('coin'); }}
+              onPress={() => { const fn = toolModal === 'hint' ? executeHint : toolModal === 'undo' ? executeUndo : toolModal === 'joker' ? executeJoker : toolModal === 'shuffle' ? executeShuffle : executeDelete; fn('coin'); }}
               activeOpacity={0.8}
             >
               <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#000' }}>🪙 {toolModal === 'joker' ? '750' : '500'}</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={{ backgroundColor: COLORS.success, borderRadius: 14, paddingVertical: 14, alignItems: 'center', width: '100%' }} 
-              onPress={() => { const fn = toolModal === 'hint' ? executeHint : toolModal === 'undo' ? executeUndo : toolModal === 'joker' ? executeJoker : executeDelete; fn('ad'); }}
+              onPress={() => { const fn = toolModal === 'hint' ? executeHint : toolModal === 'undo' ? executeUndo : toolModal === 'joker' ? executeJoker : toolModal === 'shuffle' ? executeShuffle : executeDelete; fn('ad'); }}
               activeOpacity={0.8}
             >
               <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff' }}>▶ AD Kullan</Text>
