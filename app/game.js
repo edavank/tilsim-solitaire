@@ -191,12 +191,12 @@ function FaceUpCard({ card, selected, w, h, hinted, isDragging }) {
       {isCat ? (
         <>
           <View style={st.catBadge}><Text style={st.catBadgeText}>0/{card.totalWords}</Text></View>
-          <Text style={{ fontSize: Math.max(22, cw * 0.4) }}>{card.emoji}</Text>
+          <Text style={st.catEmoji}>{card.emoji}</Text>
           <Text style={st.catName} numberOfLines={1} adjustsFontSizeToFit>{card.word}</Text>
         </>
       ) : (
         <>
-          <Text style={{ fontSize: Math.max(22, cw * 0.4) }}>{card.emoji}</Text>
+          <Text style={st.emoji}>{card.emoji}</Text>
           <Text style={st.word} numberOfLines={1} adjustsFontSizeToFit>{card.word}</Text>
           <View style={{ position: 'absolute', top: 4, right: 4, width: 8, height: 8, borderRadius: 4, backgroundColor: catColor }} />
         </>
@@ -1429,10 +1429,12 @@ const st = StyleSheet.create({
   cardSelected: { borderColor: COLORS.primary, borderWidth: 2.5, shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 14, elevation: 10, transform: [{ scale: 1.05 }] },
   cardHinted: { borderColor: COLORS.coin, borderWidth: 2.5, shadowColor: COLORS.coin, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 16, elevation: 12, transform: [{ scale: 1.08 }] },
   catCardBorder: { borderColor: COLORS.cardBackBorder, borderWidth: 2, shadowColor: COLORS.cardBackTop, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 4 },
-  word: { fontFamily: FONTS.headlineBlack, fontSize: 10, color: '#1e293b', textAlign: 'center', lineHeight: 13 },
+  word: { fontFamily: FONTS.headlineBlack, fontSize: 11, color: '#1e293b', textAlign: 'center', lineHeight: 14 },
+  emoji: { fontSize: 24, textAlign: 'center' },
+  catEmoji: { fontSize: 28, textAlign: 'center' },
+  catName: { fontFamily: FONTS.headlineBlack, fontSize: 11, color: '#1e293b', textAlign: 'center', lineHeight: 14, marginTop: 1 },
   catBadge: { position: 'absolute', top: 3, right: 4, backgroundColor: COLORS.cardBackTop, paddingHorizontal: 4, paddingVertical: 1, borderRadius: 6 },
   catBadgeText: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: '#fff' },
-  catName: { fontFamily: FONTS.headlineBlack, fontSize: 10, color: '#1e293b', textAlign: 'center', lineHeight: 13, marginTop: 1 },
   slotsRow: { flexDirection: 'row', justifyContent: 'center', gap: 4, paddingHorizontal: 4 },
   slotBox: { borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', gap: 2 },
   slotDashed: { borderColor: COLORS.panelBorder, borderStyle: 'dashed', backgroundColor: 'rgba(255,255,255,0.03)' },

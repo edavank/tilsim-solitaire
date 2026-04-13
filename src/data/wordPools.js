@@ -476,6 +476,11 @@ export const EMOJI_MAP = {
   'Simit': '🥯', 'Lor': '🧀', 'Krema': '🍦', 'Süzme': '🥛',
   'Pul biber': '🌶️', 'Tost': '🍞', 'Burpee': '🏃', 'Pilates': '🧘',
   'Tren': '🚂', 'Misket': '🔮',
+  // Boşluklu kelimeler
+  'Meyve suyu': '🧃', 'Sırt çantası': '🎒', 'Güneş kremi': '🧴',
+  'Buz pateni': '⛸️', 'Deniz yıldızı': '⭐', 'Diş fırçası': '🪥',
+  // İyileştirilmiş emojiler
+  'Bakır': '🪙', 'Gümüş': '🪙',
   'Ingénieur': '👷', 'Pilote': '🧑‍✈️',
   'Piña': '🍍', 'Limonada': '🍋', 'Batido': '🥤',
   'Japón': '🇯🇵', 'Brasil': '🇧🇷',
