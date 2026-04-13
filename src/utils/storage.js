@@ -61,7 +61,12 @@ export async function loadSettings() {
 }
 
 export async function saveSettings(settings) {
-  try { await setItem(KEYS.SETTINGS, JSON.stringify(settings)); } catch (e) {}
+  try {
+    // Mevcut ayarlarla birleştir — üzerine yazmaz
+    const current = await loadSettings();
+    const merged = { ...current, ...settings };
+    await setItem(KEYS.SETTINGS, JSON.stringify(merged));
+  } catch (e) {}
 }
 
 export async function loadSavedGame() {

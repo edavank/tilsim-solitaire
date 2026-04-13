@@ -21,7 +21,7 @@ import { COLORS, FONTS } from '../src/constants/theme';
 import { initAds } from '../src/utils/ads';
 import ConsentDialog from '../src/components/ConsentDialog';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { setVibrationEnabled, setSoundEnabled, setBgmEnabled, loadSounds, startBgm } from '../src/utils/sounds';
+import { setVibrationEnabled, setSoundEnabled, setBgmEnabled, loadSounds, startBgm, initSoundSettings } from '../src/utils/sounds';
 import { loadSettings, saveSettings } from '../src/utils/storage';
 import { LanguageProvider } from '../src/context/LanguageContext';
 

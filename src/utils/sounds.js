@@ -4,8 +4,22 @@ import { Vibration } from 'react-native';
 let soundEnabled = true;
 let vibrationEnabled = true;
 let bgmEnabled = true;
+let settingsLoaded = false;
 const sounds = {};
 let bgmSound = null;
+
+// Ayarları AsyncStorage'dan yükle (bir kere)
+export async function initSoundSettings() {
+  if (settingsLoaded) return;
+  try {
+    const { loadSettings } = require('./storage');
+    const s = await loadSettings();
+    soundEnabled = s.sound !== false;
+    vibrationEnabled = s.vibration !== false;
+    bgmEnabled = s.bgm !== false;
+    settingsLoaded = true;
+  } catch (e) {}
+}
 
 export function setSoundEnabled(v) { soundEnabled = v; }
 export function getSoundEnabled() { return soundEnabled; }
