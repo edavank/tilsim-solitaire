@@ -1,156 +1,112 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { COLORS, FONTS, SIZES } from '../src/constants/theme';
-import BottomNav from '../src/components/BottomNav';
-import { loadProgress } from '../src/utils/storage';
+import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
+import { COLORS, FONTS } from '../src/constants/theme';
+import { loadProgress, updateProgress } from '../src/utils/storage';
 
 const OWL = require('../assets/bilge-happy.png');
 
-const TABS = ['ARKAPLAN', 'KART'];
-
 const THEMES = [
-  { id: 'cosmic', name: 'Kozmik', unlocked: true, active: true, price: 0, colors: ['#6B5B8A', '#3D3560'] },
-  { id: 'forest', name: 'Orman', unlocked: true, active: false, price: 0, colors: ['#1a3a2a', '#0d1f17'] },
-  { id: 'desert', name: 'Çöl', unlocked: false, active: false, price: 200, colors: ['#5c4a3a', '#3d2f22'] },
-  { id: 'ocean', name: 'Okyanus', unlocked: false, active: false, price: 500, colors: ['#1a2a4a', '#0d1530'] },
-  { id: 'aurora', name: 'Aurora', unlocked: false, active: false, price: 500, colors: ['#1a4a3a', '#0d2a20'] },
-  { id: 'cyber', name: 'Siber', unlocked: false, active: false, price: 1000, colors: ['#2a1a3a', '#150d20'] },
+  { id: 'cosmic', name: 'Kozmik Mor', price: 0, colors: ['#150629', '#1e0a38'], accent: '#9B7DFF', unlocked: true },
+  { id: 'ocean', name: 'Okyanus', price: 1000, colors: ['#0a1628', '#0d2137'], accent: '#4FC3F7' },
+  { id: 'forest', name: 'Orman', price: 1000, colors: ['#0a1f0a', '#0d2a12'], accent: '#66BB6A' },
+  { id: 'sunset', name: 'Gün Batımı', price: 1500, colors: ['#2a0a0a', '#3a1010'], accent: '#FF7043' },
+  { id: 'gold', name: 'Altın', price: 2000, colors: ['#1a1500', '#2a2000'], accent: '#FFD54F' },
+  { id: 'sakura', name: 'Sakura', price: 2000, colors: ['#1f0a1a', '#2a0d22'], accent: '#F48FB1' },
+  { id: 'arctic', name: 'Kutup', price: 2500, colors: ['#0a1a2a', '#0d2238'], accent: '#80DEEA' },
+  { id: 'ruby', name: 'Yakut', price: 3000, colors: ['#2a0505', '#3a0808'], accent: '#EF5350' },
 ];
 
 export default function ThemesScreen() {
-  const [activeTabIdx, setActiveTabIdx] = useState(0);
-  const [selectedTheme, setSelectedTheme] = useState('cosmic');
+  const router = useRouter();
   const [coins, setCoins] = useState(0);
+  const [unlockedThemes, setUnlockedThemes] = useState(['cosmic']);
+  const [activeTheme, setActiveTheme] = useState('cosmic');
 
-  useEffect(() => { loadProgress().then((p) => setCoins(p.coins || 0)); }, []);
+  useFocusEffect(useCallback(() => {
+    loadProgress().then((p) => {
+      setCoins(p.coins || 0);
+      setUnlockedThemes(p.unlockedThemes || ['cosmic']);
+      setActiveTheme(p.activeTheme || 'cosmic');
+    });
+  }, []));
+
+  const buyTheme = async (theme) => {
+    if (unlockedThemes.includes(theme.id)) {
+      // Zaten sahip — aktif yap
+      await updateProgress({ activeTheme: theme.id });
+      setActiveTheme(theme.id);
+      return;
+    }
+    if (coins < theme.price) {
+      Alert.alert('Yetersiz Coin', `${theme.price} coin gerekli, ${coins} coin var.`);
+      return;
+    }
+    const newCoins = coins - theme.price;
+    const newUnlocked = [...unlockedThemes, theme.id];
+    await updateProgress({ coins: newCoins, unlockedThemes: newUnlocked, activeTheme: theme.id });
+    setCoins(newCoins);
+    setUnlockedThemes(newUnlocked);
+    setActiveTheme(theme.id);
+  };
 
   return (
     <View style={s.container}>
       <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
-
-      {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-          <MaterialIcons name="arrow-back" size={22} color={COLORS.onSurface} />
+          <MaterialIcons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>Görünüm Seçici</Text>
-        <View style={s.coinBadge}>
-          <Text style={{ fontSize: 14 }}>🪙</Text>
-          <Text style={s.coinText}>{coins.toLocaleString()}</Text>
-        </View>
+        <Text style={s.headerTitle}>Tema Mağazası</Text>
+        <Text style={s.coinBadge}>🪙 {coins}</Text>
       </View>
 
-      {/* Tab bar */}
-      <View style={s.tabBar}>
-        {TABS.map((tab, i) => (
-          <TouchableOpacity key={i} style={[s.tab, activeTabIdx === i && s.tabActive]} onPress={() => setActiveTabIdx(i)} activeOpacity={0.7}>
-            <Text style={[s.tabText, activeTabIdx === i && s.tabTextActive]}>{tab}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-
-        {/* Grid */}
-        <View style={s.grid}>
-          {THEMES.map((theme) => (
-            <TouchableOpacity
-              key={theme.id}
-              style={[s.themeCard, selectedTheme === theme.id && s.themeCardActive]}
-              onPress={() => theme.unlocked && setSelectedTheme(theme.id)}
-              activeOpacity={0.7}
-            >
-              <LinearGradient colors={theme.colors} style={s.themePreview}>
-                {theme.active && (
-                  <View style={s.checkmark}>
-                    <MaterialIcons name="check" size={18} color="#fff" />
-                  </View>
-                )}
-                {!theme.unlocked && (
-                  <View style={s.lockOverlay}>
-                    <MaterialIcons name="lock" size={22} color="rgba(255,255,255,0.5)" />
-                    <View style={s.priceBadge}>
-                      <Text style={{ fontSize: 10 }}>🪙</Text>
-                      <Text style={s.priceText}>{theme.price}</Text>
-                    </View>
-                  </View>
-                )}
+      <ScrollView contentContainerStyle={s.scroll}>
+        {THEMES.map(theme => {
+          const owned = unlockedThemes.includes(theme.id);
+          const active = activeTheme === theme.id;
+          return (
+            <TouchableOpacity key={theme.id} style={[s.card, active && s.cardActive]} onPress={() => buyTheme(theme)} activeOpacity={0.7}>
+              <LinearGradient colors={theme.colors} style={s.preview}>
+                <View style={[s.dot, { backgroundColor: theme.accent }]} />
+                <View style={[s.dot, { backgroundColor: theme.accent, opacity: 0.5 }]} />
+                <View style={[s.dot, { backgroundColor: theme.accent, opacity: 0.3 }]} />
               </LinearGradient>
+              <View style={s.cardInfo}>
+                <Text style={s.cardName}>{theme.name}</Text>
+                {active ? (
+                  <View style={s.activeBadge}><Text style={s.activeBadgeText}>AKTİF</Text></View>
+                ) : owned ? (
+                  <Text style={{ fontFamily: FONTS.body, fontSize: 11, color: COLORS.success }}>Sahip</Text>
+                ) : (
+                  <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 13, color: COLORS.coin }}>🪙 {theme.price}</Text>
+                )}
+              </View>
             </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Bilge tip */}
-        <View style={s.tipCard}>
-          <Image source={OWL} style={s.tipOwl} />
-          <View style={s.tipContent}>
-            <Text style={s.tipLabel}>BİLGE İPUCU</Text>
-            <Text style={s.tipText}>Yeni temalar topladığın altınlarla açılabilir. En nadir 'Kozmik' temasını denedin mi?</Text>
-          </View>
-        </View>
-
-        <View style={{ height: 120 }} />
+          );
+        })}
+        <View style={{ height: 100 }} />
       </ScrollView>
-
-      <BottomNav activeTab="home" />
     </View>
   );
 }
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.surface },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingTop: 54, paddingBottom: 12,
-  },
-  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.panelBg, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontFamily: FONTS.headlineBlack, fontSize: 18, color: COLORS.onSurface },
-  coinBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: COLORS.panelBg, paddingHorizontal: 12, paddingVertical: 5,
-    borderRadius: SIZES.radiusFull, borderWidth: 1, borderColor: COLORS.panelBorder,
-  },
-  coinText: { fontFamily: FONTS.headline, fontSize: 13, color: COLORS.onSurface },
-
-  tabBar: {
-    flexDirection: 'row', marginHorizontal: 20, marginTop: 4,
-    backgroundColor: COLORS.panelBg, borderRadius: SIZES.radiusFull, padding: 4,
-  },
-  tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: SIZES.radiusFull },
-  tabActive: { backgroundColor: COLORS.primary },
-  tabText: { fontFamily: FONTS.headlineBlack, fontSize: 12, color: COLORS.onSurfaceVariant, letterSpacing: 1 },
-  tabTextActive: { color: '#fff' },
-
-  scroll: { paddingHorizontal: 20, paddingTop: 16 },
-
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  themeCard: {
-    width: '31%', aspectRatio: 0.85, borderRadius: 14, overflow: 'hidden',
-    borderWidth: 2, borderColor: 'transparent',
-  },
-  themeCardActive: { borderColor: COLORS.secondary, borderWidth: 3 },
-  themePreview: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  checkmark: {
-    position: 'absolute', bottom: 10, left: 10,
-    width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.secondary,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  lockOverlay: { alignItems: 'center', justifyContent: 'center', gap: 6 },
-  priceBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: SIZES.radiusFull,
-  },
-  priceText: { fontFamily: FONTS.headlineBlack, fontSize: 11, color: COLORS.coin },
-
-  tipCard: {
-    flexDirection: 'row', backgroundColor: COLORS.panelBg, borderRadius: 16,
-    borderWidth: 1, borderColor: COLORS.panelBorder, padding: 14, marginTop: 24, gap: 12,
-  },
-  tipOwl: { width: 56, height: 56, borderRadius: 12 },
-  tipContent: { flex: 1 },
-  tipLabel: { fontFamily: FONTS.headlineBlack, fontSize: 10, color: COLORS.coin, letterSpacing: 1, marginBottom: 4 },
-  tipText: { fontFamily: FONTS.body, fontSize: 12, color: COLORS.onSurfaceVariant, lineHeight: 17 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 54, paddingHorizontal: 16, paddingBottom: 12 },
+  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontFamily: FONTS.headlineBlack, fontSize: 18, color: '#fff' },
+  coinBadge: { fontFamily: FONTS.headlineBlack, fontSize: 13, color: COLORS.coin, backgroundColor: 'rgba(255,209,102,0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  scroll: { paddingHorizontal: 16, gap: 10 },
+  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 16, padding: 12, gap: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  cardActive: { borderColor: COLORS.primary, borderWidth: 2, shadowColor: COLORS.primary, shadowOpacity: 0.4, shadowRadius: 10 },
+  preview: { width: 60, height: 44, borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
+  dot: { width: 10, height: 10, borderRadius: 5 },
+  cardInfo: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  cardName: { fontFamily: FONTS.headlineBlack, fontSize: 15, color: '#fff' },
+  activeBadge: { backgroundColor: COLORS.primary, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 },
+  activeBadgeText: { fontFamily: FONTS.headlineBlack, fontSize: 10, color: '#fff' },
 });

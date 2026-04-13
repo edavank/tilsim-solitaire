@@ -166,6 +166,13 @@ export default function HomeScreen() {
           <MaterialIcons name="chevron-right" size={20} color={COLORS.onSurfaceVariant} />
         </TouchableOpacity>
 
+        {/* Collection album */}
+        <TouchableOpacity style={s.levelSelectBtn} activeOpacity={0.7} onPress={() => router.push('/collection')}>
+          <MaterialIcons name="collections-bookmark" size={20} color={COLORS.primary} />
+          <Text style={s.levelSelectText}>Koleksiyon Albümü</Text>
+          <MaterialIcons name="chevron-right" size={20} color={COLORS.onSurfaceVariant} />
+        </TouchableOpacity>
+
         {/* Watch ad button */}
         <TouchableOpacity style={s.adBtn} activeOpacity={0.7} onPress={watchAd}>
           <View style={s.adLeft}>

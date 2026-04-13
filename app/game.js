@@ -15,6 +15,7 @@ import { useLang } from '../src/context/LanguageContext';
 import { submitScore } from '../src/utils/leaderboardService';
 import { getDailyChallenge, markDailyChallengeCompleted } from '../src/utils/dailyChallenge';
 import { checkAchievements } from '../src/utils/achievements';
+import { markCategoryCompleted } from '../src/utils/collection';
 
 import { IS_TABLET, rs, fs, getGameLayout } from '../src/utils/responsive';
 
@@ -722,6 +723,7 @@ export default function GameScreen() {
 
         if (catCompleted && !isComplete) {
           setFeedback('🎉 ' + target.category.word + t.categoryComplete);
+          try { markCategoryCompleted(target.category.word); } catch (e) {}
           setTimeout(() => playSound('complete'), 10);
           // Sparkle effect on completed slot
           const slotWidth = (SW - GAME_PAD * 2) / gs.slots.length;
