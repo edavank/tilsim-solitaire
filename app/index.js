@@ -13,6 +13,41 @@ import { getDailyDateString, isDailyChallengeCompleted } from '../src/utils/dail
 const { width: SW } = Dimensions.get('window');
 const OWL_IMAGE = require('../assets/bilge-happy.png');
 
+/* ── Floating Particles Background ── */
+function FloatingParticles() {
+  const particles = useRef([...Array(8)].map(() => ({
+    anim: new Animated.Value(0),
+    x: Math.random() * SW,
+    y: Math.random() * 600,
+    size: 3 + Math.random() * 5,
+    duration: 3000 + Math.random() * 4000,
+    color: ['rgba(155,125,255,0.3)', 'rgba(255,138,167,0.2)', 'rgba(255,209,102,0.25)'][Math.floor(Math.random() * 3)],
+  }))).current;
+
+  useEffect(() => {
+    particles.forEach((p) => {
+      Animated.loop(Animated.sequence([
+        Animated.timing(p.anim, { toValue: 1, duration: p.duration, useNativeDriver: true }),
+        Animated.timing(p.anim, { toValue: 0, duration: p.duration, useNativeDriver: true }),
+      ])).start();
+    });
+  }, []);
+
+  return (
+    <View style={{ ...StyleSheet.absoluteFillObject }} pointerEvents="none">
+      {particles.map((p, i) => (
+        <Animated.View key={i} style={{
+          position: 'absolute', left: p.x, top: p.y,
+          width: p.size, height: p.size, borderRadius: p.size,
+          backgroundColor: p.color,
+          opacity: p.anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.2, 0.8, 0.2] }),
+          transform: [{ translateY: p.anim.interpolate({ inputRange: [0, 1], outputRange: [0, -30] }) }],
+        }} />
+      ))}
+    </View>
+  );
+}
+
 const LANG_FLAGS = { tr: '🇹🇷 TÜRKÇE', en: '🇬🇧 ENGLISH', de: '🇩🇪 DEUTSCH', fr: '🇫🇷 FRANÇAIS', es: '🇪🇸 ESPAÑOL', ar: '🇸🇦 العربية' };
 
 export default function HomeScreen() {
@@ -66,6 +101,7 @@ export default function HomeScreen() {
   return (
     <View style={s.container}>
       <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
+      <FloatingParticles />
 
       {/* Header */}
       <View style={s.header}>

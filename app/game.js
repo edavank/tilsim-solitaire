@@ -694,6 +694,10 @@ export default function GameScreen() {
         if (catCompleted && !isComplete) {
           setFeedback('🎉 ' + target.category.word + t.categoryComplete);
           setTimeout(() => playSound('complete'), 10);
+          // Sparkle effect on completed slot
+          const slotWidth = (SW - 20) / gs.slots.length;
+          setSparkle({ x: slotWidth * slotIndex + slotWidth / 2 + 10, y: SH * 0.55 });
+          showScorePopup('🎉 +25');
         } else if (totalPlaced > 1) {
           
           setTimeout(() => playSound('correct'), 10);
@@ -1086,9 +1090,15 @@ export default function GameScreen() {
           <Text style={{ fontSize: 14 }}>🪙</Text>
           <Text style={st.coinText}>{coins}</Text>
         </View>
-        <View style={{ alignItems: 'center' }}>
+        <View style={{ alignItems: 'center', flex: 1 }}>
           <Text style={st.headerTitle}>{isDaily ? '📅 GÜNLÜK' : t.level + ' ' + gs.levelId}</Text>
-          {combo >= 2 && <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 11, color: COLORS.coin }}>🔥 {combo}x Combo</Text>}
+          {combo >= 2 && <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: fs(11), color: COLORS.coin }}>🔥 {combo}x Combo</Text>}
+          {/* Category progress bar */}
+          <View style={{ flexDirection: 'row', gap: 3, marginTop: 4 }}>
+            {gs.slots.filter(s => !s.locked).map((s, i) => (
+              <View key={i} style={{ width: 20, height: 4, borderRadius: 2, backgroundColor: s.category && s.placedCards?.length >= (s.category?.totalWords || 99) ? COLORS.success : s.category ? COLORS.primary + '60' : 'rgba(255,255,255,0.1)' }} />
+            ))}
+          </View>
         </View>
         <TouchableOpacity style={st.settingsBtn} onPress={() => setPaused(true)}>
           <MaterialIcons name="settings" size={20} color={COLORS.onSurfaceVariant} />
@@ -1100,9 +1110,9 @@ export default function GameScreen() {
       <ScrollView style={{ flex: 1 }} contentContainerStyle={st.scrollContent} showsVerticalScrollIndicator={false} scrollEnabled={!dragCard} ref={scrollRef}>
         <View style={{ height: 20 }} />
         <View style={st.deckRow}>
-          <View style={st.movesPanel}>
+          <View style={[st.movesPanel, gs.moves <= 5 && { borderColor: COLORS.fail, shadowColor: COLORS.fail, shadowOpacity: 0.6 }]}>
             <Text style={st.movesLabel}>{t.moves}</Text>
-            <Text style={st.movesNum}>{gs.moves}</Text>
+            <Text style={[st.movesNum, gs.moves <= 5 && { color: COLORS.fail }]}>{gs.moves}</Text>
             <TouchableOpacity style={st.addBtn} onPress={addMovesAd}><Text style={st.addBtnText}>+20 ▶</Text></TouchableOpacity>
           </View>
 
