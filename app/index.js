@@ -6,7 +6,6 @@ import { router, useFocusEffect } from 'expo-router';
 import { COLORS, FONTS, SIZES, getThemeGradient } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { loadProgress, updateProgress } from '../src/utils/storage';
-import { showRewarded } from '../src/utils/ads';
 import { useLang } from '../src/context/LanguageContext';
 import { getDailyDateString, isDailyChallengeCompleted } from '../src/utils/dailyChallenge';
 // seasonalEvents kaldırıldı
@@ -90,15 +89,6 @@ export default function HomeScreen() {
   }, []);
 
   const glowOpacity = glowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
-
-  const watchAd = async () => {
-    const result = await showRewarded();
-    if (result.success) {
-      const newCoins = coins + 50;
-      setCoins(newCoins);
-      await updateProgress({ coins: newCoins });
-    }
-  };
 
   return (
     <View style={s.container}>
@@ -203,13 +193,6 @@ export default function HomeScreen() {
           <MaterialIcons name="palette" size={20} color={COLORS.secondary} />
           <Text style={s.levelSelectText}>Tema Mağazası</Text>
           <MaterialIcons name="chevron-right" size={20} color={COLORS.onSurfaceVariant} />
-        </TouchableOpacity>
-
-        {/* Watch ad button */}
-        <TouchableOpacity style={s.levelSelectBtn} activeOpacity={0.7} onPress={watchAd}>
-          <MaterialIcons name="play-circle-filled" size={20} color={COLORS.tertiary} />
-          <Text style={s.levelSelectText}>{t.watchAd}</Text>
-          <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 11, color: COLORS.coin }}>{t.goldReward}</Text>
         </TouchableOpacity>
 
       </Animated.View>
