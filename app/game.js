@@ -8,7 +8,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { COLORS, FONTS, SIZES, CATEGORY_COLORS } from '../src/constants/theme';
 import { LEVELS, generateGameState, getLevel } from '../src/data/levels';
-import { loadProgress, updateProgress, clearSavedGame, saveSavedGame } from '../src/utils/storage';
+import { loadProgress, updateProgress, clearSavedGame, saveSavedGame, saveLevelStars, addXP } from '../src/utils/storage';
 import { playHaptic, playSound } from '../src/utils/sounds';
 import { showRewarded, showInterstitial } from '../src/utils/ads';
 import { useLang } from '../src/context/LanguageContext';
@@ -1156,6 +1156,12 @@ export default function GameScreen() {
       streak: (prog.streak || 0) + 1,
     });
     await clearSavedGame();
+    // Yıldız kaydet
+    const moveRatio = gs.moves / level.moves;
+    const stars = moveRatio > 0.5 ? 3 : moveRatio > 0.25 ? 2 : 1;
+    await saveLevelStars(levelId, stars);
+    // XP ekle (yıldız başına 50 + bölüm bonusu)
+    await addXP(stars * 50 + Math.floor(levelId / 5) * 10);
     // Submit to leaderboard
     try {
       submitScore({

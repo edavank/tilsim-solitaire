@@ -58,24 +58,26 @@ export function generateLevels(startId, count, language = 'tr') {
     const tier = Math.min(Math.floor((id - 1) / 2), 25);
 
     // === ZORLUK PROGRESYONu ===
+    const isBoss = id % 10 === 0;
     
-    // Kategoriler: 3 → 4 → 5 → 6 → 7 → 8
-    const numCats = Math.min(3 + Math.floor(tier / 2), 8);
+    // Kategoriler: 3 → 4 → 5 → 6 → 7 → 8 (boss: +2)
+    const numCats = Math.min((isBoss ? 5 : 3) + Math.floor(tier / 2), 8);
     
-    // Kelime/kategori: 3 → 4 → 5 → 6 → 7 → 8
-    const wordsPerCat = Math.min(3 + Math.floor(tier / 3), 8);
+    // Kelime/kategori: 3 → 4 → 5 → 6 → 7 → 8 (boss: +1)
+    const wordsPerCat = Math.min((isBoss ? 4 : 3) + Math.floor(tier / 3), 8);
     
     // KRİTİK: Slot sayısı < kategori sayısı (zorluk burada!)
-    // Slotlar sınırlı → strateji gerekli → beyin çalışır
-    const totalSlots = Math.min(numCats - 1, 6) + Math.floor(tier / 8);
-    const lockedSlots = tier < 3 ? 0 : tier < 6 ? 1 : tier < 12 ? 2 : 3;
+    // Boss: slot farkı daha büyük (numCats - 2 veya - 3)
+    const slotDeficit = isBoss ? 3 : 1;
+    const totalSlots = Math.max(Math.min(numCats - slotDeficit, 6) + Math.floor(tier / 8), 2);
+    const lockedSlots = isBoss ? Math.min(2, totalSlots - 1) : (tier < 3 ? 0 : tier < 6 ? 1 : tier < 12 ? 2 : 3);
     
     // Sütunlar: 4-5 oynanabilir + kilitli
     const playableCols = tier < 8 ? 4 : 5;
-    const lockedCols = tier < 4 ? 0 : 1;
+    const lockedCols = isBoss ? 1 : (tier < 4 ? 0 : 1);
     
-    // Hints: azalan
-    const hints = Math.max(3 - Math.floor(tier / 3), 0);
+    // Hints: azalan (boss: 0)
+    const hints = isBoss ? 0 : Math.max(3 - Math.floor(tier / 3), 0);
 
     // Kategori seçimi — ÖNCEKİ BÖLÜM + ÇAKIŞAN KATEGORİLER ENGELLENİR
     const blocked = new Set(lastUsedCats);

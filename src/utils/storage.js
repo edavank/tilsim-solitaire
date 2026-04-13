@@ -94,3 +94,41 @@ export async function resetAll() {
     await saveProgress(DEFAULT_PROGRESS);
   } catch (e) {}
 }
+
+// Yıldız sistemi
+export async function saveLevelStars(levelId, stars) {
+  try {
+    const raw = await getItem('@tilsim_stars');
+    const map = raw ? JSON.parse(raw) : {};
+    const prev = map[levelId] || 0;
+    if (stars > prev) map[levelId] = stars; // Sadece daha iyi sonuç kaydet
+    await setItem('@tilsim_stars', JSON.stringify(map));
+  } catch (e) {}
+}
+
+export async function loadLevelStars() {
+  try {
+    const raw = await getItem('@tilsim_stars');
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) { return {}; }
+}
+
+// XP sistemi
+export async function addXP(amount) {
+  try {
+    const raw = await getItem('@tilsim_xp');
+    const data = raw ? JSON.parse(raw) : { xp: 0, level: 1 };
+    data.xp += amount;
+    // Her 500 XP = 1 seviye
+    data.level = Math.floor(data.xp / 500) + 1;
+    await setItem('@tilsim_xp', JSON.stringify(data));
+    return data;
+  } catch (e) { return { xp: 0, level: 1 }; }
+}
+
+export async function loadXP() {
+  try {
+    const raw = await getItem('@tilsim_xp');
+    return raw ? JSON.parse(raw) : { xp: 0, level: 1 };
+  } catch (e) { return { xp: 0, level: 1 }; }
+}

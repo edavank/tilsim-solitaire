@@ -6,7 +6,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { getTotalLevels, getLevel } from '../src/data/levels';
-import { loadProgress } from '../src/utils/storage';
+import { loadProgress, loadLevelStars, loadXP } from '../src/utils/storage';
 import { useLang } from '../src/context/LanguageContext';
 
 const OWL = require('../assets/bilge-happy.png');
@@ -15,16 +15,22 @@ export default function LevelsScreen() {
   const { lang, t } = useLang();
   const [currentLevel, setCurrentLevel] = useState(1);
   const [totalLevels, setTotalLevels] = useState(200);
+  const [starMap, setStarMap] = useState({});
+  const [xpData, setXpData] = useState({ xp: 0, level: 1 });
   const chapters = t.chapters || [];
 
   useEffect(() => {
     loadProgress().then((p) => setCurrentLevel(p.currentLevel || 1));
+    loadLevelStars().then(setStarMap);
+    loadXP().then(setXpData);
     setTotalLevels(getTotalLevels(lang));
   }, [lang]);
 
   useFocusEffect(
     useCallback(() => {
       loadProgress().then((p) => setCurrentLevel(p.currentLevel || 1));
+      loadLevelStars().then(setStarMap);
+      loadXP().then(setXpData);
     }, [])
   );
 
@@ -56,6 +62,17 @@ export default function LevelsScreen() {
           </View>
         </View>
 
+        {/* XP Bar */}
+        <View style={s.xpCard}>
+          <Text style={s.xpLevel}>Lv.{xpData.level}</Text>
+          <View style={{ flex: 1 }}>
+            <View style={s.xpBar}>
+              <View style={[s.xpFill, { width: ((xpData.xp % 500) / 500 * 100) + '%' }]} />
+            </View>
+          </View>
+          <Text style={s.xpText}>{xpData.xp % 500}/500 XP</Text>
+        </View>
+
         <View style={s.grid}>
           {Array.from({ length: maxVisible }, (_, i) => i + 1).map((id) => {
             const isUnlocked = id <= currentLevel;
@@ -73,17 +90,18 @@ export default function LevelsScreen() {
                   </View>
                 )}
                 <TouchableOpacity
-                  style={[s.levelCard, isCurrent && s.levelCurrent, isCompleted && s.levelCompleted, !isUnlocked && s.levelLocked]}
+                  style={[s.levelCard, isCurrent && s.levelCurrent, isCompleted && s.levelCompleted, !isUnlocked && s.levelLocked, id % 10 === 0 && isUnlocked && s.levelBoss]}
                   onPress={() => { if (isUnlocked) router.push({ pathname: '/game', params: { level: id } }); }}
                   activeOpacity={isUnlocked ? 0.7 : 1}
                 >
                   {isCompleted && (
                     <View style={s.stars}>
-                      <MaterialIcons name="star" size={10} color={COLORS.coin} />
-                      <MaterialIcons name="star" size={10} color={COLORS.coin} />
-                      <MaterialIcons name="star" size={10} color={COLORS.coin} />
+                      {[1, 2, 3].map(si => (
+                        <MaterialIcons key={si} name="star" size={10} color={si <= (starMap[id] || 1) ? COLORS.coin : 'rgba(255,255,255,0.15)'} />
+                      ))}
                     </View>
                   )}
+                  {id % 10 === 0 && <Text style={{ fontSize: 8, color: '#FFD166', position: 'absolute', top: 2 }}>BOSS</Text>}
                   <Text style={[s.levelNum, !isUnlocked && s.levelNumLocked]}>
                     {isUnlocked ? id : ''}
                   </Text>
@@ -144,6 +162,17 @@ const s = StyleSheet.create({
   levelCurrent: { borderColor: COLORS.primary, borderWidth: 2.5, backgroundColor: 'rgba(255,138,167,0.1)', shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 12, elevation: 8 },
   levelCompleted: { borderColor: COLORS.success, backgroundColor: 'rgba(93,190,110,0.08)', shadowColor: COLORS.success, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.3, shadowRadius: 6 },
   levelLocked: { opacity: 0.4 },
+  levelBoss: { borderColor: '#FFD166', borderWidth: 2, shadowColor: '#FFD166', shadowOpacity: 0.5, shadowRadius: 8 },
+
+  xpCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: COLORS.panelBg, borderRadius: 14, padding: 10, paddingHorizontal: 14,
+    borderWidth: 1, borderColor: COLORS.panelBorder, marginBottom: 20,
+  },
+  xpLevel: { fontFamily: FONTS.headlineBlack, fontSize: 16, color: COLORS.primary, minWidth: 40 },
+  xpBar: { height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' },
+  xpFill: { height: '100%', borderRadius: 3, backgroundColor: COLORS.secondary },
+  xpText: { fontFamily: FONTS.body, fontSize: 10, color: COLORS.onSurfaceVariant, minWidth: 65, textAlign: 'right' },
 
   stars: { flexDirection: 'row', gap: 1, position: 'absolute', top: 4 },
   levelNum: { fontFamily: FONTS.headlineBlack, fontSize: 22, color: COLORS.onSurface },
