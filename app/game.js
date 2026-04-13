@@ -718,11 +718,14 @@ export default function GameScreen() {
 
   const moveToColumn = useCallback((card, source, sourceIndex, targetColIndex) => {
     if (source === 'column' && sourceIndex === targetColIndex) return;
+    // Kategori kartları sütuna KONAMAZ — sadece foundation slotuna gider
+    if (card.type === 'category') {
+      setFeedback('📂 Kategori kartını üstteki boş slota koy!');
+      return;
+    }
     setGs((prev) => {
       const targetCol = prev.columns[targetColIndex];
       if (targetCol.locked) { setFeedback(t.isLocked); return prev; }
-      // Sütunlara HERHANGİ bir kart konabilir (geçici depo)
-      // Tek kural: kapalı kartın üstüne konamazsın
       if (targetCol.cards.length > 0) {
         const topCard = targetCol.cards[targetCol.cards.length - 1];
         if (!topCard.faceUp) { setFeedback(t.cantPlace); return prev; }
@@ -733,7 +736,6 @@ export default function GameScreen() {
         return { ...col, cards: [...col.cards, { ...card, faceUp: true }] };
       });
       setHistory((h) => [...h, prev]);
-      // Sütun hamlesi de 1 hamle harcar
       const newMoves = prev.moves - 1;
       return { ...ns, moves: newMoves, isFailed: newMoves <= 0 };
     });
@@ -777,6 +779,11 @@ export default function GameScreen() {
   // Move entire stack to another column
   const moveStackToColumn = useCallback((stackCards, source, sourceIndex, targetColIndex) => {
     if (source === 'column' && sourceIndex === targetColIndex) return;
+    // Kategori kartı içeren stack sütuna taşınamaz
+    if (stackCards.some(c => c.type === 'category')) {
+      setFeedback('📂 Kategori kartını üstteki boş slota koy!');
+      return;
+    }
     setGs((prev) => {
       const targetCol = prev.columns[targetColIndex];
       if (targetCol.locked) { setFeedback(t.isLocked); return prev; }
