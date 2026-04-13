@@ -999,8 +999,8 @@ export default function GameScreen() {
             ) : (
               <View style={{ width: DCW + 40, height: DCH, justifyContent: 'center', alignItems: 'flex-end' }}>
                 {gs.drawnCards.slice(-3).map((card, i, arr) => (
-                  <View key={card.id} style={{ position: 'absolute', right: i * 18, zIndex: arr.length - i, opacity: i === 0 ? 1 : 0.4 }}>
-                    <FaceUpCard card={card} selected={i === 0 && selId === card.id} hinted={card.id === hintCard} isDragging={card.id === dragCard?.card?.id} w={DCW} h={DCH} />
+                  <View key={card.id} style={{ position: 'absolute', right: (arr.length - 1 - i) * 18, zIndex: i, opacity: i === arr.length - 1 ? 1 : 0.4 }}>
+                    <FaceUpCard card={card} selected={i === arr.length - 1 && selId === card.id} hinted={card.id === hintCard} isDragging={card.id === dragCard?.card?.id} w={DCW} h={DCH} />
                   </View>
                 ))}
               </View>
