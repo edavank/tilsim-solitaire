@@ -16,7 +16,7 @@ import { submitScore } from '../src/utils/leaderboardService';
 import { getDailyChallenge, markDailyChallengeCompleted } from '../src/utils/dailyChallenge';
 import { checkAchievements } from '../src/utils/achievements';
 import { markCategoryCompleted } from '../src/utils/collection';
-import { getEventCoinMultiplier } from '../src/utils/seasonalEvents';
+// seasonalEvents kaldırıldı
 
 import { IS_TABLET, rs, fs, getGameLayout } from '../src/utils/responsive';
 
@@ -400,13 +400,21 @@ export default function GameScreen() {
   const [gameLang, setGameLang] = useState(lang);
   const [isDaily, setIsDaily] = useState(params.daily === 'true');
   const [dailyDate, setDailyDate] = useState(params.dailyDate || null);
+  const [isTimed, setIsTimed] = useState(params.timed === '1');
+  // Zamanlı mod: bölüme göre süre (saniye) — bölüm arttıkça azalır
+  const getTimedSeconds = (lvl) => Math.max(60, 180 - (lvl - 1) * 3);
+  const [timeRemaining, setTimeRemaining] = useState(() => getTimedSeconds(parseInt(params.level) || 1));
 
   // Sync game language with context
   useEffect(() => { setGameLang(lang); }, [lang]);
   const level = isDaily
     ? getDailyChallenge(gameLang, params.dailySeed ? parseInt(params.dailySeed) : undefined)
     : (getLevel(levelId, gameLang) || getLevel(1, gameLang));
-  const [gs, setGs] = useState(() => generateGameState(level));
+  const [gs, setGs] = useState(() => {
+    const state = generateGameState(level);
+    if (params.timed === '1') state.moves = 9999;
+    return state;
+  });
   const [selected, setSelected] = useState(null);
   const [feedback, setFeedback] = useState('');
   const [history, setHistory] = useState([]);
@@ -538,9 +546,19 @@ export default function GameScreen() {
     if (gs.isComplete || gs.isFailed || paused) return;
     const timer = setInterval(() => {
       setElapsedTime(Math.floor((Date.now() - startTimeRef.current) / 1000));
+      if (isTimed) {
+        setTimeRemaining((prev) => {
+          if (prev <= 1) {
+            // Süre doldu — oyun bitti
+            setGs((g) => ({ ...g, isFailed: true }));
+            return 0;
+          }
+          return prev - 1;
+        });
+      }
     }, 1000);
     return () => clearInterval(timer);
-  }, [gs.isComplete, gs.isFailed, paused]);
+  }, [gs.isComplete, gs.isFailed, paused, isTimed]);
 
   // Play win/lose sounds
   useEffect(() => {
@@ -1114,9 +1132,12 @@ export default function GameScreen() {
 
   const resetGame = useCallback(() => {
     const newLevel = isDaily ? getDailyChallenge(gameLang) : getLevel(levelId, gameLang);
-    setGs(generateGameState(newLevel)); setHistory([]); setSelected(null);
+    const state = generateGameState(newLevel);
+    if (isTimed) state.moves = 9999;
+    setGs(state); setHistory([]); setSelected(null);
     setHintCard(null); setHintSlot(null); setCombo(0); startTimeRef.current = Date.now(); setElapsedTime(0);
-  }, [levelId, isDaily]);
+    if (isTimed) setTimeRemaining(getTimedSeconds(levelId));
+  }, [levelId, isDaily, isTimed]);
 
   const addMovesAd = useCallback(async () => {
     const result = await showRewarded();
@@ -1136,7 +1157,7 @@ export default function GameScreen() {
   // ── Level Complete → save & advance ──
   const handleNextLevel = useCallback(async () => {
     const bonus = Math.floor(8 * (gs.moves / level.moves));
-    const eventMultiplier = getEventCoinMultiplier();
+    const eventMultiplier = 1;
     const prog = await loadProgress();
 
     if (isDaily) {
@@ -1202,9 +1223,12 @@ export default function GameScreen() {
     // Show interstitial ad every 3 levels
     if (nextId % 3 === 0) await showInterstitial();
     setLevelId(nextId);
-    setGs(generateGameState(nextLevel));
+    const nextState = generateGameState(nextLevel);
+    if (isTimed) nextState.moves = 9999;
+    setGs(nextState);
     setHistory([]); setSelected(null);
     setHintCard(null); setHintSlot(null); setCombo(0); startTimeRef.current = Date.now(); setElapsedTime(0);
+    if (isTimed) setTimeRemaining(getTimedSeconds(nextId));
     setCoins((prog.coins || 0) + 30 + bonus);
   }, [levelId, gs, level, coins]);
 
@@ -1285,15 +1309,29 @@ export default function GameScreen() {
       <ScrollView style={{ flex: 1 }} contentContainerStyle={st.scrollContent} showsVerticalScrollIndicator={false} scrollEnabled={!dragCard} ref={scrollRef}>
         <View style={{ height: 20 }} />
         <View style={st.deckRow}>
-          <View style={[st.movesPanel, gs.moves <= 5 && { borderColor: COLORS.fail, shadowColor: COLORS.fail, shadowOpacity: 0.6 }]}>
-            <Text style={st.movesLabel}>{t.moves}</Text>
-            <Text style={[st.movesNum, gs.moves <= 5 && { color: COLORS.fail }]}>{gs.moves}</Text>
-            <TouchableOpacity style={st.addBtn} onPress={addMovesAd}><Text style={st.addBtnText}>+20 ▶</Text></TouchableOpacity>
-          </View>
-          <View style={st.movesPanel}>
-            <Text style={st.movesLabel}>SÜRE</Text>
-            <Text style={st.movesNum}>{Math.floor(elapsedTime / 60)}:{String(elapsedTime % 60).padStart(2, '0')}</Text>
-          </View>
+          {isTimed ? (
+            <View style={st.movesPanel}>
+              <Text style={st.movesLabel}>{t.moves}</Text>
+              <Text style={st.movesNum}>∞</Text>
+            </View>
+          ) : (
+            <View style={[st.movesPanel, gs.moves <= 5 && { borderColor: COLORS.fail, shadowColor: COLORS.fail, shadowOpacity: 0.6 }]}>
+              <Text style={st.movesLabel}>{t.moves}</Text>
+              <Text style={[st.movesNum, gs.moves <= 5 && { color: COLORS.fail }]}>{gs.moves}</Text>
+              <TouchableOpacity style={st.addBtn} onPress={addMovesAd}><Text style={st.addBtnText}>+20 ▶</Text></TouchableOpacity>
+            </View>
+          )}
+          {isTimed ? (
+            <View style={[st.movesPanel, timeRemaining <= 15 && { borderColor: COLORS.fail, shadowColor: COLORS.fail, shadowOpacity: 0.6 }]}>
+              <Text style={st.movesLabel}>KALAN</Text>
+              <Text style={[st.movesNum, timeRemaining <= 15 && { color: COLORS.fail }]}>{Math.floor(timeRemaining / 60)}:{String(timeRemaining % 60).padStart(2, '0')}</Text>
+            </View>
+          ) : (
+            <View style={st.movesPanel}>
+              <Text style={st.movesLabel}>SÜRE</Text>
+              <Text style={st.movesNum}>{Math.floor(elapsedTime / 60)}:{String(elapsedTime % 60).padStart(2, '0')}</Text>
+            </View>
+          )}
 
           <TouchableOpacity
             style={st.drawnArea}
