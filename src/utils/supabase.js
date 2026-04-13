@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Tılsım Solitaire — Supabase (shared with Reflections project)
-const SUPABASE_URL = 'https://yspaqsyfxczxmfwwznqf.supabase.co';
+// Tılsım Solitaire — Supabase
+const SUPABASE_URL = 'https://levaibmnnwxqvuodcdxb.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_XDUIGm7AMqOdOteMBxtekw_9q0px2tn';
 
 let supabase = null;
