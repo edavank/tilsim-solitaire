@@ -888,8 +888,7 @@ export default function GameScreen() {
   // ── Smart Hint ──
   const useHint = useCallback(async () => {
     if (gs.hints > 0) {
-      setGs((prev) => ({ ...prev, hints: prev.hints - 1 }));
-      runHintLogic();
+      runHintLogic(true);
       return;
     }
     setToolModal('hint');
@@ -902,18 +901,14 @@ export default function GameScreen() {
       setFeedback('✅ İpucu satın alındı! (-500 🪙)');
     }
     if (method === 'ad') { await showRewarded(); setFeedback('✅ İpucu kazanıldı!'); }
-    setGs((prev) => ({ ...prev, hints: prev.hints + 1 }));
     setToolModal(null);
-    setTimeout(() => runHintLogic(), 100);
+    setTimeout(() => runHintLogic(false), 100);
   }, [coins]);
 
-  const runHintLogic = useCallback(() => {
-
-    // 1. Find playable cards (all face-up in columns + top of drawn)
+  const runHintLogic = useCallback((isFree = false) => {
     const playable = [];
     gs.columns.forEach((col, ci) => {
       if (col.locked || col.cards.length === 0) return;
-      // Check all face-up cards from bottom to top
       for (let k = col.cards.length - 1; k >= 0; k--) {
         const card = col.cards[k];
         if (!card.faceUp) break;
@@ -924,31 +919,27 @@ export default function GameScreen() {
       playable.push({ card: gs.drawnCards[gs.drawnCards.length - 1], source: 'drawn', sourceIndex: null });
     }
 
-    // 2. Check each against slots
     for (const p of playable) {
-      // Category card → any empty slot
       if (p.card.type === 'category') {
         const emptySlot = gs.slots.findIndex((sl) => !sl.locked && !sl.category);
         if (emptySlot >= 0) {
           setHintCard(p.card.id); setHintSlot(emptySlot);
-          setGs((prev) => ({ ...prev, hints: prev.hints - 1 }));
+          if (isFree) setGs((prev) => ({ ...prev, hints: Math.max(0, prev.hints - 1) }));
           setFeedback('💡 ' + p.card.word + ' → boş slota koy!');
           return;
         }
       }
-      // Word card → matching active category slot
       if (p.card.type === 'word') {
         const matchSlot = gs.slots.findIndex((sl) => sl.category && sl.category.categoryIndex === p.card.categoryIndex && sl.placedCards.length < sl.category.totalWords);
         if (matchSlot >= 0) {
           setHintCard(p.card.id); setHintSlot(matchSlot);
-          setGs((prev) => ({ ...prev, hints: prev.hints - 1 }));
+          if (isFree) setGs((prev) => ({ ...prev, hints: Math.max(0, prev.hints - 1) }));
           setFeedback('💡 ' + p.card.word + ' → ' + gs.slots[matchSlot].category.word + '!');
           return;
         }
       }
     }
-    setFeedback(t.noHintFound);
-    setGs((prev) => ({ ...prev, hints: prev.hints - 1 }));
+    setFeedback('Uygun hamle yok. Desteden kart çek veya sütunları düzenle!');
   }, [gs]);
 
   const resetGame = useCallback(() => {
