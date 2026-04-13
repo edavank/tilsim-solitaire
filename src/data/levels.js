@@ -89,7 +89,7 @@ export const LEVELS = [
       { name: 'Tatlılar', words: ['Baklava', 'Künefe', 'Sütlaç', 'Lokum'] },
     ],
     totalSlots: 6, lockedSlots: 1,
-    columns: [{ locked: true }, { depth: 4 }, { depth: 4 }, { depth: 3 }, { depth: 3 }, { depth: 3 }],
+    columns: [{ locked: true }, { depth: 4 }, { depth: 4 }, { depth: 3 }, { depth: 3 }],
   },
   {
     id: 8, moves: 32, hints: 1, undos: 0,
@@ -101,7 +101,7 @@ export const LEVELS = [
       { name: 'Baharat', words: ['Tuz', 'Kimyon', 'Kekik', 'Tarçın'] },
     ],
     totalSlots: 6, lockedSlots: 1,
-    columns: [{ locked: true }, { depth: 4 }, { depth: 4 }, { depth: 4 }, { depth: 3 }, { depth: 3 }],
+    columns: [{ locked: true }, { depth: 4 }, { depth: 4 }, { depth: 4 }, { depth: 3 }],
   },
   // Bölüm 9-10: 5 kat × 5 kel. Daha derin sütunlar
   {
@@ -114,7 +114,7 @@ export const LEVELS = [
       { name: 'Şehirler', words: ['İstanbul', 'Ankara', 'İzmir', 'Antalya', 'Bursa'] },
     ],
     totalSlots: 6, lockedSlots: 1,
-    columns: [{ locked: true }, { depth: 5 }, { depth: 4 }, { depth: 4 }, { depth: 4 }, { depth: 4 }],
+    columns: [{ locked: true }, { depth: 5 }, { depth: 4 }, { depth: 4 }, { depth: 4 }],
   },
   {
     id: 10, moves: 36, hints: 1, undos: 0,
@@ -126,7 +126,7 @@ export const LEVELS = [
       { name: 'Plaj', words: ['Kum', 'Dalga', 'Şemsiye', 'Kabuk', 'Palet'] },
     ],
     totalSlots: 6, lockedSlots: 1,
-    columns: [{ locked: true }, { depth: 5 }, { depth: 5 }, { depth: 4 }, { depth: 4 }, { depth: 4 }],
+    columns: [{ locked: true }, { depth: 5 }, { depth: 5 }, { depth: 4 }, { depth: 4 }],
   },
 ];
 
