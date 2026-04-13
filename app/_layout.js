@@ -78,18 +78,17 @@ const lang = StyleSheet.create({
 });
 
 function AnimatedSplash({ onFinish }) {
-  const fadeIn = useRef(new Animated.Value(0)).current;
+  const fadeIn = useRef(new Animated.Value(1)).current;
   const scale = useRef(new Animated.Value(0.8)).current;
   const textFade = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.sequence([
       Animated.parallel([
-        Animated.timing(fadeIn, { toValue: 1, duration: 600, useNativeDriver: true }),
         Animated.spring(scale, { toValue: 1, friction: 5, tension: 80, useNativeDriver: true }),
+        Animated.timing(textFade, { toValue: 1, duration: 400, useNativeDriver: true }),
       ]),
-      Animated.timing(textFade, { toValue: 1, duration: 400, useNativeDriver: true }),
-      Animated.delay(800),
+      Animated.delay(1000),
       Animated.timing(fadeIn, { toValue: 0, duration: 400, useNativeDriver: true }),
     ]).start(() => onFinish());
   }, []);

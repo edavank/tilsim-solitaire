@@ -46,15 +46,15 @@ function ScorePopup({ text, x, y }) {
   );
 }
 
-/* ── Initial Layout Constants ── */
+/* ── Initial Layout Constants (for max 7 columns) ── */
 const _layout = getGameLayout();
 const SW = _layout.sw;
 const SH = _layout.sh;
-const COL_COUNT = _layout.colCount;
-const COL_GAP = _layout.colGap;
-const CARD_W = _layout.cardW;
-const CARD_H = _layout.cardH;
-const OVERLAP = _layout.overlap;
+const COL_COUNT = 7; // Max columns
+const COL_GAP = IS_TABLET ? 5 : 3;
+const CARD_W = Math.floor((SW - 12 - (COL_COUNT - 1) * COL_GAP) / COL_COUNT);
+const CARD_H = Math.floor(CARD_W * 1.35);
+const OVERLAP = -Math.floor(CARD_H * 0.72);
 
 /* ── Sparkle Particle ── */
 function SparkleEffect({ visible, x, y }) {
@@ -1053,7 +1053,13 @@ export default function GameScreen() {
 
   const selId = selected?.card?.id;
   const selectedStackIds = selected?.stackCards ? new Set(selected.stackCards.map((c) => c.id)) : null;
-  const DCW = Math.floor(CARD_W * 0.88); const DCH = Math.floor(CARD_H * 0.78);
+  
+  // Dynamic card sizing based on actual column count
+  const colCount = gs.columns.length;
+  const dynCardW = Math.floor((SW - 16 - (colCount - 1) * COL_GAP) / colCount);
+  const dynCardH = Math.floor(dynCardW * 1.3);
+  const dynOverlap = -Math.floor(dynCardH * 0.75);
+  const DCW = Math.floor(dynCardW * 0.88); const DCH = Math.floor(dynCardH * 0.78);
   const dragStackIds = dragCard?.stackCards ? new Set(dragCard.stackCards.map((c) => c.id)) : null;
 
   // Unlock slot or column (via ad or free)
