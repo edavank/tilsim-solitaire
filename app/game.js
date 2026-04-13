@@ -13,6 +13,7 @@ import { playHaptic, playSound } from '../src/utils/sounds';
 import { showRewarded, showInterstitial } from '../src/utils/ads';
 import { useLang } from '../src/context/LanguageContext';
 import { submitScore } from '../src/utils/leaderboardService';
+import { getDailyChallenge, markDailyChallengeCompleted } from '../src/utils/dailyChallenge';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const COL_COUNT = 5;
@@ -213,7 +214,7 @@ function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedI
 }
 
 /* ── Win Overlay ── */
-function LevelCompleteOverlay({ t, score, coins, movesLeft, maxMoves, levelId, combo, onNext, onReplay, onHome }) {
+function LevelCompleteOverlay({ t, score, coins, movesLeft, maxMoves, levelId, combo, isDaily, onNext, onReplay, onHome }) {
   const moveBonus = Math.floor(8 * (movesLeft / maxMoves));
   const totalCoins = coins + moveBonus;
   const moveRatio = movesLeft / maxMoves;
@@ -229,7 +230,7 @@ function LevelCompleteOverlay({ t, score, coins, movesLeft, maxMoves, levelId, c
         </View>
         <Image source={OWL_HAPPY} style={ov.owl} />
         <Text style={ov.title}>{t.congrats}</Text>
-        <Text style={ov.subtitle}>{t.level} {levelId} {t.levelComplete}</Text>
+        <Text style={ov.subtitle}>{isDaily ? '📅 GÜNLÜK GÖREV' : t.level + ' ' + levelId} {t.levelComplete}</Text>
         {combo > 0 && <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 12, color: COLORS.tertiary, marginBottom: 8 }}>🔥 Max Combo: {combo}x</Text>}
         <View style={ov.statsRow}>
           <View style={ov.statBox}>
@@ -247,8 +248,8 @@ function LevelCompleteOverlay({ t, score, coins, movesLeft, maxMoves, levelId, c
         </View>
         <TouchableOpacity onPress={onNext} activeOpacity={0.85}>
           <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={ov.nextBtn}>
-            <Text style={ov.nextBtnText}>{t.nextLevel}</Text>
-            <MaterialIcons name="arrow-forward" size={20} color="#fff" />
+            <Text style={ov.nextBtnText}>{isDaily ? t.home : t.nextLevel}</Text>
+            <MaterialIcons name={isDaily ? 'home' : 'arrow-forward'} size={20} color="#fff" />
           </LinearGradient>
         </TouchableOpacity>
         <View style={ov.bottomRow}>
@@ -308,10 +309,11 @@ export default function GameScreen() {
   const { lang, t } = useLang();
   const [levelId, setLevelId] = useState(parseInt(params.level) || 1);
   const [gameLang, setGameLang] = useState(lang);
+  const [isDaily, setIsDaily] = useState(params.daily === 'true');
 
   // Sync game language with context
   useEffect(() => { setGameLang(lang); }, [lang]);
-  const level = getLevel(levelId, gameLang);
+  const level = isDaily ? getDailyChallenge(gameLang) : getLevel(levelId, gameLang);
   const [gs, setGs] = useState(() => generateGameState(level));
   const [selected, setSelected] = useState(null);
   const [feedback, setFeedback] = useState('');
@@ -898,11 +900,25 @@ export default function GameScreen() {
 
   // ── Level Complete → save & advance ──
   const handleNextLevel = useCallback(async () => {
+    const bonus = Math.floor(8 * (gs.moves / level.moves));
+    const prog = await loadProgress();
+
+    if (isDaily) {
+      // Daily challenge: 100 coin bonus, mark done, go home
+      await updateProgress({
+        coins: (prog.coins || 0) + 100 + bonus,
+        totalGames: (prog.totalGames || 0) + 1,
+        totalWins: (prog.totalWins || 0) + 1,
+        bestScore: Math.max(prog.bestScore || 0, gs.score),
+      });
+      await markDailyChallengeCompleted();
+      router.back();
+      return;
+    }
+
     const nextId = levelId + 1;
     const nextLevel = getLevel(nextId, gameLang);
     if (!nextLevel) { router.back(); return; }
-    const bonus = Math.floor(8 * (gs.moves / level.moves));
-    const prog = await loadProgress();
     await updateProgress({
       currentLevel: nextId,
       coins: (prog.coins || 0) + 30 + bonus,
@@ -981,7 +997,7 @@ export default function GameScreen() {
           <Text style={st.coinText}>{coins}</Text>
         </View>
         <View style={{ alignItems: 'center' }}>
-          <Text style={st.headerTitle}>{t.level} {gs.levelId}</Text>
+          <Text style={st.headerTitle}>{isDaily ? '📅 GÜNLÜK' : t.level + ' ' + gs.levelId}</Text>
           {combo >= 2 && <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 11, color: COLORS.coin }}>🔥 {combo}x Combo</Text>}
         </View>
         <TouchableOpacity style={st.settingsBtn} onPress={() => setPaused(true)}>
@@ -1165,7 +1181,7 @@ export default function GameScreen() {
 
       {/* Overlays */}
       {gs.isComplete && (
-        <LevelCompleteOverlay t={t} score={gs.score} coins={30} movesLeft={gs.moves} maxMoves={level.moves} levelId={gs.levelId} combo={combo} onNext={handleNextLevel} onReplay={handleReplay} onHome={handleHome} />
+        <LevelCompleteOverlay t={t} score={gs.score} coins={isDaily ? 100 : 30} movesLeft={gs.moves} maxMoves={level.moves} levelId={gs.levelId} combo={combo} isDaily={isDaily} onNext={handleNextLevel} onReplay={handleReplay} onHome={handleHome} />
       )}
       {gs.isFailed && !gs.isComplete && (
         <LevelFailedOverlay t={t} levelId={gs.levelId} onAddMovesAd={addMovesAd} onAddMovesCoin={addMovesCoin} onReplay={handleReplay} onHome={handleHome} />

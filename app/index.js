@@ -119,6 +119,26 @@ export default function HomeScreen() {
           </LinearGradient>
         </TouchableOpacity>
 
+        {/* Daily Challenge */}
+        <TouchableOpacity 
+          style={[s.dailyBtn, dailyDone && { opacity: 0.5 }]} 
+          activeOpacity={0.7} 
+          onPress={() => { if (!dailyDone) router.push({ pathname: '/game', params: { daily: 'true' } }); }}
+        >
+          <View style={s.dailyLeft}>
+            <Text style={{ fontSize: 22 }}>📅</Text>
+            <View>
+              <Text style={s.dailyTitle}>Günlük Görev</Text>
+              <Text style={s.dailyDate}>{getDailyDateString()}</Text>
+            </View>
+          </View>
+          {dailyDone ? (
+            <View style={s.dailyDoneBadge}><MaterialIcons name="check" size={16} color="#fff" /></View>
+          ) : (
+            <View style={s.dailyRewardBadge}><Text style={s.dailyRewardText}>+100 🪙</Text></View>
+          )}
+        </TouchableOpacity>
+
         {/* Level select button */}
         <TouchableOpacity style={s.levelSelectBtn} activeOpacity={0.7} onPress={() => router.push('/levels')}>
           <MaterialIcons name="grid-view" size={20} color={COLORS.secondary} />
@@ -222,4 +242,18 @@ const s = StyleSheet.create({
   adText: { fontFamily: FONTS.headline, fontSize: 15, color: COLORS.onSurface },
   adBadge: { backgroundColor: COLORS.tertiary, paddingHorizontal: 12, paddingVertical: 4, borderRadius: SIZES.radiusFull },
   adBadgeText: { fontFamily: FONTS.headlineBlack, fontSize: 11, color: '#fff' },
+
+  dailyBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    width: '100%', maxWidth: 340, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 12,
+    backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 16,
+    borderWidth: 1.5, borderColor: COLORS.coin,
+    shadowColor: COLORS.coin, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.3, shadowRadius: 10,
+  },
+  dailyLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  dailyTitle: { fontFamily: FONTS.headlineBlack, fontSize: 14, color: COLORS.onSurface },
+  dailyDate: { fontFamily: FONTS.body, fontSize: 11, color: COLORS.onSurfaceVariant },
+  dailyDoneBadge: { width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.success, alignItems: 'center', justifyContent: 'center' },
+  dailyRewardBadge: { backgroundColor: COLORS.coin, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  dailyRewardText: { fontFamily: FONTS.headlineBlack, fontSize: 11, color: '#000' },
 });
