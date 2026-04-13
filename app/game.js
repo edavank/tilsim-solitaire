@@ -414,7 +414,8 @@ export default function GameScreen() {
   const [paused, setPaused] = useState(false);
   const [shakeSlotIdx, setShakeSlotIdx] = useState(-1);
   const [showTutorial, setShowTutorial] = useState(false);
-  const [toolModal, setToolModal] = useState(null); // 'hint' | 'undo' | 'delete' | null
+  const [toolModal, setToolModal] = useState(null); // 'hint' | 'undo' | 'delete' | 'joker' | 'shuffle'
+  const [toolCredits, setToolCredits] = useState({ joker: 0, shuffle: 0, undo: 0, delete: 0 });
   const [scorePopups, setScorePopups] = useState([]); // [{id, text, x, y}]
   const [achievementPopup, setAchievementPopup] = useState(null); // { icon, title }
   
@@ -915,8 +916,15 @@ export default function GameScreen() {
 
   const useUndo = useCallback(async () => {
     if (history.length === 0) { setFeedback(t.nothingToUndo); return; }
+    if (toolCredits.undo > 0) {
+      // Kredi var — hemen kullan
+      setToolCredits(tc => ({ ...tc, undo: tc.undo - 1 }));
+      setGs(history[history.length - 1]); setHistory((h) => h.slice(0, -1)); setSelected(null);
+      setFeedback('↩️ Geri alındı!');
+      return;
+    }
     setToolModal('undo');
-  }, [history]);
+  }, [history, toolCredits.undo]);
 
   const executeUndo = useCallback(async (method) => {
     if (method === 'coin') {
@@ -924,14 +932,24 @@ export default function GameScreen() {
       setCoins(coins - 500); await updateProgress({ coins: coins - 500 });
     }
     if (method === 'ad') await showRewarded();
-    setGs(history[history.length - 1]); setHistory((h) => h.slice(0, -1)); setSelected(null);
-    setFeedback('↩️ Geri alındı' + (method === 'coin' ? ' (-500 🪙)' : '')); setToolModal(null);
-  }, [history, coins]);
+    // Kredi ekle — hemen kullanma
+    setToolCredits(tc => ({ ...tc, undo: tc.undo + 1 }));
+    setFeedback('↩️ Geri al hakkı eklendi! Butona tekrar bas.');
+    setToolModal(null);
+  }, [coins]);
 
   const useDelete = useCallback(async () => {
     if (gs.drawnCards.length === 0) { setFeedback(t.nothingToDelete); return; }
+    if (toolCredits.delete > 0) {
+      // Kredi var — hemen kullan
+      setToolCredits(tc => ({ ...tc, delete: tc.delete - 1 }));
+      setGs((p) => ({ ...p, drawnCards: p.drawnCards.slice(0, -1), moves: p.moves - 1 }));
+      setSelected(null);
+      setFeedback('🗑️ Kart silindi!');
+      return;
+    }
     setToolModal('delete');
-  }, [gs.drawnCards]);
+  }, [gs.drawnCards, toolCredits.delete]);
 
   const executeDelete = useCallback(async (method) => {
     if (method === 'coin') {
@@ -939,16 +957,29 @@ export default function GameScreen() {
       setCoins(coins - 500); await updateProgress({ coins: coins - 500 });
     }
     if (method === 'ad') await showRewarded();
-    setGs((p) => ({ ...p, drawnCards: p.drawnCards.slice(0, -1), moves: p.moves - 1 })); setSelected(null);
-    setFeedback('🗑️ Kart silindi' + (method === 'coin' ? ' (-500 🪙)' : '')); setToolModal(null);
-  }, [gs.drawnCards, coins]);
+    setToolCredits(tc => ({ ...tc, delete: tc.delete + 1 }));
+    setFeedback('🗑️ Silme hakkı eklendi! Butona tekrar bas.');
+    setToolModal(null);
+  }, [coins]);
 
   // ── Joker Card (Wildcard) ──
   const useJoker = useCallback(async () => {
-    // Joker: desteden çekilen kartı joker'e çevirir — herhangi bir kategoriye uyar
     if (gs.drawnCards.length === 0) { setFeedback('🃏 Önce desteden kart çek!'); return; }
+    if (toolCredits.joker > 0) {
+      // Kredi var — hemen kullan
+      setToolCredits(tc => ({ ...tc, joker: tc.joker - 1 }));
+      setGs((p) => {
+        if (p.drawnCards.length === 0) return p;
+        const newDrawn = [...p.drawnCards];
+        const lastCard = { ...newDrawn[newDrawn.length - 1], isJoker: true, word: '✦ Joker', emoji: '🃏' };
+        newDrawn[newDrawn.length - 1] = lastCard;
+        return { ...p, drawnCards: newDrawn };
+      });
+      setFeedback('🃏 Joker aktif! Herhangi bir kategoriye koyabilirsin.');
+      return;
+    }
     setToolModal('joker');
-  }, [gs.drawnCards]);
+  }, [gs.drawnCards, toolCredits.joker]);
 
   const executeJoker = useCallback(async (method) => {
     if (method === 'coin') {
@@ -956,25 +987,44 @@ export default function GameScreen() {
       setCoins(coins - 750); await updateProgress({ coins: coins - 750 });
     }
     if (method === 'ad') await showRewarded();
-    // Üstteki drawn kartı joker yap — tüm kategorilere uyar
-    setGs((p) => {
-      if (p.drawnCards.length === 0) return p;
-      const newDrawn = [...p.drawnCards];
-      const lastCard = { ...newDrawn[newDrawn.length - 1], isJoker: true, word: '✦ Joker', emoji: '🃏' };
-      newDrawn[newDrawn.length - 1] = lastCard;
-      return { ...p, drawnCards: newDrawn };
-    });
-    setFeedback('🃏 Joker aktif! Herhangi bir kategoriye koyabilirsin.' + (method === 'coin' ? ' (-750 🪙)' : ''));
+    setToolCredits(tc => ({ ...tc, joker: tc.joker + 1 }));
+    setFeedback('🃏 Joker hakkı eklendi! Butona tekrar bas.');
     setToolModal(null);
   }, [coins]);
 
   // ── Shuffle (Karıştır) ──
   const useShuffle = useCallback(async () => {
-    // Sütunlardaki kapalı kartları karıştırır
     const hasFaceDown = gs.columns.some(col => !col.locked && col.cards.some(c => !c.faceUp));
     if (!hasFaceDown) { setFeedback('🔀 Karıştırılacak kapalı kart yok!'); return; }
+    if (toolCredits.shuffle > 0) {
+      // Kredi var — hemen kullan
+      setToolCredits(tc => ({ ...tc, shuffle: tc.shuffle - 1 }));
+      setGs((prev) => {
+        const faceDownCards = [];
+        prev.columns.forEach(col => {
+          if (!col.locked) col.cards.forEach(c => { if (!c.faceUp) faceDownCards.push({ ...c }); });
+        });
+        for (let i = faceDownCards.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [faceDownCards[i], faceDownCards[j]] = [faceDownCards[j], faceDownCards[i]];
+        }
+        let idx = 0;
+        const newColumns = prev.columns.map(col => {
+          if (col.locked) return col;
+          const newCards = col.cards.map(c => {
+            if (!c.faceUp) return { ...faceDownCards[idx++], faceUp: false };
+            return c;
+          });
+          return { ...col, cards: newCards };
+        });
+        setHistory((h) => [...h, prev]);
+        return { ...prev, columns: newColumns };
+      });
+      setFeedback('🔀 Kapalı kartlar karıştırıldı!');
+      return;
+    }
     setToolModal('shuffle');
-  }, [gs.columns]);
+  }, [gs.columns, toolCredits.shuffle]);
 
   const executeShuffle = useCallback(async (method) => {
     if (method === 'coin') {
@@ -982,31 +1032,8 @@ export default function GameScreen() {
       setCoins(coins - 500); await updateProgress({ coins: coins - 500 });
     }
     if (method === 'ad') await showRewarded();
-    setGs((prev) => {
-      // Tüm kapalı kartları topla
-      const faceDownCards = [];
-      prev.columns.forEach(col => {
-        if (!col.locked) col.cards.forEach(c => { if (!c.faceUp) faceDownCards.push({ ...c }); });
-      });
-      // Karıştır
-      for (let i = faceDownCards.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [faceDownCards[i], faceDownCards[j]] = [faceDownCards[j], faceDownCards[i]];
-      }
-      // Geri yerleştir
-      let idx = 0;
-      const newColumns = prev.columns.map(col => {
-        if (col.locked) return col;
-        const newCards = col.cards.map(c => {
-          if (!c.faceUp) return { ...faceDownCards[idx++], faceUp: false };
-          return c;
-        });
-        return { ...col, cards: newCards };
-      });
-      setHistory((h) => [...h, prev]);
-      return { ...prev, columns: newColumns };
-    });
-    setFeedback('🔀 Kapalı kartlar karıştırıldı!' + (method === 'coin' ? ' (-500 🪙)' : ''));
+    setToolCredits(tc => ({ ...tc, shuffle: tc.shuffle + 1 }));
+    setFeedback('🔀 Karıştırma hakkı eklendi! Butona tekrar bas.');
     setToolModal(null);
   }, [coins]);
 
@@ -1306,10 +1333,10 @@ export default function GameScreen() {
       {/* Toolbar */}
       <View style={st.toolbar}>
         <ToolBtn icon="lightbulb" label={t.hint} badge={gs.hints > 0 ? gs.hints : '🪙'} badgeColor={gs.hints > 0 ? COLORS.fail : COLORS.coin} onPress={useHint} big />
-        <ToolBtn icon="undo" label={t.undo} badge="🪙" badgeColor={COLORS.coin} onPress={useUndo} />
-        <ToolBtn icon="style" label="JOKER" badge="🪙" badgeColor={COLORS.coin} onPress={useJoker} />
-        <ToolBtn icon="shuffle" label="KARIŞTIR" badge="🪙" badgeColor={COLORS.coin} onPress={useShuffle} />
-        <ToolBtn icon="auto-fix-normal" label={t.delete} badge="🪙" badgeColor={COLORS.coin} onPress={useDelete} />
+        <ToolBtn icon="undo" label={t.undo} badge={toolCredits.undo > 0 ? toolCredits.undo : '🪙'} badgeColor={toolCredits.undo > 0 ? COLORS.success : COLORS.coin} onPress={useUndo} />
+        <ToolBtn icon="style" label="JOKER" badge={toolCredits.joker > 0 ? toolCredits.joker : '🪙'} badgeColor={toolCredits.joker > 0 ? COLORS.success : COLORS.coin} onPress={useJoker} />
+        <ToolBtn icon="shuffle" label="KARIŞTIR" badge={toolCredits.shuffle > 0 ? toolCredits.shuffle : '🪙'} badgeColor={toolCredits.shuffle > 0 ? COLORS.success : COLORS.coin} onPress={useShuffle} />
+        <ToolBtn icon="auto-fix-normal" label={t.delete} badge={toolCredits.delete > 0 ? toolCredits.delete : '🪙'} badgeColor={toolCredits.delete > 0 ? COLORS.success : COLORS.coin} onPress={useDelete} />
       </View>
 
       {/* Ad Banner Space */}
