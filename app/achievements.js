@@ -8,7 +8,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, FONTS } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { ACHIEVEMENTS, loadAchievements } from '../src/utils/achievements';
-import { loadProgress } from '../src/utils/storage';
+import { loadProgress, updateProgress } from '../src/utils/storage';
 import { getDailyCompletionMap } from '../src/utils/dailyChallenge';
 
 export default function AchievementsScreen() {
@@ -22,6 +22,7 @@ export default function AchievementsScreen() {
       loadProgress().then(async (p) => {
         const dailyMap = await getDailyCompletionMap();
         setStats({ ...p, dailyCount: Object.keys(dailyMap).length });
+        if (p.unseenAch > 0) await updateProgress({ unseenAch: 0 });
       });
     }, [])
   );

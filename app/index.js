@@ -56,6 +56,7 @@ export default function HomeScreen() {
   const [coins, setCoins] = useState(0);
   const [dailyDone, setDailyDone] = useState(false);
   const [activeTheme, setActiveTheme] = useState('cosmic');
+  const [unseenAch, setUnseenAch] = useState(0);
   const [bilgeMsg] = useState(() => {
     const msgs = t.bilgeMessages || [];
     return msgs[Math.floor(Math.random() * msgs.length)] || '';
@@ -64,7 +65,7 @@ export default function HomeScreen() {
   // Refresh on screen focus (coming back from game)
   useFocusEffect(
     useCallback(() => {
-      loadProgress().then((p) => { setCurrentLevel(p.currentLevel); setCoins(p.coins); setActiveTheme(p.activeTheme || 'cosmic'); });
+      loadProgress().then((p) => { setCurrentLevel(p.currentLevel); setCoins(p.coins); setActiveTheme(p.activeTheme || 'cosmic'); setUnseenAch(p.unseenAch || 0); });
       isDailyChallengeCompleted().then(setDailyDone);
     }, [])
   );
@@ -197,7 +198,7 @@ export default function HomeScreen() {
 
       </Animated.View>
 
-      <BottomNav activeTab="home" />
+      <BottomNav activeTab="home" achievementBadge={unseenAch} />
     </View>
   );
 }

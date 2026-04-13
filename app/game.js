@@ -992,11 +992,12 @@ export default function GameScreen() {
       setCoins(coins - 500); await updateProgress({ coins: coins - 500 });
     }
     if (method === 'ad') await showRewarded();
-    // Kredi ekle — hemen kullanma
-    setToolCredits(tc => ({ ...tc, undo: tc.undo + 1 }));
+    const newCredits = { ...toolCredits, undo: toolCredits.undo + 1 };
+    setToolCredits(newCredits);
+    await updateProgress({ toolCredits: newCredits });
     setFeedback('↩️ Geri al hakkı eklendi! Butona tekrar bas.');
     setToolModal(null);
-  }, [coins]);
+  }, [coins, toolCredits]);
 
   const useDelete = useCallback(async () => {
     if (!isToolUnlocked('delete')) return;
@@ -1019,10 +1020,12 @@ export default function GameScreen() {
       setCoins(coins - 500); await updateProgress({ coins: coins - 500 });
     }
     if (method === 'ad') await showRewarded();
-    setToolCredits(tc => ({ ...tc, delete: tc.delete + 1 }));
+    const newCredits = { ...toolCredits, delete: toolCredits.delete + 1 };
+    setToolCredits(newCredits);
+    await updateProgress({ toolCredits: newCredits });
     setFeedback('🗑️ Silme hakkı eklendi! Butona tekrar bas.');
     setToolModal(null);
-  }, [coins]);
+  }, [coins, toolCredits]);
 
   // ── Joker Card (Wildcard) ──
   const useJoker = useCallback(async () => {
@@ -1051,10 +1054,12 @@ export default function GameScreen() {
       setCoins(coins - 750); await updateProgress({ coins: coins - 750 });
     }
     if (method === 'ad') await showRewarded();
-    setToolCredits(tc => ({ ...tc, joker: tc.joker + 1 }));
+    const newCredits = { ...toolCredits, joker: toolCredits.joker + 1 };
+    setToolCredits(newCredits);
+    await updateProgress({ toolCredits: newCredits });
     setFeedback('🃏 Joker hakkı eklendi! Butona tekrar bas.');
     setToolModal(null);
-  }, [coins]);
+  }, [coins, toolCredits]);
 
   // ── Shuffle (Karıştır) ──
   const useShuffle = useCallback(async () => {
@@ -1098,10 +1103,12 @@ export default function GameScreen() {
       setCoins(coins - 500); await updateProgress({ coins: coins - 500 });
     }
     if (method === 'ad') await showRewarded();
-    setToolCredits(tc => ({ ...tc, shuffle: tc.shuffle + 1 }));
+    const newCredits = { ...toolCredits, shuffle: toolCredits.shuffle + 1 };
+    setToolCredits(newCredits);
+    await updateProgress({ toolCredits: newCredits });
     setFeedback('🔀 Karıştırma hakkı eklendi! Butona tekrar bas.');
     setToolModal(null);
-  }, [coins]);
+  }, [coins, toolCredits]);
 
   // ── Smart Hint ──
   const useHint = useCallback(async () => {
@@ -1208,6 +1215,7 @@ export default function GameScreen() {
         const newAch = await checkAchievements(achStats);
         if (newAch.length > 0) {
           setAchievementPopup(newAch[0]);
+          await updateProgress({ unseenAch: (prog.unseenAch || 0) + newAch.length });
           setTimeout(() => setAchievementPopup(null), 3000);
         }
       } catch (e) {}
@@ -1249,6 +1257,7 @@ export default function GameScreen() {
       const newAch = await checkAchievements(achStats);
       if (newAch.length > 0) {
         setAchievementPopup(newAch[0]);
+        await updateProgress({ unseenAch: (prog.unseenAch || 0) + newAch.length });
         setTimeout(() => setAchievementPopup(null), 3000);
       }
     } catch (e) {}
@@ -1284,7 +1293,7 @@ export default function GameScreen() {
     setCoins((prog.coins || 0) + 30 + bonus);
     // Araç tanıtım popup'ı
     if (introTool) {
-      setTimeout(() => setToolIntro(TOOL_INFO[introTool]), 500);
+      setTimeout(() => { playSound('unlock'); setToolIntro(TOOL_INFO[introTool]); }, 500);
     }
   }, [levelId, gs, level, coins]);
 
@@ -1455,8 +1464,8 @@ export default function GameScreen() {
 
       {/* Toolbar */}
       <View style={st.toolbar}>
-        <ToolBtn icon="lightbulb" label={t.hint} badge={toolCredits.hint > 0 ? toolCredits.hint : '🪙'} badgeColor={toolCredits.hint > 0 ? COLORS.fail : COLORS.coin} onPress={useHint} big locked={!isToolUnlocked('hint')} unlockLevel={TOOL_UNLOCK.hint} />
-        <ToolBtn icon="undo" label={t.undo} badge={toolCredits.undo > 0 ? toolCredits.undo : '🪙'} badgeColor={toolCredits.undo > 0 ? COLORS.success : COLORS.coin} onPress={useUndo} locked={!isToolUnlocked('undo')} unlockLevel={TOOL_UNLOCK.undo} />
+        <ToolBtn icon="lightbulb" label={t.hint} badge={toolCredits.hint > 0 ? toolCredits.hint : '🪙'} badgeColor={toolCredits.hint > 0 ? COLORS.fail : COLORS.coin} onPress={useHint} big locked={!isToolUnlocked('hint')} unlockLevel={TOOL_UNLOCK.hint} pulse={gs.moves <= 5 && !isTimed} />
+        <ToolBtn icon="undo" label={t.undo} badge={toolCredits.undo > 0 ? toolCredits.undo : '🪙'} badgeColor={toolCredits.undo > 0 ? COLORS.success : COLORS.coin} onPress={useUndo} locked={!isToolUnlocked('undo')} unlockLevel={TOOL_UNLOCK.undo} pulse={gs.moves <= 3 && !isTimed} />
         <ToolBtn icon="style" label="JOKER" badge={toolCredits.joker > 0 ? toolCredits.joker : '🪙'} badgeColor={toolCredits.joker > 0 ? COLORS.success : COLORS.coin} onPress={useJoker} locked={!isToolUnlocked('joker')} unlockLevel={TOOL_UNLOCK.joker} />
         <ToolBtn icon="shuffle" label="KARIŞTIR" badge={toolCredits.shuffle > 0 ? toolCredits.shuffle : '🪙'} badgeColor={toolCredits.shuffle > 0 ? COLORS.success : COLORS.coin} onPress={useShuffle} locked={!isToolUnlocked('shuffle')} unlockLevel={TOOL_UNLOCK.shuffle} />
         <ToolBtn icon="auto-fix-normal" label={t.delete} badge={toolCredits.delete > 0 ? toolCredits.delete : '🪙'} badgeColor={toolCredits.delete > 0 ? COLORS.success : COLORS.coin} onPress={useDelete} locked={!isToolUnlocked('delete')} unlockLevel={TOOL_UNLOCK.delete} />
@@ -1648,15 +1657,17 @@ const s_tut = StyleSheet.create({
   stepText: { fontFamily: FONTS.body, fontSize: 12, color: COLORS.onSurfaceVariant, lineHeight: 17 },
 });
 
-function ToolBtn({ icon, label, badge, badgeColor, onPress, big, locked, unlockLevel }) {
+function ToolBtn({ icon, label, badge, badgeColor, onPress, big, locked, unlockLevel, pulse }) {
   const pulseAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    if (locked) return;
-    Animated.loop(Animated.sequence([
-      Animated.timing(pulseAnim, { toValue: 1, duration: 1500, useNativeDriver: true }),
-      Animated.timing(pulseAnim, { toValue: 0, duration: 1500, useNativeDriver: true }),
-    ])).start();
-  }, [locked]);
+    if (locked || !pulse) { pulseAnim.setValue(0); return; }
+    const anim = Animated.loop(Animated.sequence([
+      Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+      Animated.timing(pulseAnim, { toValue: 0, duration: 800, useNativeDriver: true }),
+    ]));
+    anim.start();
+    return () => anim.stop();
+  }, [locked, pulse]);
   
   if (locked) {
     return (
@@ -1669,8 +1680,8 @@ function ToolBtn({ icon, label, badge, badgeColor, onPress, big, locked, unlockL
     );
   }
   
-  const glowScale = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] });
-  const glowOpacity = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] });
+  const glowScale = pulse ? pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.15] }) : 1;
+  const glowOpacity = pulse ? pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }) : 1;
   return (
     <View style={st.toolWrap}>
       <Animated.View style={{ transform: [{ scale: glowScale }], opacity: glowOpacity }}>

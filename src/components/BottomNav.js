@@ -21,13 +21,14 @@ const tabDefs = [
   { key: 'leaderboard', route: '/leaderboard', icon: 'leaderboard' },
 ];
 
-export default function BottomNav({ activeTab = 'home' }) {
+export default function BottomNav({ activeTab = 'home', achievementBadge = 0 }) {
   const { lang } = useLang();
   const labels = TAB_LABELS[lang] || TAB_LABELS.tr;
   return (
     <View style={styles.container}>
       {tabDefs.map((tab) => {
         const isActive = activeTab === tab.key;
+        const showBadge = tab.key === 'achievements' && achievementBadge > 0;
         return (
           <TouchableOpacity
             key={tab.key}
@@ -35,7 +36,14 @@ export default function BottomNav({ activeTab = 'home' }) {
             onPress={() => { if (!isActive) router.replace(tab.route); }}
             activeOpacity={0.7}
           >
-            <MaterialIcons name={tab.icon} size={24} color={isActive ? COLORS.navActive : COLORS.navInactive} />
+            <View>
+              <MaterialIcons name={tab.icon} size={24} color={isActive ? COLORS.navActive : COLORS.navInactive} />
+              {showBadge && (
+                <View style={{ position: 'absolute', top: -4, right: -8, backgroundColor: '#FF4444', minWidth: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 }}>
+                  <Text style={{ fontFamily: FONTS.headline, fontSize: 9, color: '#fff' }}>{achievementBadge}</Text>
+                </View>
+              )}
+            </View>
             <Text style={[styles.label, isActive && styles.activeLabel]}>{labels[tab.key]}</Text>
           </TouchableOpacity>
         );
