@@ -6,47 +6,54 @@ import { router } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { loadProgress, updateProgress } from '../src/utils/storage';
+import { useLang } from '../src/context/LanguageContext';
 
 const OWL = require('../assets/bilge-happy.png');
 
-const GOLD_PACKS = [
-  { amount: 100, price: '₺24,99', desc: 'Küçük bir başlangıç', icon: 'monetization-on', popular: false },
-  { amount: 500, price: '₺99,99', desc: 'En çok tercih edilen', icon: 'account-balance-wallet', popular: true },
-  { amount: 2000, price: '₺299,99', desc: 'EN İYİ FİYAT AVANTAJI', icon: 'savings', popular: false },
-];
-
-const BOOSTERS = [
-  { name: 'İpucu', desc: 'Tıkanınca yolunu bul', icon: 'lightbulb', coinCost: 50, color: COLORS.secondary, key: 'hints' },
-  { name: 'Geri Al', desc: 'Hatalı hamleyi düzelt', icon: 'undo', coinCost: 30, color: COLORS.secondary, key: 'undos' },
-];
+const STORE_TEXT = {
+  tr: { premium: 'PREMİUM', noAds: 'Reklamsız Deneyim', noAdsDesc: 'Kesintisiz oyun keyfi için reklamları kaldırın.', coinPacks: 'Coin Paketleri', small: 'Küçük bir başlangıç', popular: 'En çok tercih edilen', popularBadge: 'EN POPÜLER', best: 'EN İYİ FİYAT', boosters: 'Güçlendiriciler', hint: 'İpucu', hintDesc: 'Tıkanınca yolunu bul', undo: 'Geri Al', undoDesc: 'Hatalı hamleyi düzelt', restore: 'Satın Alımları Geri Yükle', coming: 'Yakında!', comingMsg: 'IAP entegrasyonu gerekli.', notEnough: 'Yetersiz Coin', bought: 'Satın Alındı!', boughtMsg: ' eklendi.', footer: 'TILSIM SOLITAIRE MAĞAZA' },
+  en: { premium: 'PREMIUM', noAds: 'Ad-Free Experience', noAdsDesc: 'Remove ads for uninterrupted gameplay.', coinPacks: 'Coin Packs', small: 'A small start', popular: 'Most preferred', popularBadge: 'MOST POPULAR', best: 'BEST VALUE', boosters: 'Boosters', hint: 'Hint', hintDesc: 'Find your way when stuck', undo: 'Undo', undoDesc: 'Fix wrong moves', restore: 'Restore Purchases', coming: 'Coming Soon!', comingMsg: 'IAP integration required.', notEnough: 'Not Enough Coins', bought: 'Purchased!', boughtMsg: ' added.', footer: 'TILSIM SOLITAIRE STORE' },
+  de: { premium: 'PREMIUM', noAds: 'Werbefreies Erlebnis', noAdsDesc: 'Entfernen Sie Werbung.', coinPacks: 'Coin-Pakete', small: 'Ein kleiner Anfang', popular: 'Am beliebtesten', popularBadge: 'BELIEBTESTE', best: 'BESTER WERT', boosters: 'Booster', hint: 'Tipp', hintDesc: 'Finde deinen Weg', undo: 'Zurück', undoDesc: 'Fehler korrigieren', restore: 'Käufe wiederherstellen', coming: 'Bald!', comingMsg: 'IAP erforderlich.', notEnough: 'Nicht genug Coins', bought: 'Gekauft!', boughtMsg: ' hinzugefügt.', footer: 'TILSIM SOLITAIRE SHOP' },
+  fr: { premium: 'PREMIUM', noAds: 'Sans publicité', noAdsDesc: 'Supprimez les pubs.', coinPacks: 'Packs de Coins', small: 'Un petit début', popular: 'Le plus choisi', popularBadge: 'POPULAIRE', best: 'MEILLEUR PRIX', boosters: 'Boosters', hint: 'Indice', hintDesc: 'Trouvez votre chemin', undo: 'Annuler', undoDesc: 'Corrigez les erreurs', restore: 'Restaurer les achats', coming: 'Bientôt!', comingMsg: 'IAP requis.', notEnough: 'Pas assez de Coins', bought: 'Acheté!', boughtMsg: ' ajouté.', footer: 'TILSIM SOLITAIRE BOUTIQUE' },
+  es: { premium: 'PREMIUM', noAds: 'Sin anuncios', noAdsDesc: 'Elimina los anuncios.', coinPacks: 'Packs de Coins', small: 'Un pequeño inicio', popular: 'El más elegido', popularBadge: 'MÁS POPULAR', best: 'MEJOR PRECIO', boosters: 'Potenciadores', hint: 'Pista', hintDesc: 'Encuentra tu camino', undo: 'Deshacer', undoDesc: 'Corrige errores', restore: 'Restaurar compras', coming: '¡Pronto!', comingMsg: 'IAP requerido.', notEnough: 'Coins insuficientes', bought: '¡Comprado!', boughtMsg: ' añadido.', footer: 'TILSIM SOLITAIRE TIENDA' },
+  ar: { premium: 'مميز', noAds: 'بدون إعلانات', noAdsDesc: 'أزل الإعلانات.', coinPacks: 'حزم العملات', small: 'بداية صغيرة', popular: 'الأكثر اختياراً', popularBadge: 'الأكثر شعبية', best: 'أفضل قيمة', boosters: 'معززات', hint: 'تلميح', hintDesc: 'اعثر على طريقك', undo: 'تراجع', undoDesc: 'صحح الأخطاء', restore: 'استعادة المشتريات', coming: 'قريباً!', comingMsg: 'IAP مطلوب.', notEnough: 'عملات غير كافية', bought: 'تم الشراء!', boughtMsg: ' تمت الإضافة.', footer: 'TILSIM SOLITAIRE متجر' },
+};
 
 export default function StoreScreen() {
+  const { lang } = useLang();
+  const st = STORE_TEXT[lang] || STORE_TEXT.tr;
   const [coins, setCoins] = useState(0);
 
   useEffect(() => {
     loadProgress().then((p) => setCoins(p.coins));
   }, []);
 
+  const COIN_PACKS = [
+    { amount: 100, price: '₺24,99', desc: st.small, icon: 'monetization-on', popular: false },
+    { amount: 500, price: '₺99,99', desc: st.popular, icon: 'account-balance-wallet', popular: true },
+    { amount: 2000, price: '₺299,99', desc: st.best, icon: 'savings', popular: false },
+  ];
+
+  const BOOSTERS = [
+    { name: st.hint, desc: st.hintDesc, icon: 'lightbulb', coinCost: 50, color: COLORS.secondary, key: 'hints' },
+    { name: st.undo, desc: st.undoDesc, icon: 'undo', coinCost: 30, color: COLORS.secondary, key: 'undos' },
+  ];
+
   const buyBooster = async (booster) => {
     if (coins < booster.coinCost) {
-      Alert.alert('Yetersiz Altın', `${booster.name} almak için ${booster.coinCost} altın gerekli. Şu an ${coins} altının var.`);
+      Alert.alert(st.notEnough, `${booster.coinCost} coin`);
       return;
     }
     const newCoins = coins - booster.coinCost;
     setCoins(newCoins);
     await updateProgress({ coins: newCoins });
-    Alert.alert('Satın Alındı!', `${booster.name} eklendi. Oyunda kullanabilirsin.`);
-  };
-
-  const buyGold = (pack) => {
-    Alert.alert('Yakında!', `${pack.amount} Altın paketi yakında satışa sunulacak. (IAP entegrasyonu gerekli)`);
+    Alert.alert(st.bought, booster.name + st.boughtMsg);
   };
 
   return (
     <View style={s.container}>
       <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
 
-      {/* Header */}
       <View style={s.header}>
         <View style={s.headerLeft}>
           <Image source={OWL} style={s.headerAvatar} />
@@ -61,27 +68,25 @@ export default function StoreScreen() {
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
-        {/* Premium Banner */}
         <View style={s.premiumCard}>
-          <View style={s.premiumBadge}><Text style={s.premiumBadgeText}>PREMİUM</Text></View>
-          <Text style={s.premiumTitle}>Reklamsız Deneyim</Text>
-          <Text style={s.premiumDesc}>Kesintisiz bir solitaire keyfi için reklamları kaldırın.</Text>
-          <TouchableOpacity activeOpacity={0.8} onPress={() => Alert.alert('Yakında!', 'IAP entegrasyonu gerekli.')}>
+          <View style={s.premiumBadge}><Text style={s.premiumBadgeText}>{st.premium}</Text></View>
+          <Text style={s.premiumTitle}>{st.noAds}</Text>
+          <Text style={s.premiumDesc}>{st.noAdsDesc}</Text>
+          <TouchableOpacity activeOpacity={0.8} onPress={() => Alert.alert(st.coming, st.comingMsg)}>
             <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={s.premiumBtn}>
               <Text style={s.premiumBtnText}>₺89,99</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
 
-        {/* Gold Packs */}
-        <Text style={s.sectionTitle}>Altın Paketleri</Text>
-        {GOLD_PACKS.map((pack, i) => (
+        <Text style={s.sectionTitle}>{st.coinPacks}</Text>
+        {COIN_PACKS.map((pack, i) => (
           <View key={i} style={[s.goldCard, pack.popular && s.goldCardPopular]}>
-            {pack.popular && <View style={s.popularBadge}><Text style={s.popularText}>EN POPÜLER</Text></View>}
+            {pack.popular && <View style={s.popularBadge}><Text style={s.popularText}>{st.popularBadge}</Text></View>}
             <MaterialIcons name={pack.icon} size={36} color={COLORS.coin} style={{ marginBottom: 6 }} />
-            <Text style={s.goldAmount}>{pack.amount} Altın</Text>
+            <Text style={s.goldAmount}>{pack.amount} Coin</Text>
             <Text style={s.goldDesc}>{pack.desc}</Text>
-            <TouchableOpacity activeOpacity={0.8} style={{ width: '100%', marginTop: 12 }} onPress={() => buyGold(pack)}>
+            <TouchableOpacity activeOpacity={0.8} style={{ width: '100%', marginTop: 12 }} onPress={() => Alert.alert(st.coming, st.comingMsg)}>
               <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={s.goldBtn}>
                 <Text style={s.goldBtnText}>{pack.price}</Text>
               </LinearGradient>
@@ -89,8 +94,7 @@ export default function StoreScreen() {
           </View>
         ))}
 
-        {/* Boosters */}
-        <Text style={s.sectionTitle}>Güçlendiriciler</Text>
+        <Text style={s.sectionTitle}>{st.boosters}</Text>
         <View style={s.boosterRow}>
           {BOOSTERS.map((b, i) => (
             <TouchableOpacity key={i} style={s.boosterCard} onPress={() => buyBooster(b)} activeOpacity={0.7}>
@@ -107,13 +111,12 @@ export default function StoreScreen() {
           ))}
         </View>
 
-        {/* Restore Purchases — Apple App Store requirement */}
-        <TouchableOpacity style={s.restoreBtn} onPress={() => Alert.alert('Geri Yükleme', 'Satın alımlarınız kontrol ediliyor...', [{ text: 'Tamam' }])} activeOpacity={0.7}>
+        <TouchableOpacity style={s.restoreBtn} onPress={() => Alert.alert(st.coming)} activeOpacity={0.7}>
           <MaterialIcons name="restore" size={18} color={COLORS.onSurfaceVariant} />
-          <Text style={s.restoreText}>Satın Alımları Geri Yükle</Text>
+          <Text style={s.restoreText}>{st.restore}</Text>
         </TouchableOpacity>
 
-        <Text style={s.footerText}>TILSIM SOLİTAİRE EFSANEVİ MAĞAZA</Text>
+        <Text style={s.footerText}>{st.footer}</Text>
         <View style={{ height: 120 }} />
       </ScrollView>
 

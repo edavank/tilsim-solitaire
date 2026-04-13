@@ -5,11 +5,18 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SIZES } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { loadProgress } from '../src/utils/storage';
+import { useLang } from '../src/context/LanguageContext';
 
 const OWL = require('../assets/bilge-happy.png');
 
-const TABS = ['Weekly', 'Monthly', 'All Time'];
-const TABS_TR = ['Haftalık', 'Aylık', 'Tüm Zamanlar'];
+const LB_TEXT = {
+  tr: { tabs: ['Haftalık', 'Aylık', 'Tüm Zamanlar'], games: 'Oyun', wins: 'Kazanma', success: 'Başarı', you: 'Sen', level: 'Bölüm' },
+  en: { tabs: ['Weekly', 'Monthly', 'All Time'], games: 'Games', wins: 'Wins', success: 'Success', you: 'You', level: 'Level' },
+  de: { tabs: ['Wöchentlich', 'Monatlich', 'Alle Zeiten'], games: 'Spiele', wins: 'Siege', success: 'Erfolg', you: 'Du', level: 'Level' },
+  fr: { tabs: ['Semaine', 'Mois', 'Tout temps'], games: 'Parties', wins: 'Victoires', success: 'Succès', you: 'Vous', level: 'Niveau' },
+  es: { tabs: ['Semanal', 'Mensual', 'Todo'], games: 'Juegos', wins: 'Victorias', success: 'Éxito', you: 'Tú', level: 'Nivel' },
+  ar: { tabs: ['أسبوعي', 'شهري', 'كل الوقت'], games: 'ألعاب', wins: 'فوز', success: 'نجاح', you: 'أنت', level: 'مستوى' },
+};
 
 const PODIUM = [
   { rank: 2, name: 'Volkan', score: 9420, color: COLORS.onSurfaceVariant },
@@ -24,6 +31,8 @@ const OTHERS = [
 ];
 
 export default function LeaderboardScreen() {
+  const { lang } = useLang();
+  const lb = LB_TEXT[lang] || LB_TEXT.tr;
   const [activeTab, setActiveTab] = useState(0);
   const [userScore, setUserScore] = useState(0);
   const [userLevel, setUserLevel] = useState(1);
@@ -60,7 +69,7 @@ export default function LeaderboardScreen() {
 
       {/* Tab bar */}
       <View style={s.tabBar}>
-        {TABS_TR.map((tab, i) => (
+        {lb.tabs.map((tab, i) => (
           <TouchableOpacity key={i} style={[s.tab, activeTab === i && s.tabActive]} onPress={() => setActiveTab(i)} activeOpacity={0.7}>
             <Text style={[s.tabText, activeTab === i && s.tabTextActive]}>{tab}</Text>
           </TouchableOpacity>
@@ -131,15 +140,15 @@ export default function LeaderboardScreen() {
         <View style={s.statsRow}>
           <View style={s.statBox}>
             <Text style={s.statValue}>{totalGames}</Text>
-            <Text style={s.statLabel}>Oyun</Text>
+            <Text style={s.statLabel}>{b.games}</Text>
           </View>
           <View style={s.statBox}>
             <Text style={s.statValue}>{totalWins}</Text>
-            <Text style={s.statLabel}>Kazanma</Text>
+            <Text style={s.statLabel}>{lb.wins}</Text>
           </View>
           <View style={s.statBox}>
             <Text style={s.statValue}>{totalGames > 0 ? Math.round(totalWins / totalGames * 100) : 0}%</Text>
-            <Text style={s.statLabel}>Başarı</Text>
+            <Text style={s.statLabel}>{lb.success}</Text>
           </View>
         </View>
 
@@ -148,7 +157,7 @@ export default function LeaderboardScreen() {
           <Text style={s.userRank}>42</Text>
           <View style={s.userAvatar}><Text style={{ fontSize: 20 }}>👤</Text></View>
           <View style={{ flex: 1 }}>
-            <Text style={s.userName}>Siz (You)</Text>
+            <Text style={s.userName}>{lb.you}</Text>
             <View style={s.userProgress}>
               <View style={s.userProgressBar} />
               <Text style={s.userProgressLabel}>RISING</Text>
@@ -156,7 +165,7 @@ export default function LeaderboardScreen() {
           </View>
           <View style={{ alignItems: 'flex-end' }}>
             <Text style={s.userScore}>{userScore.toLocaleString()}</Text>
-            <Text style={s.userHint}>Bölüm {userLevel}</Text>
+            <Text style={s.userHint}>{lb.level} {userLevel}</Text>
           </View>
         </View>
 

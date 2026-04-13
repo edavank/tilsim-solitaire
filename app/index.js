@@ -86,10 +86,10 @@ export default function HomeScreen() {
       <Animated.View style={[s.main, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
 
         {/* Language picker */}
-        <TouchableOpacity style={s.langPicker}>
+        <TouchableOpacity style={s.langPicker} onPress={() => router.push('/settings')}>
           <MaterialIcons name="language" size={16} color={COLORS.onSurface} />
           <Text style={s.langText}>{LANG_FLAGS[lang] || 'TÜRKÇE'}</Text>
-          <MaterialIcons name="keyboard-arrow-down" size={16} color={COLORS.onSurface} />
+          <MaterialIcons name="chevron-right" size={16} color={COLORS.onSurface} />
         </TouchableOpacity>
 
         {/* Logo */}

@@ -3,17 +3,29 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../constants/theme';
+import { useLang } from '../context/LanguageContext';
 
-const tabs = [
-  { key: 'store', route: '/store', label: 'MAĞAZA', icon: 'storefront' },
-  { key: 'home', route: '/', label: 'ANA SAYFA', icon: 'home' },
-  { key: 'leaderboard', route: '/leaderboard', label: 'LİDERLER', icon: 'emoji-events' },
+const TAB_LABELS = {
+  tr: { store: 'MAĞAZA', home: 'ANA SAYFA', leaderboard: 'LİDERLER' },
+  en: { store: 'STORE', home: 'HOME', leaderboard: 'LEADERS' },
+  de: { store: 'SHOP', home: 'START', leaderboard: 'RANGLISTE' },
+  fr: { store: 'BOUTIQUE', home: 'ACCUEIL', leaderboard: 'CLASSEMENT' },
+  es: { store: 'TIENDA', home: 'INICIO', leaderboard: 'LÍDERES' },
+  ar: { store: 'متجر', home: 'الرئيسية', leaderboard: 'المتصدرين' },
+};
+
+const tabDefs = [
+  { key: 'store', route: '/store', icon: 'storefront' },
+  { key: 'home', route: '/', icon: 'home' },
+  { key: 'leaderboard', route: '/leaderboard', icon: 'emoji-events' },
 ];
 
 export default function BottomNav({ activeTab = 'home' }) {
+  const { lang } = useLang();
+  const labels = TAB_LABELS[lang] || TAB_LABELS.tr;
   return (
     <View style={styles.container}>
-      {tabs.map((tab) => {
+      {tabDefs.map((tab) => {
         const isActive = activeTab === tab.key;
         return (
           <TouchableOpacity
@@ -23,7 +35,7 @@ export default function BottomNav({ activeTab = 'home' }) {
             activeOpacity={0.7}
           >
             <MaterialIcons name={tab.icon} size={24} color={isActive ? COLORS.navActive : COLORS.navInactive} />
-            <Text style={[styles.label, isActive && styles.activeLabel]}>{tab.label}</Text>
+            <Text style={[styles.label, isActive && styles.activeLabel]}>{labels[tab.key]}</Text>
           </TouchableOpacity>
         );
       })}

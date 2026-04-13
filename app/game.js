@@ -218,10 +218,9 @@ function LevelCompleteOverlay({ t, score, coins, movesLeft, maxMoves, levelId, o
   return (
     <View style={ov.overlay}>
       <LinearGradient colors={['rgba(21,6,41,0.95)', 'rgba(61,53,96,0.95)']} style={StyleSheet.absoluteFillObject} />
-      <View style={{ alignItems: 'center' }}>
+      <View style={ov.card}>
         <Image source={OWL_HAPPY} style={ov.owl} />
-        <View style={ov.card}>
-          <Text style={ov.title}>{t.congrats}</Text>
+        <Text style={ov.title}>{t.congrats}</Text>
         <Text style={ov.subtitle}>{t.level} {levelId} {t.levelComplete}</Text>
         <View style={ov.statsRow}>
           <View style={ov.statBox}>
@@ -253,7 +252,6 @@ function LevelCompleteOverlay({ t, score, coins, movesLeft, maxMoves, levelId, o
           </TouchableOpacity>
         </View>
       </View>
-      </View>
     </View>
   );
 }
@@ -263,10 +261,9 @@ function LevelFailedOverlay({ t, levelId, onAddMoves, onReplay, onHome }) {
   return (
     <View style={ov.overlay}>
       <LinearGradient colors={['rgba(21,6,41,0.95)', 'rgba(61,53,96,0.95)']} style={StyleSheet.absoluteFillObject} />
-      <View style={{ alignItems: 'center' }}>
+      <View style={ov.card}>
         <Image source={OWL_HAPPY} style={ov.owl} />
-        <View style={ov.card}>
-          <View style={ov.speechBubble}><Text style={ov.speechText}>{t.failSpeech}</Text></View>
+        <View style={ov.speechBubble}><Text style={ov.speechText}>{t.failSpeech}</Text></View>
           <Text style={ov.failTitle}>{t.outOfMoves}</Text>
           <Text style={ov.failSub}>{t.failMsg}</Text>
           <TouchableOpacity onPress={onAddMoves} activeOpacity={0.85}>
@@ -285,7 +282,6 @@ function LevelFailedOverlay({ t, levelId, onAddMoves, onReplay, onHome }) {
               <MaterialIcons name="home" size={20} color={COLORS.onSurface} />
             </TouchableOpacity>
           </View>
-        </View>
       </View>
     </View>
   );
@@ -928,6 +924,25 @@ export default function GameScreen() {
             <TouchableOpacity style={st.addBtn} onPress={addMoves}><Text style={st.addBtnText}>+20 ▶</Text></TouchableOpacity>
           </View>
 
+          <TouchableOpacity onPress={drawCard} activeOpacity={0.7}>
+            {gs.deck.length > 0 ? (
+              <View>
+                <LinearGradient colors={[COLORS.cardBackTop, COLORS.cardBackBottom]} style={[st.faceDown, { width: DCW, height: DCH }]}>
+                  <View style={st.innerFrame}><View style={st.innerFrameInner} /></View>
+                </LinearGradient>
+                <View style={st.deckBadge}><Text style={st.deckBadgeText}>{gs.deck.length}</Text></View>
+              </View>
+            ) : (
+              <View style={[st.emptyCard, { width: DCW, height: DCH }]}>
+                {gs.drawnCards.length > 0 ? (
+                  <MaterialIcons name="refresh" size={22} color={COLORS.secondary} />
+                ) : (
+                  <MaterialIcons name="block" size={18} color="rgba(255,255,255,0.12)" />
+                )}
+              </View>
+            )}
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={st.drawnArea}
             onPress={handleDrawnTap}
@@ -945,31 +960,12 @@ export default function GameScreen() {
                 <Text style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>{t.empty}</Text>
               </View>
             ) : (
-              <View style={{ width: DCW + 28, height: DCH, justifyContent: 'center', alignItems: 'center' }}>
+              <View style={{ width: DCW + 40, height: DCH, justifyContent: 'center', alignItems: 'flex-start' }}>
                 {gs.drawnCards.slice(-3).map((card, i, arr) => (
-                  <View key={card.id} style={{ position: 'absolute', transform: [{ translateX: (i - (arr.length - 1)) * 14 }], zIndex: i, opacity: i === arr.length - 1 ? 1 : 0.35 + i * 0.2 }}>
+                  <View key={card.id} style={{ position: 'absolute', left: i * 18, zIndex: i, opacity: i === arr.length - 1 ? 1 : 0.4 }}>
                     <FaceUpCard card={card} selected={i === arr.length - 1 && selId === card.id} hinted={card.id === hintCard} isDragging={card.id === dragCard?.card?.id} w={DCW} h={DCH} />
                   </View>
                 ))}
-              </View>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={drawCard} activeOpacity={0.7}>
-            {gs.deck.length > 0 ? (
-              <View>
-                <LinearGradient colors={[COLORS.cardBackTop, COLORS.cardBackBottom]} style={[st.faceDown, { width: DCW, height: DCH }]}>
-                  <View style={st.innerFrame}><View style={st.innerFrameInner} /></View>
-                </LinearGradient>
-                <View style={st.deckBadge}><Text style={st.deckBadgeText}>{gs.deck.length}</Text></View>
-              </View>
-            ) : (
-              <View style={[st.emptyCard, { width: DCW, height: DCH }]}>
-                {gs.drawnCards.length > 0 ? (
-                  <MaterialIcons name="refresh" size={22} color={COLORS.secondary} />
-                ) : (
-                  <MaterialIcons name="block" size={18} color="rgba(255,255,255,0.12)" />
-                )}
               </View>
             )}
           </TouchableOpacity>
@@ -1129,8 +1125,8 @@ function ToolBtn({ icon, label, badge, badgeColor, onPress, big }) {
 /* ── Overlay Styles ── */
 const ov = StyleSheet.create({
   overlay: { ...StyleSheet.absoluteFillObject, zIndex: 999, justifyContent: 'center', alignItems: 'center' },
-  card: { width: SW - 48, backgroundColor: COLORS.surfaceContainerHigh, borderRadius: 28, paddingTop: 24, paddingBottom: 24, paddingHorizontal: 24, alignItems: 'center', borderWidth: 1, borderColor: COLORS.panelBorder },
-  owl: { width: 120, height: 120, borderRadius: 20, marginBottom: -30, zIndex: 10 },
+  card: { width: SW - 48, backgroundColor: COLORS.surfaceContainerHigh, borderRadius: 28, paddingTop: 16, paddingBottom: 24, paddingHorizontal: 24, alignItems: 'center', borderWidth: 1, borderColor: COLORS.panelBorder },
+  owl: { width: 100, height: 100, borderRadius: 16, marginBottom: 8 },
   title: { fontFamily: FONTS.headlineBlack, fontSize: 36, color: COLORS.onSurface, fontStyle: 'italic' },
   subtitle: { fontFamily: FONTS.headlineBlack, fontSize: 13, color: COLORS.secondary, letterSpacing: 3, marginBottom: 16 },
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 16, width: '100%' },
