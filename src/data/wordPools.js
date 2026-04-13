@@ -3,10 +3,10 @@
 export const WORD_POOLS = {
   tr: [
     { name: 'Meyveler', words: ['Elma', 'Armut', 'Kiraz', 'Portakal', 'Çilek', 'Muz', 'Karpuz', 'Üzüm', 'Şeftali', 'Ananas', 'Nar', 'İncir'] },
-    { name: 'Hayvanlar', words: ['Kedi', 'Köpek', 'Kuş', 'Balık', 'Tavşan', 'At', 'Kaplumbağa', 'Kurbağa', 'Aslan', 'Fil', 'Zürafa', 'Penguen'] },
+    { name: 'Hayvanlar', words: ['Kedi', 'Köpek', 'Kuş', 'Kaplan', 'Tavşan', 'At', 'Kaplumbağa', 'Kurbağa', 'Aslan', 'Fil', 'Zürafa', 'Penguen'] },
     { name: 'Renkler', words: ['Kırmızı', 'Mavi', 'Yeşil', 'Sarı', 'Turuncu', 'Mor', 'Pembe', 'Beyaz'] },
     { name: 'Sporlar', words: ['Futbol', 'Basketbol', 'Tenis', 'Yüzme', 'Voleybol', 'Boks', 'Bisiklet', 'Koşu'] },
-    { name: 'İçecekler', words: ['Çay', 'Kahve', 'Su', 'Süt', 'Limonata', 'Ayran', 'Meyve suyu', 'Smoothie'] },
+    { name: 'İçecekler', words: ['Maden suyu', 'Kahve', 'Su', 'Süt', 'Limonata', 'Ayran', 'Meyve suyu', 'Smoothie'] },
     { name: 'Ağaçlar', words: ['Çam', 'Meşe', 'Kavak', 'Ceviz', 'Zeytin', 'Palmiye'] },
     { name: 'Müzik', words: ['Gitar', 'Piyano', 'Davul', 'Keman', 'Flüt', 'Saz'] },
     { name: 'Sebzeler', words: ['Domates', 'Biber', 'Havuç', 'Patates', 'Soğan', 'Patlıcan', 'Brokoli', 'Mısır'] },
@@ -15,9 +15,9 @@ export const WORD_POOLS = {
     { name: 'Mevsimler', words: ['İlkbahar', 'Yaz', 'Sonbahar', 'Kış'] },
     { name: 'Duygular', words: ['Mutluluk', 'Üzüntü', 'Şaşkınlık', 'Korku', 'Öfke', 'Heyecan'] },
     { name: 'Okul', words: ['Kalem', 'Defter', 'Silgi', 'Cetvel', 'Kitap', 'Sırt çantası'] },
-    { name: 'Yiyecekler', words: ['Pizza', 'Hamburger', 'Sushi', 'Makarna', 'Dondurma', 'Kek'] },
+    { name: 'Yiyecekler', words: ['Pizza', 'Hamburger', 'Sushi', 'Makarna', 'Çorba', 'Pilav'] },
     { name: 'Hava durumu', words: ['Güneşli', 'Yağmurlu', 'Karlı', 'Bulutlu', 'Fırtınalı', 'Sisli'] },
-    { name: 'Ulaşım', words: ['Araba', 'Otobüs', 'Tren', 'Uçak', 'Gemi'] },
+    { name: 'Ulaşım', words: ['Araba', 'Otobüs', 'Tren', 'Uçak', 'Metro'] },
     { name: 'Giysiler', words: ['Gömlek', 'Pantolon', 'Şapka', 'Ayakkabı', 'Elbise', 'Çorap'] },
     { name: 'Kuşlar', words: ['Papağan', 'Serçe', 'Kartal', 'Martı', 'Baykuş', 'Flamingo'] },
     // Yeni kategoriler
@@ -27,7 +27,7 @@ export const WORD_POOLS = {
     { name: 'Mobilya', words: ['Masa', 'Sandalye', 'Dolap', 'Koltuk', 'Yatak', 'Ayna'] },
     { name: 'Vücut', words: ['Göz', 'Burun', 'Kulak', 'El', 'Ayak', 'Kalp'] },
     { name: 'Uzay', words: ['Ay', 'Güneş', 'Yıldız', 'Galaksi', 'Meteor', 'Uydu'] },
-    { name: 'Şehirler', words: ['İstanbul', 'Ankara', 'İzmir', 'Antalya', 'Bursa', 'Trabzon'] },
+    { name: 'Şehirler', words: ['Konya', 'Ankara', 'İzmir', 'Antalya', 'Bursa', 'Trabzon'] },
     { name: 'Takılar', words: ['Yüzük', 'Kolye', 'Bilezik', 'Küpe', 'Broş', 'Saat'] },
     { name: 'Tatlılar', words: ['Baklava', 'Künefe', 'Sütlaç', 'Helva', 'Lokum', 'Kadayıf'] },
     { name: 'Baharat', words: ['Tuz', 'Pul biber', 'Kimyon', 'Kekik', 'Tarçın', 'Safran'] },
@@ -36,9 +36,9 @@ export const WORD_POOLS = {
     { name: 'Bilgisayar', words: ['Klavye', 'Mouse', 'Ekran', 'İşlemci', 'Bellek', 'Disk'] },
     { name: 'Sinema', words: ['Film', 'Yönetmen', 'Aktör', 'Sahne', 'Senaryo', 'Kamera'] },
     { name: 'Mutfak', words: ['Tencere', 'Tava', 'Bıçak', 'Tabak', 'Bardak', 'Kaşık'] },
-    { name: 'Doğa', words: ['Dağ', 'Orman', 'Nehir', 'Göl', 'Şelale', 'Mağara'] },
-    { name: 'Tatil', words: ['Plaj', 'Otel', 'Bavul', 'Pasaport', 'Güneş kremi', 'Harita'] },
-    { name: 'Oyuncaklar', words: ['Bebek', 'Misket', 'Lego', 'Puzzle', 'Top', 'Uçurtma'] },
+    { name: 'Doğa', words: ['Dağ', 'Çayır', 'Nehir', 'Göl', 'Şelale', 'Mağara'] },
+    { name: 'Tatil', words: ['Havuz', 'Otel', 'Bavul', 'Pasaport', 'Güneş kremi', 'Harita'] },
+    { name: 'Oyuncaklar', words: ['Kukla', 'Misket', 'Lego', 'Puzzle', 'Top', 'Uçurtma'] },
     { name: 'Matematik', words: ['Toplama', 'Çıkarma', 'Çarpma', 'Bölme', 'Üçgen', 'Daire'] },
     { name: 'Sanat', words: ['Resim', 'Heykel', 'Fırça', 'Tuval', 'Boya', 'Müze'] },
     { name: 'Araçlar', words: ['Çekiç', 'Tornavida', 'Pense', 'Testere', 'Matkap', 'Anahtar'] },
@@ -560,6 +560,9 @@ export const EMOJI_MAP = {
   'Galata': '🗼', 'Sultanahmet': '🕌', 'Kadıköy': '⛴️', 'Üsküdar': '🌅',
   // Atıştırmalık
   'Cips': '🍟', 'Bisküvi': '🍪', 'Kuruyemiş': '🥜', 'Gofret': '🍫', 'Kraker': '🍘',
+
+  'Kaplan': '🐯', 'Maden suyu': '💧', 'Çorba': '🍜', 'Pilav': '🍚',
+  'Metro': '🚇', 'Konya': '🏛️', 'Çayır': '🌾', 'Havuz': '🏊', 'Kukla': '🎭',
   // Meşrubat
   'Kola': '🥤', 'Şalgam': '🧃', 'Boza': '🍶', 'Limonata': '🍋', 'Gazoz': '🫧',
   // Yeni/değişen kelimeler

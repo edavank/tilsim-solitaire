@@ -23,6 +23,35 @@ export function generateLevels(startId, count, language = 'tr') {
   const levels = [];
   let lastUsedCats = new Set(); // Önceki bölümün kategorileri — tekrar engeli
   
+  // Benzer kategoriler — aynı bölümde ASLA bir arada olamaz
+  const CONFLICT_GROUPS = [
+    ['Doğa', 'Orman', 'Bahçe', 'Çiçekler'],
+    ['Müzik', 'Enstrüman', 'Partisyon', 'Müzik Türleri'],
+    ['Deniz', 'Plaj', 'Deniz Araçları', 'Balık', 'Gemi'],
+    ['Uzay', 'Uzay Araçları', 'Gezegenler', 'Astroloji'],
+    ['Sporlar', 'Kış Sporları', 'Dövüş Sanatları', 'Fitness'],
+    ['İçecekler', 'Meşrubat', 'Çay'],
+    ['Yiyecekler', 'Tatlılar', 'Pasta', 'Kahvaltı', 'Ekmek', 'Dondurma', 'Atıştırmalık'],
+    ['Giysiler', 'Kumaş'],
+    ['Teknoloji', 'Bilgisayar', 'Yazılım'],
+    ['Sinema', 'Film Türleri'],
+    ['Tatil', 'Plaj'],
+    ['Şehirler', 'İstanbul'],
+    ['Renkler', 'Renk Tonları'],
+    ['Hayvanlar', 'Kuşlar', 'Böcekler', 'Balık'],
+    ['Mutfak', 'Türk Mutfağı'],
+  ];
+  
+  function getConflicts(catName) {
+    const conflicts = new Set();
+    for (const group of CONFLICT_GROUPS) {
+      if (group.includes(catName)) {
+        group.forEach(c => conflicts.add(c));
+      }
+    }
+    return conflicts;
+  }
+  
   for (let i = 0; i < count; i++) {
     const id = startId + i;
     const rand = seededRandom(id * 7919 + 42);
@@ -48,11 +77,30 @@ export function generateLevels(startId, count, language = 'tr') {
     // Hints: azalan
     const hints = Math.max(3 - Math.floor(tier / 3), 0);
 
-    // Kategori seçimi — ÖNCEKİ BÖLÜMLE AYNI KATEGORİ OLMAMALI
-    const eligible = pools.filter((p) => p.words.length >= wordsPerCat && !lastUsedCats.has(p.name));
-    // Yeterli kategori yoksa kısıtlamayı gevşet
-    const pool = eligible.length >= numCats ? eligible : pools.filter((p) => p.words.length >= wordsPerCat);
-    const picked = seededShuffle(pool, rand).slice(0, numCats);
+    // Kategori seçimi — ÖNCEKİ BÖLÜM + ÇAKIŞAN KATEGORİLER ENGELLENİR
+    const blocked = new Set(lastUsedCats);
+    const allEligible = pools.filter((p) => p.words.length >= wordsPerCat);
+    const shuffled = seededShuffle(allEligible, rand);
+    
+    const picked = [];
+    const usedConflicts = new Set();
+    
+    for (const pool of shuffled) {
+      if (picked.length >= numCats) break;
+      if (blocked.has(pool.name)) continue;
+      if (usedConflicts.has(pool.name)) continue;
+      picked.push(pool);
+      const conflicts = getConflicts(pool.name);
+      conflicts.forEach(c => usedConflicts.add(c));
+    }
+    // Yeterli bulunamadıysa kısıtlamaları gevşet
+    if (picked.length < numCats) {
+      for (const pool of shuffled) {
+        if (picked.length >= numCats) break;
+        if (picked.find(pp => pp.name === pool.name)) continue;
+        picked.push(pool);
+      }
+    }
     
     // Bu bölümün kategorilerini kaydet (sonraki bölüm için)
     lastUsedCats = new Set(picked.map(p => p.name));
