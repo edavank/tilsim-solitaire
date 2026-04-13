@@ -7,9 +7,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { COLORS, FONTS, SIZES, CATEGORY_COLORS, getThemeGradient } from '../src/constants/theme';
-import { LEVELS, generateGameState, getLevel } from '../src/data/levels';
+import { generateGameState, getLevel } from '../src/data/levels';
 import { loadProgress, updateProgress, clearSavedGame, saveSavedGame, saveLevelStars, addXP } from '../src/utils/storage';
-import { playHaptic, playSound } from '../src/utils/sounds';
+import { playSound } from '../src/utils/sounds';
 import { showRewarded, showInterstitial } from '../src/utils/ads';
 import { useLang } from '../src/context/LanguageContext';
 import { submitScore } from '../src/utils/leaderboardService';
@@ -18,7 +18,7 @@ import { checkAchievements } from '../src/utils/achievements';
 import { markCategoryCompleted } from '../src/utils/collection';
 // seasonalEvents kaldırıldı
 
-import { IS_TABLET, rs, fs, getGameLayout } from '../src/utils/responsive';
+import { IS_TABLET, fs, getGameLayout } from '../src/utils/responsive';
 
 const OWL_HAPPY = require('../assets/bilge-happy.png');
 
@@ -981,7 +981,7 @@ export default function GameScreen() {
       setToolCredits(newCredits);
       await updateProgress({ toolCredits: newCredits });
       setGs(history[history.length - 1]); setHistory((h) => h.slice(0, -1)); setSelected(null);
-      setFeedback('↩️ Geri alındı!');
+      setFeedback(t.undoDone);
       return;
     }
     setToolModal('undo');
@@ -989,14 +989,14 @@ export default function GameScreen() {
 
   const executeUndo = useCallback(async (method) => {
     if (method === 'coin') {
-      if (coins < 500) { setFeedback('🪙 500 coin gerekli!'); setToolModal(null); return; }
+      if (coins < 500) { setFeedback(t.coinNeeded500); setToolModal(null); return; }
       setCoins(coins - 500); await updateProgress({ coins: coins - 500 });
     }
     if (method === 'ad') await showRewarded();
     const newCredits = { ...toolCredits, undo: toolCredits.undo + 1 };
     setToolCredits(newCredits);
     await updateProgress({ toolCredits: newCredits });
-    setFeedback('↩️ Geri al hakkı eklendi! Butona tekrar bas.');
+    setFeedback(t.undoAdded);
     setToolModal(null);
   }, [coins, toolCredits]);
 
@@ -1009,7 +1009,7 @@ export default function GameScreen() {
       await updateProgress({ toolCredits: newCredits });
       setGs((p) => ({ ...p, drawnCards: p.drawnCards.slice(0, -1), moves: p.moves - 1 }));
       setSelected(null);
-      setFeedback('🗑️ Kart silindi!');
+      setFeedback(t.deleteDone);
       return;
     }
     setToolModal('delete');
@@ -1017,21 +1017,21 @@ export default function GameScreen() {
 
   const executeDelete = useCallback(async (method) => {
     if (method === 'coin') {
-      if (coins < 500) { setFeedback('🪙 500 coin gerekli!'); setToolModal(null); return; }
+      if (coins < 500) { setFeedback(t.coinNeeded500); setToolModal(null); return; }
       setCoins(coins - 500); await updateProgress({ coins: coins - 500 });
     }
     if (method === 'ad') await showRewarded();
     const newCredits = { ...toolCredits, delete: toolCredits.delete + 1 };
     setToolCredits(newCredits);
     await updateProgress({ toolCredits: newCredits });
-    setFeedback('🗑️ Silme hakkı eklendi! Butona tekrar bas.');
+    setFeedback(t.deleteAdded);
     setToolModal(null);
   }, [coins, toolCredits]);
 
   // ── Joker Card (Wildcard) ──
   const useJoker = useCallback(async () => {
     if (!isToolUnlocked('joker')) return;
-    if (gs.drawnCards.length === 0) { setFeedback('🃏 Önce desteden kart çek!'); return; }
+    if (gs.drawnCards.length === 0) { setFeedback(t.jokerNeedCard); return; }
     if (toolCredits.joker > 0) {
       const newCredits = { ...toolCredits, joker: toolCredits.joker - 1 };
       setToolCredits(newCredits);
@@ -1043,7 +1043,7 @@ export default function GameScreen() {
         newDrawn[newDrawn.length - 1] = lastCard;
         return { ...p, drawnCards: newDrawn };
       });
-      setFeedback('🃏 Joker aktif! Herhangi bir kategoriye koyabilirsin.');
+      setFeedback(t.jokerActive);
       return;
     }
     setToolModal('joker');
@@ -1051,14 +1051,14 @@ export default function GameScreen() {
 
   const executeJoker = useCallback(async (method) => {
     if (method === 'coin') {
-      if (coins < 750) { setFeedback('🪙 750 coin gerekli!'); setToolModal(null); return; }
+      if (coins < 750) { setFeedback(t.coinNeeded750); setToolModal(null); return; }
       setCoins(coins - 750); await updateProgress({ coins: coins - 750 });
     }
     if (method === 'ad') await showRewarded();
     const newCredits = { ...toolCredits, joker: toolCredits.joker + 1 };
     setToolCredits(newCredits);
     await updateProgress({ toolCredits: newCredits });
-    setFeedback('🃏 Joker hakkı eklendi! Butona tekrar bas.');
+    setFeedback(t.jokerAdded);
     setToolModal(null);
   }, [coins, toolCredits]);
 
@@ -1066,7 +1066,7 @@ export default function GameScreen() {
   const useShuffle = useCallback(async () => {
     if (!isToolUnlocked('shuffle')) return;
     const hasFaceDown = gs.columns.some(col => !col.locked && col.cards.some(c => !c.faceUp));
-    if (!hasFaceDown) { setFeedback('🔀 Karıştırılacak kapalı kart yok!'); return; }
+    if (!hasFaceDown) { setFeedback(t.shuffleNoCards); return; }
     if (toolCredits.shuffle > 0) {
       const newCredits = { ...toolCredits, shuffle: toolCredits.shuffle - 1 };
       setToolCredits(newCredits);
@@ -1092,7 +1092,7 @@ export default function GameScreen() {
         setHistory((h) => [...h, prev]);
         return { ...prev, columns: newColumns };
       });
-      setFeedback('🔀 Kapalı kartlar karıştırıldı!');
+      setFeedback(t.shuffleDone);
       return;
     }
     setToolModal('shuffle');
@@ -1100,14 +1100,14 @@ export default function GameScreen() {
 
   const executeShuffle = useCallback(async (method) => {
     if (method === 'coin') {
-      if (coins < 500) { setFeedback('🪙 500 coin gerekli!'); setToolModal(null); return; }
+      if (coins < 500) { setFeedback(t.coinNeeded500); setToolModal(null); return; }
       setCoins(coins - 500); await updateProgress({ coins: coins - 500 });
     }
     if (method === 'ad') await showRewarded();
     const newCredits = { ...toolCredits, shuffle: toolCredits.shuffle + 1 };
     setToolCredits(newCredits);
     await updateProgress({ toolCredits: newCredits });
-    setFeedback('🔀 Karıştırma hakkı eklendi! Butona tekrar bas.');
+    setFeedback(t.shuffleAdded);
     setToolModal(null);
   }, [coins, toolCredits]);
 
@@ -1126,11 +1126,11 @@ export default function GameScreen() {
 
   const executeHint = useCallback(async (method) => {
     if (method === 'coin') {
-      if (coins < 500) { setFeedback('🪙 500 coin gerekli!'); setToolModal(null); return; }
+      if (coins < 500) { setFeedback(t.coinNeeded500); setToolModal(null); return; }
       setCoins(coins - 500); await updateProgress({ coins: coins - 500 });
-      setFeedback('✅ İpucu satın alındı! (-500 🪙)');
+      setFeedback(t.hintBought);
     }
-    if (method === 'ad') { await showRewarded(); setFeedback('✅ İpucu kazanıldı!'); }
+    if (method === 'ad') { await showRewarded(); setFeedback(t.hintEarned); }
     setToolModal(null);
     setTimeout(() => runHintLogic(), 100);
   }, [coins]);
@@ -1182,16 +1182,16 @@ export default function GameScreen() {
   const addMovesAd = useCallback(async () => {
     const result = await showRewarded();
     setGs((p) => ({ ...p, moves: p.moves + 20, isFailed: false }));
-    setFeedback('⚡ +20!');
+    setFeedback(t.movesAdded);
   }, []);
 
   const addMovesCoin = useCallback(async () => {
-    if (coins < 500) { setFeedback('🪙 500 coin gerekli!'); return; }
+    if (coins < 500) { setFeedback(t.coinNeeded500); return; }
     const newCoins = coins - 500;
     setCoins(newCoins);
     await updateProgress({ coins: newCoins });
     setGs((p) => ({ ...p, moves: p.moves + 20, isFailed: false }));
-    setFeedback('⚡ +20! (-500 🪙)');
+    setFeedback(t.movesAdded);
   }, [coins]);
 
   // ── Level Complete → save & advance ──

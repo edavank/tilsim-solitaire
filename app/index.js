@@ -1,13 +1,13 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { COLORS, FONTS, SIZES, getThemeGradient } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
-import { loadProgress, updateProgress } from '../src/utils/storage';
+import { loadProgress } from '../src/utils/storage';
 import { useLang } from '../src/context/LanguageContext';
-import { getDailyDateString, isDailyChallengeCompleted } from '../src/utils/dailyChallenge';
+import { isDailyChallengeCompleted } from '../src/utils/dailyChallenge';
 // seasonalEvents kaldırıldı
 
 const { width: SW } = Dimensions.get('window');
@@ -150,7 +150,7 @@ export default function HomeScreen() {
         )}
 
         {/* Günlük Meydan Okuma — Seviye 10'dan sonra açılır */}
-        {currentLevel > 10 ? (
+        {currentLevel >= 10 ? (
           <TouchableOpacity 
             style={[s.levelSelectBtn, { borderColor: COLORS.coin, borderWidth: 1.5, shadowColor: COLORS.coin, shadowOpacity: 0.3 }, dailyDone && { opacity: 0.6 }]} 
             activeOpacity={0.7} 
