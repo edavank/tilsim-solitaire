@@ -17,7 +17,7 @@ export const LEVELS = [
   {
     id: 1, moves: 35, hints: 3, undos: 0,
     categories: [
-      { name: 'Kahvaltı', words: ['Peynir', 'Zeytin', 'Bal'] },
+      { name: 'Kahvaltı', words: ['Peynir', 'Simit', 'Bal'] },
       { name: 'Renkler', words: ['Kırmızı', 'Mavi', 'Yeşil'] },
       { name: 'Meyveler', words: ['Elma', 'Armut', 'Kiraz'] },
     ],

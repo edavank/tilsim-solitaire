@@ -30,7 +30,7 @@ export const WORD_POOLS = {
     { name: 'Şehirler', words: ['İstanbul', 'Ankara', 'İzmir', 'Antalya', 'Bursa', 'Trabzon'] },
     { name: 'Takılar', words: ['Yüzük', 'Kolye', 'Bilezik', 'Küpe', 'Broş', 'Saat'] },
     { name: 'Tatlılar', words: ['Baklava', 'Künefe', 'Sütlaç', 'Helva', 'Lokum', 'Kadayıf'] },
-    { name: 'Baharat', words: ['Tuz', 'Biber', 'Kimyon', 'Kekik', 'Tarçın', 'Safran'] },
+    { name: 'Baharat', words: ['Tuz', 'Pul biber', 'Kimyon', 'Kekik', 'Tarçın', 'Safran'] },
     // Yeni çeşitli kategoriler
     { name: 'Teknoloji', words: ['Telefon', 'Tablet', 'Laptop', 'Robot', 'Drone', 'Yazıcı'] },
     { name: 'Bilgisayar', words: ['Klavye', 'Mouse', 'Ekran', 'İşlemci', 'Bellek', 'Disk'] },
@@ -38,19 +38,19 @@ export const WORD_POOLS = {
     { name: 'Mutfak', words: ['Tencere', 'Tava', 'Bıçak', 'Tabak', 'Bardak', 'Kaşık'] },
     { name: 'Doğa', words: ['Dağ', 'Orman', 'Nehir', 'Göl', 'Şelale', 'Mağara'] },
     { name: 'Tatil', words: ['Plaj', 'Otel', 'Bavul', 'Pasaport', 'Güneş kremi', 'Harita'] },
-    { name: 'Oyuncaklar', words: ['Bebek', 'Araba', 'Lego', 'Puzzle', 'Top', 'Uçurtma'] },
+    { name: 'Oyuncaklar', words: ['Bebek', 'Misket', 'Lego', 'Puzzle', 'Top', 'Uçurtma'] },
     { name: 'Matematik', words: ['Toplama', 'Çıkarma', 'Çarpma', 'Bölme', 'Üçgen', 'Daire'] },
     { name: 'Sanat', words: ['Resim', 'Heykel', 'Fırça', 'Tuval', 'Boya', 'Müze'] },
     { name: 'Araçlar', words: ['Çekiç', 'Tornavida', 'Pense', 'Testere', 'Matkap', 'Anahtar'] },
     { name: 'Kırtasiye', words: ['Makas', 'Yapıştırıcı', 'Bant', 'Zımba', 'Dosya', 'Klasör'] },
     { name: 'Süper Kahramanlar', words: ['Maske', 'Pelerin', 'Güç', 'Kalkan', 'Kılıç', 'Zırh'] },
     // 20 yeni kategori
-    { name: 'Kahvaltı', words: ['Peynir', 'Zeytin', 'Bal', 'Yumurta', 'Reçel', 'Tereyağı'] },
+    { name: 'Kahvaltı', words: ['Peynir', 'Simit', 'Bal', 'Yumurta', 'Reçel', 'Tereyağı'] },
     { name: 'Türk Mutfağı', words: ['Kebap', 'Lahmacun', 'Pide', 'Mantı', 'Börek', 'Dolma'] },
     { name: 'Masal', words: ['Prenses', 'Ejderha', 'Büyücü', 'Şövalye', 'Hazine', 'Kale'] },
     { name: 'Deniz Araçları', words: ['Tekne', 'Yat', 'Feribot', 'Kayık', 'Sürat', 'Yelkenli'] },
     { name: 'Kış Sporları', words: ['Kayak', 'Buz pateni', 'Hokey', 'Snowboard', 'Kızak', 'Curling'] },
-    { name: 'Süt Ürünleri', words: ['Yoğurt', 'Peynir', 'Ayran', 'Tereyağı', 'Kaymak', 'Kefir'] },
+    { name: 'Süt Ürünleri', words: ['Yoğurt', 'Lor', 'Krema', 'Süzme', 'Kaymak', 'Kefir'] },
     { name: 'Bina', words: ['Kapı', 'Pencere', 'Çatı', 'Merdiven', 'Balkon', 'Asansör'] },
     { name: 'Orman', words: ['Mantar', 'Yaprak', 'Sincap', 'Geyik', 'Tilki', 'Kurt'] },
     { name: 'Plaj', words: ['Kum', 'Dalga', 'Şemsiye', 'Deniz yıldızı', 'Kabuk', 'Palet'] },
@@ -60,11 +60,11 @@ export const WORD_POOLS = {
     { name: 'Hastane', words: ['Hemşire', 'İlaç', 'Ameliyat', 'Muayene', 'Röntgen', 'Ambulans'] },
     { name: 'Oyunlar', words: ['Satranç', 'Dama', 'Tavla', 'Bilardo', 'Dart', 'Bowling'] },
     { name: 'Gemi', words: ['Kaptan', 'Dümen', 'Çapa', 'Güverte', 'Pusula', 'Yelken'] },
-    { name: 'Sabah', words: ['Alarm', 'Kahve', 'Duş', 'Diş fırçası', 'Gazete', 'Erken'] },
+    { name: 'Sabah', words: ['Alarm', 'Tost', 'Duş', 'Diş fırçası', 'Gazete', 'Erken'] },
     { name: 'Ağırlık Birimleri', words: ['Gram', 'Kilogram', 'Ton', 'Ons', 'Miligram', 'Libre'] },
-    { name: 'Partisyon', words: ['Nota', 'Akor', 'Ritim', 'Melodi', 'Tempo', 'Armonİ'] },
+    { name: 'Partisyon', words: ['Nota', 'Akor', 'Ritim', 'Melodi', 'Tempo', 'Armoni'] },
     { name: 'Simya', words: ['Altın', 'Gümüş', 'Bakır', 'Demir', 'Elmas', 'Kristal'] },
-    { name: 'Fitness', words: ['Koşu', 'Plank', 'Squat', 'Dambıl', 'Bant', 'Kardiyo'] },
+    { name: 'Fitness', words: ['Burpee', 'Plank', 'Squat', 'Dambıl', 'Pilates', 'Kardiyo'] },
   ],
 
   en: [
@@ -471,6 +471,16 @@ export const EMOJI_MAP = {
   'Yönetmen': '🎬', 'Aktör': '🎭', 'Senaryo': '📝',
   // Tatil
   'Bavul': '🧳', 'Güneş kremi': '🧴',
+  // Eksik düzeltmeler
+  'Elmas': '💎',
+  'Simit': '🥯', 'Lor': '🧀', 'Krema': '🍦', 'Süzme': '🥛',
+  'Pul biber': '🌶️', 'Tost': '🍞', 'Burpee': '🏃', 'Pilates': '🧘',
+  'Tren': '🚂', 'Misket': '🔮',
+  'Ingénieur': '👷', 'Pilote': '🧑‍✈️',
+  'Piña': '🍍', 'Limonada': '🍋', 'Batido': '🥤',
+  'Japón': '🇯🇵', 'Brasil': '🇧🇷',
+  'Ingeniero': '👷', 'Piloto': '🧑‍✈️',
+  'سموذي': '🥤',
 };
 
 // Category emoji mapping
