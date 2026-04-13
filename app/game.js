@@ -889,12 +889,12 @@ export default function GameScreen() {
   // ── Smart Hint ──
   const useHint = useCallback(async () => {
     if (gs.hints > 0) {
-      // Free hint available, use directly
+      setGs((prev) => ({ ...prev, hints: prev.hints - 1 }));
       runHintLogic();
       return;
     }
     setToolModal('hint');
-  }, [gs]);
+  }, [gs.hints]);
 
   const executeHint = useCallback(async (method) => {
     if (method === 'coin') {
@@ -1152,7 +1152,7 @@ export default function GameScreen() {
 
         <View style={st.slotsRow}>
           {gs.slots.map((slot, i) => (
-            <Animated.View key={i} style={{ flex: 1, transform: [{ translateX: shakeSlotIdx === i ? shakeAnim : 0 }] }}>
+            <Animated.View key={i} style={{ width: Math.floor((SW - 24) / Math.max(gs.slots.length, 3)), transform: [{ translateX: shakeSlotIdx === i ? shakeAnim : 0 }] }}>
               <FoundationSlot t={t} slot={slot} slotIndex={i} onPress={() => handleSlotTap(i)} onUnlock={handleUnlock} hinted={hintSlot === i} />
             </Animated.View>
           ))}
@@ -1160,7 +1160,7 @@ export default function GameScreen() {
 
         <View style={st.tableauRow}>
           {gs.columns.map((col, i) => (
-            <View key={i} style={{ flex: 1 }}>
+            <View key={i} style={{ width: Math.floor((SW - 24) / Math.max(gs.columns.length, 4)) }}>
               <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard} dragCardId={dragCard?.card?.id} dragStackIds={dragStackIds} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onCardLongPress={handleCardLongPress} onUnlock={handleUnlock} />
             </View>
           ))}
@@ -1413,7 +1413,7 @@ const st = StyleSheet.create({
   catBadge: { position: 'absolute', top: 3, right: 4, backgroundColor: COLORS.cardBackTop, paddingHorizontal: 4, paddingVertical: 1, borderRadius: 6 },
   catBadgeText: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: '#fff' },
   catName: { fontFamily: FONTS.headlineBlack, fontSize: 10, color: '#1e293b', textAlign: 'center', lineHeight: 13, marginTop: 1 },
-  slotsRow: { flexDirection: 'row', gap: 2 },
+  slotsRow: { flexDirection: 'row', justifyContent: 'center', gap: 4, paddingHorizontal: 4 },
   slotBox: { borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', gap: 2 },
   slotDashed: { borderColor: COLORS.panelBorder, borderStyle: 'dashed', backgroundColor: 'rgba(255,255,255,0.03)' },
   slotHinted: { borderColor: COLORS.coin, borderWidth: 2.5, shadowColor: COLORS.coin, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.7, shadowRadius: 14 },
@@ -1422,7 +1422,7 @@ const st = StyleSheet.create({
   adText: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: '#fff' },
   slotTag: { position: 'absolute', top: 0, left: 0, right: 0, paddingVertical: 2, alignItems: 'center', borderTopLeftRadius: 8, borderTopRightRadius: 8 },
   slotTagText: { fontFamily: FONTS.headlineBlack, fontSize: 8, color: '#fff' },
-  tableauRow: { flexDirection: 'row', gap: COL_GAP, alignItems: 'flex-start', marginTop: 2 },
+  tableauRow: { flexDirection: 'row', justifyContent: 'center', gap: COL_GAP, alignItems: 'flex-start', marginTop: 4 },
   toolbar: { position: 'absolute', bottom: 70, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end', gap: 16, paddingVertical: 8, paddingHorizontal: 20, zIndex: 100 },
   toolWrap: { alignItems: 'center', gap: 3 },
   toolBtn: { width: 52, height: 52, borderRadius: 15, backgroundColor: COLORS.buttonBlue, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(140,180,255,0.3)', shadowColor: '#6B8AFF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 10, elevation: 8 },

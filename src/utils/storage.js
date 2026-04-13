@@ -83,8 +83,9 @@ export async function clearSavedGame() {
 export async function resetAll() {
   try {
     await removeItem(KEYS.PROGRESS);
-    await removeItem(KEYS.SETTINGS);
     await removeItem(KEYS.SAVED_GAME);
     memStore = {};
+    // Force default progress (coins=500, level=1)
+    await saveProgress(DEFAULT_PROGRESS);
   } catch (e) {}
 }
