@@ -65,6 +65,37 @@ export const WORD_POOLS = {
     { name: 'Partisyon', words: ['Nota', 'Akor', 'Ritim', 'Melodi', 'Tempo', 'Armoni'] },
     { name: 'Simya', words: ['Altın', 'Gümüş', 'Bakır', 'Demir', 'Elmas', 'Kristal'] },
     { name: 'Fitness', words: ['Burpee', 'Plank', 'Squat', 'Dambıl', 'Pilates', 'Kardiyo'] },
+    // === YENİ KATEGORİLER (30 adet) ===
+    { name: 'Böcekler', words: ['Kelebek', 'Karınca', 'Arı', 'Uğur böceği', 'Ateş böceği', 'Çekirge'] },
+    { name: 'Kamp', words: ['Çadır', 'Uyku tulumu', 'Matara', 'Fener', 'Kamp ateşi', 'Balta'] },
+    { name: 'Fotoğrafçılık', words: ['Objektif', 'Flaş', 'Poz', 'Kadraj', 'Deklanşör', 'Tripod'] },
+    { name: 'Astroloji', words: ['Koç', 'Boğa', 'İkizler', 'Başak', 'Aslan burcu', 'Akrep'] },
+    { name: 'Mitoloji', words: ['Zeus', 'Athena', 'Poseidon', 'Hades', 'Apollon', 'Artemis'] },
+    { name: 'Pasta', words: ['Fondan', 'Pandispanya', 'Vanilya', 'Muffin', 'Kurabiye', 'Brownie'] },
+    { name: 'Düğün', words: ['Gelin', 'Damat', 'Nikah', 'Düvak', 'Davetiye', 'Dans'] },
+    { name: 'Bebek', words: ['Emzik', 'Biberon', 'Bez', 'Beşik', 'Mama', 'Kundak'] },
+    { name: 'Bahçe', words: ['Tohum', 'Toprak', 'Gübre', 'Sulama', 'Kürek', 'Sera'] },
+    { name: 'Enstrüman', words: ['Ud', 'Ney', 'Kanun', 'Tanbur', 'Zurna', 'Bağlama'] },
+    { name: 'Yazılım', words: ['Kod', 'Hata', 'Sunucu', 'Veritabanı', 'Algoritma', 'Arayüz'] },
+    { name: 'Coğrafya', words: ['Vadi', 'Plato', 'Yarımada', 'Okyanus', 'Çöl', 'Volkan'] },
+    { name: 'Tarih', words: ['İmparator', 'Savaş', 'Antlaşma', 'Hanedan', 'Fetih', 'Devrim'] },
+    { name: 'Mimari', words: ['Sütun', 'Kemer', 'Kubbe', 'Minare', 'Köşk', 'Revak'] },
+    { name: 'Dövüş Sanatları', words: ['Karate', 'Judo', 'Taekwondo', 'Aikido', 'Kung fu', 'Güreş'] },
+    { name: 'Çay', words: ['Demlik', 'Fincan', 'Şeker', 'Çaydanlık', 'Poşet çay', 'Samovar'] },
+    { name: 'Ekonomi', words: ['Borsa', 'Faiz', 'Enflasyon', 'Döviz', 'Bütçe', 'Yatırım'] },
+    { name: 'Uzay Araçları', words: ['Roket', 'Kapsül', 'Teleskop', 'Astronot', 'Rampa', 'Modül'] },
+    { name: 'Dondurma', words: ['Karamel', 'Nane', 'Tarçınlı', 'Fıstık', 'Frambuaz', 'Kayısı'] },
+    { name: 'Kumaş', words: ['İpek', 'Pamuk', 'Keten', 'Yün', 'Kadife', 'Denim'] },
+    { name: 'Hukuk', words: ['Hakim', 'Avukat', 'Mahkeme', 'Dava', 'Yasa', 'Jüri'] },
+    { name: 'Film Türleri', words: ['Aksiyon', 'Komedi', 'Gerilim', 'Dram', 'Belgesel', 'Animasyon'] },
+    { name: 'Kozmetik', words: ['Ruj', 'Fondöten', 'Maskara', 'Allık', 'Oje', 'Parfüm'] },
+    { name: 'Balık', words: ['Levrek', 'Hamsi', 'Palamut', 'Çipura', 'Somon', 'Alabalık'] },
+    { name: 'Ekmek', words: ['Somun', 'Çavdar', 'Lavaş', 'Bazlama', 'Pogaça', 'Francala'] },
+    { name: 'Tabiat Olayları', words: ['Deprem', 'Sel', 'Fırtına', 'Tsunami', 'Heyelan', 'Kasırga'] },
+    { name: 'Renk Tonları', words: ['Turkuaz', 'Bordo', 'Lacivert', 'Bej', 'Lila', 'Mercan'] },
+    { name: 'İstanbul', words: ['Beyoğlu', 'Galata', 'Sultanahmet', 'Kadıköy', 'Üsküdar', 'Taksim'] },
+    { name: 'Atıştırmalık', words: ['Cips', 'Patlak mısır', 'Bisküvi', 'Kuruyemiş', 'Gofret', 'Kraker'] },
+    { name: 'Meşrubat', words: ['Kola', 'Soda', 'Şalgam', 'Boza', 'Komposto', 'Gazoz'] },
   ],
 
   en: [
@@ -471,6 +502,78 @@ export const EMOJI_MAP = {
   'Yönetmen': '🎬', 'Aktör': '🎭', 'Senaryo': '📝',
   // Tatil
   'Bavul': '🧳', 'Güneş kremi': '🧴',
+  // Böcekler
+  'Kelebek': '🦋', 'Karınca': '🐜', 'Arı': '🐝', 'Uğur böceği': '🐞', 'Ateş böceği': '🪲', 'Çekirge': '🦗',
+  // Kamp
+  'Çadır': '⛺', 'Uyku tulumu': '🛏️', 'Fener': '🔦', 'Balta': '🪓',
+  // Fotoğrafçılık
+  'Objektif': '🔍', 'Flaş': '📸', 'Poz': '🤳', 'Kadraj': '🖼️', 'Deklanşör': '📷', 'Tripod': '📐',
+  // Astroloji
+  'Koç': '♈', 'Boğa': '♉', 'İkizler': '♊', 'Yengeç': '♋', 'Aslan burcu': '♌', 'Akrep': '♏',
+  // Mitoloji
+  'Zeus': '⚡', 'Athena': '🦉', 'Poseidon': '🔱', 'Hades': '💀', 'Apollon': '☀️', 'Artemis': '🌙',
+  // Pasta
+  'Vanilya': '🍦', 'Muffin': '🧁', 'Kurabiye': '🍪', 'Kek': '🎂',
+  // Düğün
+  'Gelin': '👰', 'Damat': '🤵', 'Nikah': '💍', 'Düvak': '👗', 'Davetiye': '💌', 'Dans': '💃',
+  // Bebek
+  'Emzik': '👶', 'Biberon': '🍼', 'Bez': '🧷', 'Beşik': '🛏️', 'Mama': '🥣', 'Kundak': '👶',
+  // Bahçe
+  'Tohum': '🌱', 'Toprak': '🏔️', 'Gübre': '🌿', 'Sulama': '💧', 'Kürek': '🪴', 'Sera': '🏡',
+  // Enstrüman
+  'Piyano': '🎹', 'Keman': '🎻', 'Davul': '🥁', 'Flüt': '🪈', 'Saz': '🪕',
+  // Yazılım
+  'Kod': '👨‍💻', 'Hata': '🐛', 'Sunucu': '🖥️', 'Veritabanı': '🗄️', 'Algoritma': '🧮', 'Arayüz': '📱',
+  // Coğrafya
+  'Vadi': '🏞️', 'Yarımada': '🗺️', 'Okyanus': '🌊', 'Çöl': '🏜️', 'Volkan': '🌋',
+  // Tarih
+  'İmparator': '👑', 'Antlaşma': '📜', 'Hanedan': '🏰', 'Fetih': '⚔️', 'Devrim': '✊',
+  // Mimari
+  'Sütun': '🏛️', 'Kemer': '🌉', 'Kubbe': '🕌', 'Minare': '🕌', 'Köşk': '🏡', 'Revak': '🏛️',
+  // Dövüş Sanatları
+  'Karate': '🥋', 'Judo': '🥋', 'Taekwondo': '🦶', 'Aikido': '🤼', 'Kung fu': '🥷', 'Boks': '🥊',
+  // Çay
+  'Demlik': '🫖', 'Çaydanlık': '🫖', 'Poşet çay': '🍵', 'Samovar': '☕',
+  // Ekonomi
+  'Borsa': '📈', 'Faiz': '💰', 'Enflasyon': '📉', 'Döviz': '💱', 'Bütçe': '🧾', 'Yatırım': '🏦',
+  // Uzay Araçları
+  'Roket': '🚀', 'Teleskop': '🔭', 'Astronot': '👨‍🚀', 'İstasyon': '🛰️', 'Modül': '🔧',
+  // Dondurma
+  'Karamel': '🍮', 'Çilek': '🍓', 'Fıstık': '🥜', 'Frambuaz': '🫐', 'Kayısı': '🍑',
+  // Kumaş
+  'İpek': '🧣', 'Pamuk': '☁️', 'Keten': '🧶', 'Yün': '🐑', 'Kadife': '🎀', 'Denim': '👖',
+  // Hukuk
+  'Hakim': '👨‍⚖️', 'Avukat': '👩‍⚖️', 'Mahkeme': '🏛️', 'Dava': '📋', 'Kanun': '📜', 'Yasa': '📜', 'Jüri': '🧑‍🤝‍🧑',
+  // Film Türleri
+  'Aksiyon': '💥', 'Komedi': '😂', 'Korku': '👻', 'Dram': '🎭', 'Belgesel': '🎥', 'Animasyon': '🧸',
+  // Kozmetik
+  'Ruj': '💄', 'Fondöten': '🧴', 'Maskara': '👁️', 'Allık': '🌸', 'Oje': '💅', 'Parfüm': '🌹',
+  // Balık
+  'Levrek': '🐟', 'Hamsi': '🐠', 'Palamut': '🐟', 'Çipura': '🐡', 'Somon': '🍣', 'Alabalık': '🐟',
+  // Ekmek
+  'Lavaş': '🫓', 'Bazlama': '🫓', 'Pogaça': '🥐', 'Francala': '🍞',
+  // Tabiat Olayları
+  'Deprem': '🌍', 'Sel': '🌊', 'Fırtına': '⛈️', 'Tsunami': '🌊', 'Heyelan': '⛰️', 'Kasırga': '🌪️',
+  // Renk Tonları
+  'Turkuaz': '🩵', 'Bordo': '🟤', 'Lacivert': '🔵', 'Bej': '🟡', 'Lila': '🟣', 'Mercan': '🪸',
+  // İstanbul
+  'Galata': '🗼', 'Sultanahmet': '🕌', 'Kadıköy': '⛴️', 'Üsküdar': '🌅',
+  // Atıştırmalık
+  'Cips': '🍟', 'Bisküvi': '🍪', 'Kuruyemiş': '🥜', 'Gofret': '🍫', 'Kraker': '🍘',
+  // Meşrubat
+  'Kola': '🥤', 'Şalgam': '🧃', 'Boza': '🍶', 'Limonata': '🍋', 'Gazoz': '🫧',
+  // Yeni/değişen kelimeler
+  'Nane': '🌿', 'Tarçınlı': '🍂', 'Güreş': '🤼', 'Soda': '🫧', 'Komposto': '🍎',
+  'Ud': '🪕', 'Ney': '🪈', 'Tanbur': '🎸', 'Zurna': '📯', 'Bağlama': '🪕',
+  'Gerilim': '😱', 'Fondan': '🎂', 'Pandispanya': '🍰', 'Brownie': '🟫',
+  'Başak': '♍', 'Kapsül': '🛸', 'Rampa': '🚀', 'Fincan': '☕',
+  'Somun': '🍞', 'Çavdar': '🌾', 'Matara': '🫗', 'Kamp ateşi': '🔥',
+  'Patlak mısır': '🍿', 'Beyoğlu': '🏙️', 'Plato': '🏔️',
+  // Eksik compound emojiler
+  'Ateş': '🔥', 'Savaş': '⚔️', 'Şeker': '🍬', 'Limon': '🍋', 'Taksim': '🚇',
+  'Çikolata': '🍫', 'Boğaz': '🌊',
+  'Uğur böceği': '🐞', 'Ateş böceği': '🪲', 'Uyku tulumu': '🛏️',
+  'Aslan burcu': '♌', 'Poşet çay': '🍵', 'Kung fu': '🥷',
   // Eksik düzeltmeler
   'Elmas': '💎',
   'Simit': '🥯', 'Lor': '🧀', 'Krema': '🍦', 'Süzme': '🥛',
@@ -506,6 +609,14 @@ export const CATEGORY_EMOJIS = {
   'Plaj': '🏖️', 'Müzik Türleri': '🎶', 'Trafik': '🚦', 'Market': '🛒',
   'Hastane': '🏥', 'Oyunlar': '♟️', 'Gemi': '🚢', 'Sabah': '🌅',
   'Ağırlık Birimleri': '⚖️', 'Partisyon': '🎼', 'Simya': '⚗️', 'Fitness': '💪',
+  'Böcekler': '🦋', 'Kamp': '⛺', 'Fotoğrafçılık': '📷', 'Astroloji': '♈',
+  'Mitoloji': '🏛️', 'Pasta': '🎂', 'Düğün': '💒', 'Bebek': '👶',
+  'Bahçe': '🌱', 'Enstrüman': '🎹', 'Yazılım': '💻', 'Coğrafya': '🗺️',
+  'Tarih': '📜', 'Mimari': '🏗️', 'Dövüş Sanatları': '🥋', 'Çay': '🍵',
+  'Ekonomi': '📈', 'Uzay Araçları': '🚀', 'Dondurma': '🍦', 'Kumaş': '🧵',
+  'Hukuk': '⚖️', 'Film Türleri': '🎬', 'Kozmetik': '💄', 'Balık': '🐟',
+  'Ekmek': '🍞', 'Tabiat Olayları': '🌪️', 'Renk Tonları': '🌈',
+  'İstanbul': '🕌', 'Atıştırmalık': '🍿', 'Meşrubat': '🥤',
   // EN
   'Fruits': '🍎', 'Animals': '🐾', 'Colors': '🎨', 'Sports': '🏆',
   'Drinks': '🥤', 'Trees': '🌳', 'Music': '🎵', 'Vegetables': '🥬',
