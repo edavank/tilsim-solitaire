@@ -277,7 +277,7 @@ function LevelFailedOverlay({ t, levelId, onAddMovesAd, onAddMovesCoin, onReplay
         <TouchableOpacity onPress={onAddMovesCoin} activeOpacity={0.85} style={{ marginTop: 8, width: '100%' }}>
           <View style={[ov.addMovesBtn, { backgroundColor: COLORS.panelBg, borderWidth: 1.5, borderColor: COLORS.coin, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 9999 }]}>
             <Text style={{ fontSize: 16 }}>🪙</Text>
-            <Text style={[ov.addMovesText, { color: COLORS.coin }]}>100 Coin → +20</Text>
+            <Text style={[ov.addMovesText, { color: COLORS.coin }]}>500 Coin → +20</Text>
           </View>
         </TouchableOpacity>
         <View style={ov.bottomRow}>
@@ -311,7 +311,7 @@ export default function GameScreen() {
   const [hintCard, setHintCard] = useState(null);
   const [hintSlot, setHintSlot] = useState(null);
   const [sparkle, setSparkle] = useState(null);
-  const [coins, setCoins] = useState(100);
+  const [coins, setCoins] = useState(500);
   const [paused, setPaused] = useState(false);
   const [shakeSlotIdx, setShakeSlotIdx] = useState(-1);
   const [showTutorial, setShowTutorial] = useState(false);
@@ -771,8 +771,8 @@ export default function GameScreen() {
 
   const executeUndo = useCallback(async (method) => {
     if (method === 'coin') {
-      if (coins < 100) { setFeedback('🪙 100 coin gerekli!'); setToolModal(null); return; }
-      setCoins(coins - 100); await updateProgress({ coins: coins - 100 });
+      if (coins < 500) { setFeedback('🪙 500 coin gerekli!'); setToolModal(null); return; }
+      setCoins(coins - 500); await updateProgress({ coins: coins - 500 });
     }
     // method === 'ad' → free (ad watched)
     if (method === 'ad') await showRewarded();
@@ -787,8 +787,8 @@ export default function GameScreen() {
 
   const executeDelete = useCallback(async (method) => {
     if (method === 'coin') {
-      if (coins < 100) { setFeedback('🪙 100 coin gerekli!'); setToolModal(null); return; }
-      setCoins(coins - 100); await updateProgress({ coins: coins - 100 });
+      if (coins < 500) { setFeedback('🪙 500 coin gerekli!'); setToolModal(null); return; }
+      setCoins(coins - 500); await updateProgress({ coins: coins - 500 });
     }
     if (method === 'ad') await showRewarded();
     setGs((p) => ({ ...p, drawnCards: p.drawnCards.slice(0, -1), moves: p.moves - 1 })); setSelected(null);
@@ -807,8 +807,8 @@ export default function GameScreen() {
 
   const executeHint = useCallback(async (method) => {
     if (method === 'coin') {
-      if (coins < 100) { setFeedback('🪙 100 coin gerekli!'); setToolModal(null); return; }
-      setCoins(coins - 100); await updateProgress({ coins: coins - 100 });
+      if (coins < 500) { setFeedback('🪙 500 coin gerekli!'); setToolModal(null); return; }
+      setCoins(coins - 500); await updateProgress({ coins: coins - 500 });
     }
     if (method === 'ad') await showRewarded();
     setGs((prev) => ({ ...prev, hints: prev.hints + 1 }));
@@ -873,8 +873,8 @@ export default function GameScreen() {
   }, []);
 
   const addMovesCoin = useCallback(async () => {
-    if (coins < 100) { setFeedback('🪙 100 coin gerekli!'); return; }
-    const newCoins = coins - 100;
+    if (coins < 500) { setFeedback('🪙 500 coin gerekli!'); return; }
+    const newCoins = coins - 500;
     setCoins(newCoins);
     await updateProgress({ coins: newCoins });
     setGs((p) => ({ ...p, moves: p.moves + 20, isFailed: false }));
@@ -890,7 +890,7 @@ export default function GameScreen() {
     const prog = await loadProgress();
     await updateProgress({
       currentLevel: nextId,
-      coins: (prog.coins || 0) + 20 + bonus,
+      coins: (prog.coins || 0) + 30 + bonus,
       totalGames: (prog.totalGames || 0) + 1,
       totalWins: (prog.totalWins || 0) + 1,
       bestScore: Math.max(prog.bestScore || 0, gs.score),
@@ -912,7 +912,7 @@ export default function GameScreen() {
     setGs(generateGameState(nextLevel));
     setHistory([]); setSelected(null);
     setHintCard(null); setHintSlot(null);
-    setCoins((prog.coins || 0) + 20 + bonus);
+    setCoins((prog.coins || 0) + 30 + bonus);
   }, [levelId, gs, level, coins]);
 
   const handleReplay = useCallback(async () => {
@@ -1077,7 +1077,7 @@ export default function GameScreen() {
               onPress={() => { const fn = toolModal === 'hint' ? executeHint : toolModal === 'undo' ? executeUndo : executeDelete; fn('coin'); }}
               activeOpacity={0.8}
             >
-              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#000' }}>🪙 100</Text>
+              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#000' }}>🪙 500</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={{ backgroundColor: COLORS.success, borderRadius: 14, paddingVertical: 14, alignItems: 'center', width: '100%' }} 
@@ -1147,7 +1147,7 @@ export default function GameScreen() {
 
       {/* Overlays */}
       {gs.isComplete && (
-        <LevelCompleteOverlay t={t} score={gs.score} coins={20} movesLeft={gs.moves} maxMoves={level.moves} levelId={gs.levelId} onNext={handleNextLevel} onReplay={handleReplay} onHome={handleHome} />
+        <LevelCompleteOverlay t={t} score={gs.score} coins={30} movesLeft={gs.moves} maxMoves={level.moves} levelId={gs.levelId} onNext={handleNextLevel} onReplay={handleReplay} onHome={handleHome} />
       )}
       {gs.isFailed && !gs.isComplete && (
         <LevelFailedOverlay t={t} levelId={gs.levelId} onAddMovesAd={addMovesAd} onAddMovesCoin={addMovesCoin} onReplay={handleReplay} onHome={handleHome} />

@@ -29,9 +29,9 @@ export default function StoreScreen() {
   }, []);
 
   const COIN_PACKS = [
-    { amount: 100, price: '₺24,99', desc: st.small, icon: 'paid', popular: false },
-    { amount: 500, price: '₺99,99', desc: st.popular, icon: 'account-balance-wallet', popular: true },
-    { amount: 2000, price: '₺299,99', desc: st.best, icon: 'savings', popular: false },
+    { amount: 500, price: '₺49,99', desc: st.small, icon: 'paid', popular: false },
+    { amount: 2500, price: '₺149,99', desc: st.popular, icon: 'account-balance-wallet', popular: true },
+    { amount: 6000, price: '₺299,99', desc: st.best, icon: 'savings', popular: false },
   ];
 
   const BOOSTERS = [
@@ -74,7 +74,7 @@ export default function StoreScreen() {
           <Text style={s.premiumDesc}>{st.noAdsDesc}</Text>
           <TouchableOpacity activeOpacity={0.8} onPress={() => Alert.alert(st.coming, st.comingMsg)}>
             <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={s.premiumBtn}>
-              <Text style={s.premiumBtnText}>₺89,99</Text>
+              <Text style={s.premiumBtnText}>₺499,99</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
