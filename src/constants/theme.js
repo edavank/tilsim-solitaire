@@ -3,8 +3,8 @@
 
 export const COLORS = {
   // Arka plan gradient (mor — alacakaranlık)
-  gradientTop: '#6B5B8A',
-  gradientBottom: '#3D3560',
+  gradientTop: '#1e0a38',
+  gradientBottom: '#150629',
 
   // Surface (koyu mor tonları)
   surface: '#150629',
