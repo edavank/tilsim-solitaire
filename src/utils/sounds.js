@@ -1,4 +1,5 @@
-import { Audio } from 'expo-av';
+let Audio;
+try { Audio = require('expo-av').Audio; } catch (e) { Audio = null; }
 import { Vibration } from 'react-native';
 
 let soundEnabled = true;
