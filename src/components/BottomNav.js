@@ -6,18 +6,19 @@ import { COLORS, FONTS, SIZES } from '../constants/theme';
 import { useLang } from '../context/LanguageContext';
 
 const TAB_LABELS = {
-  tr: { store: 'MAĞAZA', home: 'ANA SAYFA', leaderboard: 'LİDERLER' },
-  en: { store: 'STORE', home: 'HOME', leaderboard: 'LEADERS' },
-  de: { store: 'SHOP', home: 'START', leaderboard: 'RANGLISTE' },
-  fr: { store: 'BOUTIQUE', home: 'ACCUEIL', leaderboard: 'CLASSEMENT' },
-  es: { store: 'TIENDA', home: 'INICIO', leaderboard: 'LÍDERES' },
-  ar: { store: 'متجر', home: 'الرئيسية', leaderboard: 'المتصدرين' },
+  tr: { store: 'MAĞAZA', home: 'ANA SAYFA', achievements: 'BAŞARIM', leaderboard: 'LİDERLER' },
+  en: { store: 'STORE', home: 'HOME', achievements: 'BADGES', leaderboard: 'LEADERS' },
+  de: { store: 'SHOP', home: 'START', achievements: 'ERFOLGE', leaderboard: 'RANGLISTE' },
+  fr: { store: 'BOUTIQUE', home: 'ACCUEIL', achievements: 'SUCCÈS', leaderboard: 'CLASSEMENT' },
+  es: { store: 'TIENDA', home: 'INICIO', achievements: 'LOGROS', leaderboard: 'LÍDERES' },
+  ar: { store: 'متجر', home: 'الرئيسية', achievements: 'إنجازات', leaderboard: 'المتصدرين' },
 };
 
 const tabDefs = [
   { key: 'store', route: '/store', icon: 'storefront' },
   { key: 'home', route: '/', icon: 'home' },
-  { key: 'leaderboard', route: '/leaderboard', icon: 'emoji-events' },
+  { key: 'achievements', route: '/achievements', icon: 'emoji-events' },
+  { key: 'leaderboard', route: '/leaderboard', icon: 'leaderboard' },
 ];
 
 export default function BottomNav({ activeTab = 'home' }) {

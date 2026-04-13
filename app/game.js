@@ -14,6 +14,7 @@ import { showRewarded, showInterstitial } from '../src/utils/ads';
 import { useLang } from '../src/context/LanguageContext';
 import { submitScore } from '../src/utils/leaderboardService';
 import { getDailyChallenge, markDailyChallengeCompleted } from '../src/utils/dailyChallenge';
+import { checkAchievements } from '../src/utils/achievements';
 
 import { IS_TABLET, rs, fs, getGameLayout } from '../src/utils/responsive';
 
@@ -411,6 +412,7 @@ export default function GameScreen() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [toolModal, setToolModal] = useState(null); // 'hint' | 'undo' | 'delete' | null
   const [scorePopups, setScorePopups] = useState([]); // [{id, text, x, y}]
+  const [achievementPopup, setAchievementPopup] = useState(null); // { icon, title }
   
   const showScorePopup = useCallback((text, x, y) => {
     const id = Date.now() + Math.random();
@@ -1081,6 +1083,12 @@ export default function GameScreen() {
         bestScore: Math.max(prog.bestScore || 0, gs.score),
       });
       setCoins(newCoins);
+      // Başarım kontrolü
+      try {
+        const achStats = { ...prog, coins: newCoins, totalWins: (prog.totalWins || 0) + 1, dailyCount: 1, noHintWin: gs.hints === level.hints, speedWin: gs.moves > level.moves / 2, maxCombo: combo };
+        const newAch = await checkAchievements(achStats);
+        if (newAch.length > 0) setAchievementPopup(newAch[0]);
+      } catch (e) {}
       await markDailyChallengeCompleted(dailyDate);
       router.back();
       return;
@@ -1106,6 +1114,15 @@ export default function GameScreen() {
         totalWins: (prog.totalWins || 0) + 1,
         language: gameLang,
       });
+    } catch (e) {}
+    // Başarım kontrolü
+    try {
+      const achStats = { currentLevel: nextId, coins: (prog.coins || 0) + 30 + bonus, totalWins: (prog.totalWins || 0) + 1, bestScore: Math.max(prog.bestScore || 0, gs.score), streak: (prog.streak || 0) + 1, noHintWin: gs.hints === level.hints, speedWin: gs.moves > level.moves / 2, perfectWin: true, maxCombo: combo };
+      const newAch = await checkAchievements(achStats);
+      if (newAch.length > 0) {
+        setAchievementPopup(newAch[0]);
+        setTimeout(() => setAchievementPopup(null), 3000);
+      }
     } catch (e) {}
     // Show interstitial ad every 3 levels
     if (nextId % 3 === 0) await showInterstitial();
@@ -1274,6 +1291,17 @@ export default function GameScreen() {
 
       {/* Ad Banner Space */}
       <View style={st.adBannerSpace} />
+
+      {/* Achievement Popup */}
+      {achievementPopup && (
+        <TouchableOpacity style={st.achievPopup} activeOpacity={0.9} onPress={() => setAchievementPopup(null)}>
+          <Text style={{ fontSize: 28 }}>{achievementPopup.icon}</Text>
+          <View>
+            <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 14, color: '#FFD166' }}>Başarım Kazanıldı!</Text>
+            <Text style={{ fontFamily: FONTS.body, fontSize: 12, color: '#fff' }}>{achievementPopup.title}</Text>
+          </View>
+        </TouchableOpacity>
+      )}
 
       {/* Tool Purchase Modal */}
       {toolModal && (
@@ -1529,4 +1557,5 @@ const st = StyleSheet.create({
   toolBdgText: { fontFamily: FONTS.headlineBlack, fontSize: 8, color: '#fff' },
   toolLabel: { fontFamily: FONTS.headlineBlack, fontSize: 8, color: COLORS.onSurfaceVariant, letterSpacing: 1 },
   adBannerSpace: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 60, backgroundColor: 'rgba(0,0,0,0.15)', zIndex: 99 },
+  achievPopup: { position: 'absolute', top: 100, left: 20, right: 20, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(30,10,50,0.95)', borderRadius: 16, padding: 14, borderWidth: 1.5, borderColor: '#FFD166', shadowColor: '#FFD166', shadowOpacity: 0.5, shadowRadius: 12, elevation: 10, zIndex: 200 },
 });
