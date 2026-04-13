@@ -174,11 +174,11 @@ function PopInView({ children, trigger }) {
 }
 
 /* ── Card Components ── */
-function FaceDownCard() {
+function FaceDownCard({ w, h }) {
   return (
     <LinearGradient colors={[COLORS.cardBackTop, COLORS.cardBackBottom]}
       start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-      style={[st.faceDown, { width: CARD_W, height: CARD_H }]}>
+      style={[st.faceDown, { width: w || '100%', height: h || CARD_H }]}>
       <View style={st.innerFrame}><View style={st.innerFrameInner} /></View>
     </LinearGradient>
   );
@@ -1263,19 +1263,16 @@ export default function GameScreen() {
         </View>
 
         <View style={st.slotsRow}>
-          {gs.slots.map((slot, i) => {
-            const slotW = Math.floor((SW - GAME_PAD * 2 - (gs.slots.length - 1) * COL_GAP) / gs.slots.length);
-            return (
-              <Animated.View key={i} style={{ width: slotW, transform: [{ translateX: shakeSlotIdx === i ? shakeAnim : 0 }] }}>
-                <FoundationSlot t={t} slot={slot} slotIndex={i} onPress={() => handleSlotTap(i)} onUnlock={handleUnlock} hinted={hintSlot === i} />
-              </Animated.View>
-            );
-          })}
+          {gs.slots.map((slot, i) => (
+            <Animated.View key={i} style={{ flex: 1, transform: [{ translateX: shakeSlotIdx === i ? shakeAnim : 0 }] }}>
+              <FoundationSlot t={t} slot={slot} slotIndex={i} onPress={() => handleSlotTap(i)} onUnlock={handleUnlock} hinted={hintSlot === i} />
+            </Animated.View>
+          ))}
         </View>
 
         <View style={st.tableauRow}>
           {gs.columns.map((col, i) => (
-            <View key={i} style={{ width: dynCardW + COL_GAP }}>
+            <View key={i} style={{ flex: 1 }}>
               <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard} dragCardId={dragCard?.card?.id} dragStackIds={dragStackIds} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onCardLongPress={handleCardLongPress} onUnlock={handleUnlock} />
             </View>
           ))}
