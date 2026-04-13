@@ -29,10 +29,7 @@
       },
       "package": "com.edavank.tilsimsolitaire",
       "versionCode": 1,
-      "newArchEnabled": false,
-      "permissions": [
-        "com.google.android.gms.permission.AD_ID"
-      ]
+      "newArchEnabled": false
     },
     "web": {
       "bundler": "metro",
@@ -41,30 +38,16 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font",
-      "expo-tracking-transparency",
-      [
-        "react-native-google-mobile-ads",
-        {
-          "androidAppId": "ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY",
-          "iosAppId": "ca-app-pub-XXXXXXXXXXXXXXXX~ZZZZZZZZZZ"
-        }
-      ],
-      "@react-native-firebase/app"
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": false
     },
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": "___EAS_PROJECT_ID___"
+        "projectId": "798b54e7-7f2c-4de5-94cc-9d07e92662e2"
       }
-    },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/___EAS_PROJECT_ID___"
     }
   }
 }
