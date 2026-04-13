@@ -44,15 +44,30 @@ export function generateLevels(startId, count, language = 'tr') {
     // Kilitli slotlar (foundation)
     const lockedSlots = tier < 3 ? 0 : tier < 8 ? 1 : 2;
 
-    // Sütun derinlikleri: derin = çok kapalı kart
-    const minDepth = Math.min(3 + Math.floor(tier / 4), 5);
-    const maxDepth = Math.min(4 + Math.floor(tier / 3), 7);
+    // Sütun derinlikleri: toplam sütun kapasitesi < toplam kart olmalı
+    // Böylece kartlar desteye de düşer
+    const minDepth = Math.min(2 + Math.floor(tier / 5), 4);
+    const maxDepth = Math.min(3 + Math.floor(tier / 4), 5);
     
     const columns = [];
     if (lockedCols > 0) columns.push({ locked: true });
     for (let c = 0; c < playableCols; c++) {
       const depth = c % 2 === 0 ? maxDepth : minDepth;
       columns.push({ depth });
+    }
+    
+    // Toplam sütun kapasitesini kontrol et — en fazla kartların %60'ı sütunlarda
+    const totalColCapacity = columns.reduce((s, c) => s + (c.depth || 0), 0);
+    const maxInCols = Math.floor(totalCards * 0.6);
+    if (totalColCapacity > maxInCols) {
+      let excess = totalColCapacity - maxInCols;
+      for (let c = columns.length - 1; c >= 0 && excess > 0; c--) {
+        if (columns[c].depth && columns[c].depth > 2) {
+          const reduce = Math.min(columns[c].depth - 2, excess);
+          columns[c] = { depth: columns[c].depth - reduce };
+          excess -= reduce;
+        }
+      }
     }
 
     const eligible = pools.filter((p) => p.words.length >= wordsPerCat);

@@ -46,13 +46,13 @@ function ScorePopup({ text, x, y }) {
   );
 }
 
-/* ── Initial Layout Constants (for max 7 columns) ── */
+/* ── Initial Layout Constants (for max 5 columns) ── */
 const _layout = getGameLayout();
 const SW = _layout.sw;
 const SH = _layout.sh;
-const COL_COUNT = 7; // Max columns
+const COL_COUNT = 5;
 const COL_GAP = IS_TABLET ? 5 : 3;
-const CARD_W = Math.floor((SW - 12 - (COL_COUNT - 1) * COL_GAP) / COL_COUNT);
+const CARD_W = Math.floor((SW - 16 - (COL_COUNT - 1) * COL_GAP) / COL_COUNT);
 const CARD_H = Math.floor(CARD_W * 1.35);
 const OVERLAP = -Math.floor(CARD_H * 0.72);
 
@@ -191,12 +191,12 @@ function FaceUpCard({ card, selected, w, h, hinted, isDragging }) {
         <>
           <View style={st.catBadge}><Text style={st.catBadgeText}>0/{card.totalWords}</Text></View>
           <Text style={{ fontSize: Math.max(22, cw * 0.4) }}>{card.emoji}</Text>
-          <Text style={st.catName} numberOfLines={2}>{card.word}</Text>
+          <Text style={st.catName} numberOfLines={1} adjustsFontSizeToFit>{card.word}</Text>
         </>
       ) : (
         <>
           <Text style={{ fontSize: Math.max(22, cw * 0.4) }}>{card.emoji}</Text>
-          <Text style={st.word} numberOfLines={2}>{card.word}</Text>
+          <Text style={st.word} numberOfLines={1} adjustsFontSizeToFit>{card.word}</Text>
         </>
       )}
     </View>
@@ -230,7 +230,7 @@ function FoundationSlot({ t, slot, slotIndex, onPress, onUnlock, hinted }) {
         ) : (
           <Text style={{ fontSize: 16, marginTop: 8 }}>{slot.category.emoji}</Text>
         )}
-        <Text style={[st.word, { fontSize: 8, marginTop: 2, color: isDone ? COLORS.success : '#1e293b' }]} numberOfLines={2}>{slot.category.word}</Text>
+        <Text style={[st.word, { fontSize: 8, marginTop: 2, color: isDone ? COLORS.success : '#1e293b' }]} numberOfLines={1} adjustsFontSizeToFit>{slot.category.word}</Text>
       </TouchableOpacity>
     );
   }

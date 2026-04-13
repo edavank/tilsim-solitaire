@@ -15,14 +15,14 @@ function shuffle(arr) {
 export const LEVELS = [
   // Bölüm 1-2: 3 kat × 3 kel = 12 kart. 4 sütun (geçici depo)
   {
-    id: 1, moves: 30, hints: 3, undos: 0,
+    id: 1, moves: 35, hints: 3, undos: 0,
     categories: [
       { name: 'Meyveler', words: ['Elma', 'Armut', 'Kiraz'] },
       { name: 'Hayvanlar', words: ['Kedi', 'Köpek', 'Kuş'] },
       { name: 'Renkler', words: ['Kırmızı', 'Mavi', 'Yeşil'] },
     ],
     totalSlots: 3, lockedSlots: 0,
-    columns: [{ depth: 3 }, { depth: 3 }, { depth: 3 }, { depth: 3 }],
+    columns: [{ depth: 2 }, { depth: 2 }, { depth: 2 }, { depth: 2 }],
   },
   {
     id: 2, moves: 30, hints: 3, undos: 0,
@@ -32,7 +32,7 @@ export const LEVELS = [
       { name: 'Mevsimler', words: ['İlkbahar', 'Yaz', 'Kış'] },
     ],
     totalSlots: 3, lockedSlots: 0,
-    columns: [{ depth: 3 }, { depth: 3 }, { depth: 3 }, { depth: 3 }],
+    columns: [{ depth: 2 }, { depth: 2 }, { depth: 2 }, { depth: 2 }],
   },
   // Bölüm 3-4: 3 kat × 4 kel
   {
@@ -43,7 +43,7 @@ export const LEVELS = [
       { name: 'Duygular', words: ['Mutluluk', 'Üzüntü', 'Korku', 'Heyecan'] },
     ],
     totalSlots: 3, lockedSlots: 0,
-    columns: [{ depth: 4 }, { depth: 4 }, { depth: 3 }, { depth: 3 }],
+    columns: [{ depth: 3 }, { depth: 3 }, { depth: 2 }, { depth: 2 }],
   },
   {
     id: 4, moves: 40, hints: 2, undos: 0,
@@ -53,7 +53,7 @@ export const LEVELS = [
       { name: 'Ağaçlar', words: ['Çam', 'Meşe', 'Kavak', 'Ceviz'] },
     ],
     totalSlots: 3, lockedSlots: 0,
-    columns: [{ depth: 4 }, { depth: 4 }, { depth: 4 }, { depth: 3 }],
+    columns: [{ depth: 3 }, { depth: 3 }, { depth: 3 }, { depth: 2 }],
   },
   // Bölüm 5-6: 4 kat × 4 kel
   {
@@ -65,7 +65,7 @@ export const LEVELS = [
       { name: 'Kuşlar', words: ['Papağan', 'Serçe', 'Kartal', 'Martı'] },
     ],
     totalSlots: 5, lockedSlots: 1,
-    columns: [{ locked: true }, { depth: 5 }, { depth: 4 }, { depth: 4 }, { depth: 4 }],
+    columns: [{ locked: true }, { depth: 4 }, { depth: 3 }, { depth: 3 }, { depth: 3 }],
   },
   {
     id: 6, moves: 55, hints: 2, undos: 0,
@@ -76,7 +76,7 @@ export const LEVELS = [
       { name: 'Çiçekler', words: ['Gül', 'Papatya', 'Lale', 'Menekşe'] },
     ],
     totalSlots: 5, lockedSlots: 1,
-    columns: [{ locked: true }, { depth: 5 }, { depth: 5 }, { depth: 4 }, { depth: 4 }],
+    columns: [{ locked: true }, { depth: 4 }, { depth: 3 }, { depth: 3 }, { depth: 3 }],
   },
   // Bölüm 7-8: 5 kat × 4 kel
   {
