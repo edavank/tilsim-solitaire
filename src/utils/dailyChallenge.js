@@ -1,4 +1,4 @@
-// Günlük Meydan Okuma — her gün benzersiz bir bölüm
+// Günlük Meydan Okuma — her gün benzersiz, ZOR bir bölüm
 import { WORD_POOLS } from '../data/wordPools';
 
 function seededRandom(seed) {
@@ -25,8 +25,10 @@ export function getDailyChallenge(language = 'tr') {
   const rand = seededRandom(dateSeed);
 
   const pools = WORD_POOLS[language] || WORD_POOLS.tr;
-  const numCats = 5;
-  const wordsPerCat = 4;
+
+  // ZOR: 6 kategori × 5 kelime
+  const numCats = 6;
+  const wordsPerCat = 5;
 
   const eligible = pools.filter((p) => p.words.length >= wordsPerCat);
   const picked = seededShuffle(eligible, rand).slice(0, numCats);
@@ -37,25 +39,26 @@ export function getDailyChallenge(language = 'tr') {
   }));
 
   const totalCards = categories.reduce((sum, c) => sum + c.words.length, 0) + numCats;
-  // Solitaire tarzı: bol hamle (sütun taşıma da hamle harcar)
-  const moves = totalCards + Math.floor(totalCards * 1.5) + 10;
+  // Sıkı hamle bütçesi — kolay değil
+  const moves = totalCards + Math.floor(totalCards * 1.2) + 5;
 
   return {
     id: dateSeed,
     isDaily: true,
     moves,
-    hints: 2,
+    hints: 1,
     undos: 0,
     categories,
-    totalSlots: numCats + 1,
-    lockedSlots: 1,
-    // 4 sütun geçici depo, sığ (kartlar desteye düşsün)
+    totalSlots: numCats + 2,
+    lockedSlots: 2,
+    // 5 sütun, 2 kilitli — alan dar
     columns: [
       { locked: true },
+      { locked: true },
+      { depth: 4 },
       { depth: 3 },
       { depth: 3 },
-      { depth: 2 },
-      { depth: 2 },
+      { depth: 3 },
     ],
   };
 }
@@ -65,18 +68,55 @@ export function getDailyDateString() {
   return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
 }
 
-export function isDailyChallengeCompleted() {
-  try {
-    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-    const today = new Date().toISOString().split('T')[0];
-    return AsyncStorage.getItem('@tilsim_daily_' + today).then(v => v === 'done');
-  } catch (e) { return Promise.resolve(false); }
+export function getDailySeedForDate(date) {
+  return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
 }
 
-export function markDailyChallengeCompleted() {
+export async function isDailyChallengeCompleted(dateStr) {
+  try {
+    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+    const key = dateStr || new Date().toISOString().split('T')[0];
+    return (await AsyncStorage.getItem('@tilsim_daily_' + key)) === 'done';
+  } catch (e) { return false; }
+}
+
+export async function markDailyChallengeCompleted() {
   try {
     const AsyncStorage = require('@react-native-async-storage/async-storage').default;
     const today = new Date().toISOString().split('T')[0];
     return AsyncStorage.setItem('@tilsim_daily_' + today, 'done');
-  } catch (e) { return Promise.resolve(); }
+  } catch (e) {}
+}
+
+export async function getDailyCompletionMap() {
+  try {
+    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+    const keys = await AsyncStorage.getAllKeys();
+    const dailyKeys = keys.filter(k => k.startsWith('@tilsim_daily_'));
+    const map = {};
+    for (const k of dailyKeys) {
+      const val = await AsyncStorage.getItem(k);
+      if (val === 'done') {
+        const dateStr = k.replace('@tilsim_daily_', '');
+        map[dateStr] = true;
+      }
+    }
+    return map;
+  } catch (e) { return {}; }
+}
+
+export async function getDailyStreak() {
+  const map = await getDailyCompletionMap();
+  let streak = 0;
+  const d = new Date();
+  while (true) {
+    const key = d.toISOString().split('T')[0];
+    if (map[key]) {
+      streak++;
+      d.setDate(d.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+  return streak;
 }

@@ -140,25 +140,37 @@ export default function HomeScreen() {
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* Günlük Meydan Okuma */}
-        <TouchableOpacity 
-          style={[s.dailyBtn, dailyDone && { opacity: 0.5 }]} 
-          activeOpacity={0.7} 
-          onPress={() => { if (!dailyDone) router.push({ pathname: '/game', params: { daily: 'true' } }); }}
-        >
-          <View style={s.dailyLeft}>
-            <Text style={{ fontSize: 28 }}>📅</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={s.dailyTitle}>Günlük Meydan Okuma</Text>
-              <Text style={s.dailyDate}>{getDailyDateString()} — Özel bölüm</Text>
+        {/* Günlük Meydan Okuma — Seviye 10'dan sonra açılır */}
+        {currentLevel > 10 ? (
+          <TouchableOpacity 
+            style={[s.dailyBtn, dailyDone && { opacity: 0.5 }]} 
+            activeOpacity={0.7} 
+            onPress={() => { if (!dailyDone) router.push({ pathname: '/game', params: { daily: 'true' } }); }}
+          >
+            <View style={s.dailyLeft}>
+              <Text style={{ fontSize: 28 }}>📅</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={s.dailyTitle}>Günlük Meydan Okuma</Text>
+                <Text style={s.dailyDate}>{getDailyDateString()} — 6 kategori, zor!</Text>
+              </View>
+            </View>
+            {dailyDone ? (
+              <View style={s.dailyDoneBadge}><MaterialIcons name="check" size={16} color="#fff" /></View>
+            ) : (
+              <View style={s.dailyRewardBadge}><Text style={s.dailyRewardText}>+100 🪙</Text></View>
+            )}
+          </TouchableOpacity>
+        ) : (
+          <View style={[s.dailyBtn, { opacity: 0.4 }]}>
+            <View style={s.dailyLeft}>
+              <Text style={{ fontSize: 28 }}>🔒</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={s.dailyTitle}>Günlük Meydan Okuma</Text>
+                <Text style={s.dailyDate}>Bölüm 10'u tamamla!</Text>
+              </View>
             </View>
           </View>
-          {dailyDone ? (
-            <View style={s.dailyDoneBadge}><MaterialIcons name="check" size={16} color="#fff" /></View>
-          ) : (
-            <View style={s.dailyRewardBadge}><Text style={s.dailyRewardText}>+100 🪙</Text></View>
-          )}
-        </TouchableOpacity>
+        )}
 
         {/* Level select button */}
         <TouchableOpacity style={s.levelSelectBtn} activeOpacity={0.7} onPress={() => router.push('/levels')}>
