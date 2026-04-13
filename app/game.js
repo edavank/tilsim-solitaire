@@ -720,7 +720,7 @@ export default function GameScreen() {
 
   const moveToColumn = useCallback((card, source, sourceIndex, targetColIndex) => {
     if (source === 'column' && sourceIndex === targetColIndex) return;
-    // Kategori kartları sütuna KONAMAZ — sadece foundation slotuna gider
+    // Kategori kartları sütuna KONAMAZ
     if (card.type === 'category') {
       setFeedback('📂 Kategori kartını üstteki boş slota koy!');
       return;
@@ -728,10 +728,22 @@ export default function GameScreen() {
     setGs((prev) => {
       const targetCol = prev.columns[targetColIndex];
       if (targetCol.locked) { setFeedback(t.isLocked); return prev; }
+      
       if (targetCol.cards.length > 0) {
         const topCard = targetCol.cards[targetCol.cards.length - 1];
         if (!topCard.faceUp) { setFeedback(t.cantPlace); return prev; }
+        // KURAL: Sadece AYNI KATEGORİ üst üste gelebilir (solitaire renk kuralı gibi)
+        if (topCard.type === 'word' && card.categoryIndex !== topCard.categoryIndex) {
+          setFeedback('⛔ Farklı kategori! Sadece aynı kategoriden kartlar üst üste gelir.');
+          return prev;
+        }
+        // Kategori kartının üstüne kelime kartı konamaz (sütunda)
+        if (topCard.type === 'category') {
+          setFeedback('📂 Kategori kartını önce boş slota taşı!');
+          return prev;
+        }
       }
+      
       const ns = removeFromSource(prev, source, sourceIndex, card.id);
       ns.columns = ns.columns.map((col, i) => {
         if (i !== targetColIndex) return col;
@@ -781,7 +793,6 @@ export default function GameScreen() {
   // Move entire stack to another column
   const moveStackToColumn = useCallback((stackCards, source, sourceIndex, targetColIndex) => {
     if (source === 'column' && sourceIndex === targetColIndex) return;
-    // Kategori kartı içeren stack sütuna taşınamaz
     if (stackCards.some(c => c.type === 'category')) {
       setFeedback('📂 Kategori kartını üstteki boş slota koy!');
       return;
@@ -789,10 +800,19 @@ export default function GameScreen() {
     setGs((prev) => {
       const targetCol = prev.columns[targetColIndex];
       if (targetCol.locked) { setFeedback(t.isLocked); return prev; }
-      // Kapalı kartın üstüne konamazsın
+
       if (targetCol.cards.length > 0) {
         const topCard = targetCol.cards[targetCol.cards.length - 1];
         if (!topCard.faceUp) { setFeedback(t.cantPlace); return prev; }
+        // AYNI KATEGORİ KURALI
+        if (topCard.type === 'word' && stackCards[0].categoryIndex !== topCard.categoryIndex) {
+          setFeedback('⛔ Farklı kategori!');
+          return prev;
+        }
+        if (topCard.type === 'category') {
+          setFeedback('📂 Kategori kartını önce boş slota taşı!');
+          return prev;
+        }
       }
 
       const stackIds = new Set(stackCards.map((c) => c.id));
