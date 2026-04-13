@@ -112,3 +112,20 @@ export const SIZES = {
   navPaddingBottom: 32,
   headerHeight: 64,
 };
+
+// Dinamik tema renkleri
+export const THEME_COLORS = {
+  cosmic: { gradientTop: '#1e0a38', gradientBottom: '#150629', accent: '#9B7DFF' },
+  ocean: { gradientTop: '#0a1628', gradientBottom: '#0d2137', accent: '#4FC3F7' },
+  forest: { gradientTop: '#0a1f0a', gradientBottom: '#0d2a12', accent: '#66BB6A' },
+  sunset: { gradientTop: '#2a0a0a', gradientBottom: '#3a1010', accent: '#FF7043' },
+  gold: { gradientTop: '#1a1500', gradientBottom: '#2a2000', accent: '#FFD54F' },
+  sakura: { gradientTop: '#1f0a1a', gradientBottom: '#2a0d22', accent: '#F48FB1' },
+  arctic: { gradientTop: '#0a1a2a', gradientBottom: '#0d2238', accent: '#80DEEA' },
+  ruby: { gradientTop: '#2a0505', gradientBottom: '#3a0808', accent: '#EF5350' },
+};
+
+export function getThemeGradient(themeId) {
+  const t = THEME_COLORS[themeId] || THEME_COLORS.cosmic;
+  return [t.gradientTop, t.gradientBottom];
+}

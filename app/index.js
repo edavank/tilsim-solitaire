@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions, Image }
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
-import { COLORS, FONTS, SIZES } from '../src/constants/theme';
+import { COLORS, FONTS, SIZES, getThemeGradient } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { loadProgress, updateProgress } from '../src/utils/storage';
 import { showRewarded } from '../src/utils/ads';
@@ -55,6 +55,7 @@ export default function HomeScreen() {
   const [currentLevel, setCurrentLevel] = useState(1);
   const [coins, setCoins] = useState(0);
   const [dailyDone, setDailyDone] = useState(false);
+  const [activeTheme, setActiveTheme] = useState('cosmic');
   const [bilgeMsg] = useState(() => {
     const msgs = t.bilgeMessages || [];
     return msgs[Math.floor(Math.random() * msgs.length)] || '';
@@ -63,7 +64,7 @@ export default function HomeScreen() {
   // Refresh on screen focus (coming back from game)
   useFocusEffect(
     useCallback(() => {
-      loadProgress().then((p) => { setCurrentLevel(p.currentLevel); setCoins(p.coins); });
+      loadProgress().then((p) => { setCurrentLevel(p.currentLevel); setCoins(p.coins); setActiveTheme(p.activeTheme || 'cosmic'); });
       isDailyChallengeCompleted().then(setDailyDone);
     }, [])
   );
@@ -100,7 +101,7 @@ export default function HomeScreen() {
 
   return (
     <View style={s.container}>
-      <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={getThemeGradient(activeTheme)} style={StyleSheet.absoluteFillObject} />
       <FloatingParticles />
 
       {/* Header */}
@@ -170,6 +171,20 @@ export default function HomeScreen() {
         <TouchableOpacity style={s.levelSelectBtn} activeOpacity={0.7} onPress={() => router.push('/collection')}>
           <MaterialIcons name="collections-bookmark" size={20} color={COLORS.primary} />
           <Text style={s.levelSelectText}>Koleksiyon Albümü</Text>
+          <MaterialIcons name="chevron-right" size={20} color={COLORS.onSurfaceVariant} />
+        </TouchableOpacity>
+
+        {/* Weekly Tournament */}
+        <TouchableOpacity style={[s.levelSelectBtn, { borderColor: COLORS.coin, borderWidth: 1 }]} activeOpacity={0.7} onPress={() => router.push('/tournament')}>
+          <MaterialIcons name="emoji-events" size={20} color={COLORS.coin} />
+          <Text style={s.levelSelectText}>Haftalık Turnuva</Text>
+          <MaterialIcons name="chevron-right" size={20} color={COLORS.onSurfaceVariant} />
+        </TouchableOpacity>
+
+        {/* Theme shop */}
+        <TouchableOpacity style={s.levelSelectBtn} activeOpacity={0.7} onPress={() => router.push('/themes')}>
+          <MaterialIcons name="palette" size={20} color={COLORS.secondary} />
+          <Text style={s.levelSelectText}>Tema Mağazası</Text>
           <MaterialIcons name="chevron-right" size={20} color={COLORS.onSurfaceVariant} />
         </TouchableOpacity>
 

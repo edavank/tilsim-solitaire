@@ -6,7 +6,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { COLORS, FONTS, SIZES, CATEGORY_COLORS } from '../src/constants/theme';
+import { COLORS, FONTS, SIZES, CATEGORY_COLORS, getThemeGradient } from '../src/constants/theme';
 import { LEVELS, generateGameState, getLevel } from '../src/data/levels';
 import { loadProgress, updateProgress, clearSavedGame, saveSavedGame, saveLevelStars, addXP } from '../src/utils/storage';
 import { playHaptic, playSound } from '../src/utils/sounds';
@@ -416,6 +416,7 @@ export default function GameScreen() {
   const [sparkle, setSparkle] = useState(null);
   const [coins, setCoins] = useState(500);
   const [combo, setCombo] = useState(0);
+  const [activeTheme, setActiveTheme] = useState('cosmic');
   const [paused, setPaused] = useState(false);
   const [shakeSlotIdx, setShakeSlotIdx] = useState(-1);
   const [showTutorial, setShowTutorial] = useState(false);
@@ -550,6 +551,7 @@ export default function GameScreen() {
   useEffect(() => {
     loadProgress().then(async (p) => {
       setCoins(p.coins || 0);
+      if (p.activeTheme) setActiveTheme(p.activeTheme);
       if (!params.level) setLevelId(p.currentLevel || 1);
       if ((p.currentLevel || 1) === 1 && !isDaily) setShowTutorial(true);
       if (!isDaily) {
@@ -1250,7 +1252,7 @@ export default function GameScreen() {
 
   return (
     <View style={st.container} {...panResponder.panHandlers}>
-      <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={getThemeGradient(activeTheme)} style={StyleSheet.absoluteFillObject} />
 
       {/* Sparkle */}
       {sparkle && <SparkleEffect visible={true} x={sparkle.x} y={sparkle.y} />}
