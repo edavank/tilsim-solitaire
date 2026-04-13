@@ -11,7 +11,7 @@ import { useLang } from '../src/context/LanguageContext';
 import { getDailyDateString, isDailyChallengeCompleted } from '../src/utils/dailyChallenge';
 
 const { width: SW } = Dimensions.get('window');
-const OWL_IMAGE = require('../assets/bilge-happy.png');
+const OWL_IMAGE = require('../assets/splash-icon.png');
 
 /* ── Floating Particles Background ── */
 function FloatingParticles() {
@@ -228,7 +228,7 @@ const s = StyleSheet.create({
     borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: 'rgba(255,255,255,0.1)',
   },
 
-  owlWrap: { width: SW * 0.7, height: SW * 0.4, marginBottom: 16 },
+  owlWrap: { width: SW * 0.35, height: SW * 0.35, marginBottom: 16 },
   owlImage: { width: '100%', height: '100%', resizeMode: 'contain' },
 
   ctaOuter: { width: '100%', maxWidth: 340, marginBottom: 16 },

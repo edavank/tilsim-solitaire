@@ -25,7 +25,7 @@ import { setVibrationEnabled, setSoundEnabled, setBgmEnabled, loadSounds, startB
 import { loadSettings, saveSettings } from '../src/utils/storage';
 import { LanguageProvider } from '../src/context/LanguageContext';
 
-const OWL = require('../assets/bilge-happy.png');
+const OWL = require('../assets/splash-icon.png');
 const { width: SW } = Dimensions.get('window');
 
 const LANGUAGES = [
@@ -65,7 +65,7 @@ function LanguageSelector({ onSelect }) {
 
 const lang = StyleSheet.create({
   overlay: { ...StyleSheet.absoluteFillObject, zIndex: 10000, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  owl: { width: 140, height: 80, resizeMode: 'contain', marginBottom: 12 },
+  owl: { width: 80, height: 80, resizeMode: 'contain', marginBottom: 12 },
   title: { fontFamily: 'Fondamento_400Regular_Italic', fontSize: 36, color: '#fff', marginBottom: 4 },
   subtitle: { fontFamily: 'BeVietnamPro_400Regular', fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 24 },
   list: { width: '100%', gap: 8 },
@@ -107,7 +107,7 @@ function AnimatedSplash({ onFinish }) {
 
 const sp = StyleSheet.create({
   container: { ...StyleSheet.absoluteFillObject, zIndex: 9999, alignItems: 'center', justifyContent: 'center' },
-  owl: { width: 180, height: 100, resizeMode: 'contain', marginBottom: 16 },
+  owl: { width: 120, height: 120, resizeMode: 'contain', marginBottom: 16 },
   title: { fontFamily: 'Fondamento_400Regular_Italic', fontSize: 48, color: '#fff' },
   sub: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: 16, color: COLORS.primary, letterSpacing: 6, marginTop: -2 },
 });
