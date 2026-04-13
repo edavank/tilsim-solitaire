@@ -143,28 +143,19 @@ export default function HomeScreen() {
         {/* Günlük Meydan Okuma — Seviye 10'dan sonra açılır */}
         {currentLevel > 10 ? (
           <TouchableOpacity 
-            style={[s.dailyBtn, dailyDone && { opacity: 0.7 }]} 
+            style={[s.levelSelectBtn, { borderColor: COLORS.coin, borderWidth: 1.5, shadowColor: COLORS.coin, shadowOpacity: 0.3 }, dailyDone && { opacity: 0.6 }]} 
             activeOpacity={0.7} 
             onPress={() => router.push('/daily')}
           >
-            <View style={s.dailyLeft}>
-              <Text style={{ fontSize: 28 }}>📅</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={s.dailyTitle}>Günlük Meydan Okuma</Text>
-                <Text style={s.dailyDate}>{getDailyDateString()} {dailyDone ? '✅' : '— 6 kategori, zor!'}</Text>
-              </View>
-            </View>
-            <MaterialIcons name="chevron-right" size={24} color={COLORS.onSurfaceVariant} />
+            <Text style={{ fontSize: 18 }}>📅</Text>
+            <Text style={s.levelSelectText}>Günlük Meydan Okuma {dailyDone ? '✅' : ''}</Text>
+            <MaterialIcons name="chevron-right" size={20} color={COLORS.onSurfaceVariant} />
           </TouchableOpacity>
         ) : (
-          <View style={[s.dailyBtn, { opacity: 0.4 }]}>
-            <View style={s.dailyLeft}>
-              <Text style={{ fontSize: 28 }}>🔒</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={s.dailyTitle}>Günlük Meydan Okuma</Text>
-                <Text style={s.dailyDate}>Bölüm 10'u tamamla!</Text>
-              </View>
-            </View>
+          <View style={[s.levelSelectBtn, { opacity: 0.4 }]}>
+            <Text style={{ fontSize: 18 }}>🔒</Text>
+            <Text style={s.levelSelectText}>Günlük Meydan Okuma</Text>
+            <Text style={{ fontFamily: FONTS.body, fontSize: 10, color: COLORS.onSurfaceVariant }}>Lv.10</Text>
           </View>
         )}
 
