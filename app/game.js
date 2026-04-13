@@ -12,6 +12,7 @@ import { loadProgress, updateProgress, clearSavedGame, saveSavedGame } from '../
 import { playHaptic, playSound } from '../src/utils/sounds';
 import { showRewarded, showInterstitial } from '../src/utils/ads';
 import { useLang } from '../src/context/LanguageContext';
+import { submitScore } from '../src/utils/leaderboardService';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const COL_COUNT = 5;
@@ -848,7 +849,16 @@ export default function GameScreen() {
       streak: (prog.streak || 0) + 1,
     });
     await clearSavedGame();
-    // Show interstitial ad every 3 levels (not on every level — Better Ads Standards)
+    // Submit to leaderboard
+    try {
+      submitScore({
+        score: Math.max(prog.bestScore || 0, gs.score),
+        level: nextId,
+        totalWins: (prog.totalWins || 0) + 1,
+        language: gameLang,
+      });
+    } catch (e) {}
+    // Show interstitial ad every 3 levels
     if (nextId % 3 === 0) await showInterstitial();
     setLevelId(nextId);
     setGs(generateGameState(nextLevel));
@@ -1133,7 +1143,7 @@ const ov = StyleSheet.create({
   statBox: { flex: 1, backgroundColor: COLORS.panelBg, borderRadius: 16, padding: 16, alignItems: 'center' },
   statLabel: { fontFamily: FONTS.headlineBlack, fontSize: 10, color: COLORS.onSurfaceVariant, letterSpacing: 1 },
   statValue: { fontFamily: FONTS.headlineBlack, fontSize: 28, color: COLORS.onSurface, marginTop: 4 },
-  nextBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, paddingHorizontal: 40, borderRadius: SIZES.radiusFull },
+  nextBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, paddingHorizontal: 40, borderRadius: SIZES.radiusFull, shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 16, elevation: 8 },
   nextBtnText: { fontFamily: FONTS.headlineBlack, fontSize: 18, color: '#fff' },
   bottomRow: { flexDirection: 'row', gap: 10, marginTop: 12, width: '100%' },
   replayBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: SIZES.radiusFull, borderWidth: 1.5, borderColor: COLORS.secondary },
@@ -1143,7 +1153,7 @@ const ov = StyleSheet.create({
   speechText: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.onSurfaceVariant, fontStyle: 'italic' },
   failTitle: { fontFamily: FONTS.headlineBlack, fontSize: 32, color: COLORS.onSurface, marginBottom: 4 },
   failSub: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.onSurfaceVariant, marginBottom: 20, textAlign: 'center' },
-  addMovesBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 16, paddingHorizontal: 24, borderRadius: SIZES.radiusFull },
+  addMovesBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 16, paddingHorizontal: 24, borderRadius: SIZES.radiusFull, shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 14, elevation: 8 },
   addMovesText: { fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff' },
   freeBadge: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 3, borderRadius: SIZES.radiusFull },
   freeText: { fontFamily: FONTS.headlineBlack, fontSize: 9, color: '#fff', letterSpacing: 1 },
@@ -1166,7 +1176,7 @@ const st = StyleSheet.create({
   feedbackText: { fontFamily: FONTS.headline, fontSize: 13, color: '#fff', textAlign: 'center' },
   scrollContent: { paddingHorizontal: 8, paddingTop: 2, gap: 6 },
   deckRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  movesPanel: { backgroundColor: COLORS.panelBg, borderWidth: 1.5, borderColor: COLORS.panelBorder, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 5, alignItems: 'center', minWidth: 60 },
+  movesPanel: { backgroundColor: COLORS.panelBg, borderWidth: 1.5, borderColor: COLORS.panelBorder, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 5, alignItems: 'center', minWidth: 60, shadowColor: '#9B7DFF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.2, shadowRadius: 8 },
   movesLabel: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: COLORS.onSurfaceVariant, letterSpacing: 1 },
   movesNum: { fontFamily: FONTS.headlineBlack, fontSize: 22, color: '#fff', lineHeight: 26 },
   addBtn: { backgroundColor: COLORS.success, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 9999, marginTop: 2 },
@@ -1175,13 +1185,13 @@ const st = StyleSheet.create({
   emptyCard: { borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.panelBorder, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.03)' },
   deckBadge: { position: 'absolute', top: -5, right: -5, backgroundColor: COLORS.primary, minWidth: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff', paddingHorizontal: 3 },
   deckBadgeText: { fontFamily: FONTS.headlineBlack, fontSize: 9, color: '#fff' },
-  faceDown: { borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.cardBackBorder, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 3 },
+  faceDown: { borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.cardBackBorder, overflow: 'hidden', shadowColor: COLORS.cardBackTop, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 4 },
   innerFrame: { flex: 1, margin: 3, borderRadius: 7, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center' },
   innerFrameInner: { width: '60%', height: '60%', borderRadius: 5, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
   faceUp: { borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.cardBorder, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2, paddingVertical: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3, elevation: 2 },
-  cardSelected: { borderColor: COLORS.primary, borderWidth: 2.5, shadowColor: COLORS.primary, shadowOpacity: 0.7, shadowRadius: 10, elevation: 8, transform: [{ scale: 1.05 }] },
-  cardHinted: { borderColor: COLORS.coin, borderWidth: 2.5, shadowColor: COLORS.coin, shadowOpacity: 0.8, shadowRadius: 12, elevation: 8, transform: [{ scale: 1.08 }] },
-  catCardBorder: { borderColor: COLORS.cardBackBorder, borderWidth: 2 },
+  cardSelected: { borderColor: COLORS.primary, borderWidth: 2.5, shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 14, elevation: 10, transform: [{ scale: 1.05 }] },
+  cardHinted: { borderColor: COLORS.coin, borderWidth: 2.5, shadowColor: COLORS.coin, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 16, elevation: 12, transform: [{ scale: 1.08 }] },
+  catCardBorder: { borderColor: COLORS.cardBackBorder, borderWidth: 2, shadowColor: COLORS.cardBackTop, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 4 },
   word: { fontFamily: FONTS.headlineBlack, fontSize: 9, color: '#1e293b', textAlign: 'center', lineHeight: 12 },
   catBadge: { position: 'absolute', top: 3, right: 4, backgroundColor: COLORS.cardBackTop, paddingHorizontal: 4, paddingVertical: 1, borderRadius: 6 },
   catBadgeText: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: '#fff' },
@@ -1189,7 +1199,7 @@ const st = StyleSheet.create({
   slotsRow: { flexDirection: 'row', gap: 2 },
   slotBox: { borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', gap: 2 },
   slotDashed: { borderColor: COLORS.panelBorder, borderStyle: 'dashed', backgroundColor: 'rgba(255,255,255,0.03)' },
-  slotHinted: { borderColor: COLORS.coin, borderWidth: 2.5, shadowColor: COLORS.coin, shadowOpacity: 0.6, shadowRadius: 10 },
+  slotHinted: { borderColor: COLORS.coin, borderWidth: 2.5, shadowColor: COLORS.coin, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.7, shadowRadius: 14 },
   lockedText: { fontFamily: FONTS.headlineBlack, fontSize: 6, color: 'rgba(255,255,255,0.3)' },
   adBadge: { backgroundColor: COLORS.primary, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
   adText: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: '#fff' },
@@ -1198,8 +1208,8 @@ const st = StyleSheet.create({
   tableauRow: { flexDirection: 'row', gap: COL_GAP, alignItems: 'flex-start', marginTop: 2 },
   toolbar: { position: 'absolute', bottom: 70, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end', gap: 16, paddingVertical: 8, paddingHorizontal: 20, zIndex: 100 },
   toolWrap: { alignItems: 'center', gap: 3 },
-  toolBtn: { width: 46, height: 46, borderRadius: 13, backgroundColor: COLORS.buttonBlue, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.1)', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 5, elevation: 5 },
-  toolBtnBig: { width: 56, height: 56, borderRadius: 16, backgroundColor: COLORS.buttonBlue },
+  toolBtn: { width: 46, height: 46, borderRadius: 13, backgroundColor: COLORS.buttonBlue, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(140,180,255,0.3)', shadowColor: '#6B8AFF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 10, elevation: 8 },
+  toolBtnBig: { width: 56, height: 56, borderRadius: 16, backgroundColor: COLORS.buttonBlue, shadowColor: '#6B8AFF', shadowOpacity: 0.6, shadowRadius: 14, elevation: 10 },
   toolBdg: { position: 'absolute', top: -4, right: -4, minWidth: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff', paddingHorizontal: 2 },
   toolBdgText: { fontFamily: FONTS.headlineBlack, fontSize: 8, color: '#fff' },
   toolLabel: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: COLORS.onSurfaceVariant, letterSpacing: 1 },

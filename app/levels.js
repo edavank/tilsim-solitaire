@@ -141,8 +141,8 @@ const s = StyleSheet.create({
     backgroundColor: COLORS.panelBg, borderWidth: 1.5, borderColor: COLORS.panelBorder,
     alignItems: 'center', justifyContent: 'center',
   },
-  levelCurrent: { borderColor: COLORS.primary, borderWidth: 2.5, backgroundColor: 'rgba(255,138,167,0.1)' },
-  levelCompleted: { borderColor: COLORS.success, backgroundColor: 'rgba(93,190,110,0.08)' },
+  levelCurrent: { borderColor: COLORS.primary, borderWidth: 2.5, backgroundColor: 'rgba(255,138,167,0.1)', shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 12, elevation: 8 },
+  levelCompleted: { borderColor: COLORS.success, backgroundColor: 'rgba(93,190,110,0.08)', shadowColor: COLORS.success, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.3, shadowRadius: 6 },
   levelLocked: { opacity: 0.4 },
 
   stars: { flexDirection: 'row', gap: 1, position: 'absolute', top: 4 },

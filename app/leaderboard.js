@@ -1,54 +1,73 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SIZES } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { loadProgress } from '../src/utils/storage';
 import { useLang } from '../src/context/LanguageContext';
+import { fetchLeaderboard, getUserRank } from '../src/utils/leaderboardService';
 
 const OWL = require('../assets/bilge-happy.png');
 
 const LB_TEXT = {
-  tr: { tabs: ['Haftalık', 'Aylık', 'Tüm Zamanlar'], games: 'Oyun', wins: 'Kazanma', success: 'Başarı', you: 'Sen', level: 'Bölüm' },
-  en: { tabs: ['Weekly', 'Monthly', 'All Time'], games: 'Games', wins: 'Wins', success: 'Success', you: 'You', level: 'Level' },
-  de: { tabs: ['Wöchentlich', 'Monatlich', 'Alle Zeiten'], games: 'Spiele', wins: 'Siege', success: 'Erfolg', you: 'Du', level: 'Level' },
-  fr: { tabs: ['Semaine', 'Mois', 'Tout temps'], games: 'Parties', wins: 'Victoires', success: 'Succès', you: 'Vous', level: 'Niveau' },
-  es: { tabs: ['Semanal', 'Mensual', 'Todo'], games: 'Juegos', wins: 'Victorias', success: 'Éxito', you: 'Tú', level: 'Nivel' },
-  ar: { tabs: ['أسبوعي', 'شهري', 'كل الوقت'], games: 'ألعاب', wins: 'فوز', success: 'نجاح', you: 'أنت', level: 'مستوى' },
+  tr: { tabs: ['Haftalık', 'Aylık', 'Tüm Zamanlar'], games: 'Oyun', wins: 'Kazanma', success: 'Başarı', you: 'Sen', level: 'Bölüm', noData: 'Henüz veri yok' },
+  en: { tabs: ['Weekly', 'Monthly', 'All Time'], games: 'Games', wins: 'Wins', success: 'Success', you: 'You', level: 'Level', noData: 'No data yet' },
+  de: { tabs: ['Wöchentlich', 'Monatlich', 'Alle Zeiten'], games: 'Spiele', wins: 'Siege', success: 'Erfolg', you: 'Du', level: 'Level', noData: 'Noch keine Daten' },
+  fr: { tabs: ['Semaine', 'Mois', 'Tout temps'], games: 'Parties', wins: 'Victoires', success: 'Succès', you: 'Vous', level: 'Niveau', noData: 'Pas encore de données' },
+  es: { tabs: ['Semanal', 'Mensual', 'Todo'], games: 'Juegos', wins: 'Victorias', success: 'Éxito', you: 'Tú', level: 'Nivel', noData: 'Sin datos aún' },
+  ar: { tabs: ['أسبوعي', 'شهري', 'كل الوقت'], games: 'ألعاب', wins: 'فوز', success: 'نجاح', you: 'أنت', level: 'مستوى', noData: 'لا توجد بيانات' },
 };
 
-const PODIUM = [
-  { rank: 2, name: 'Volkan', score: 9420, color: COLORS.onSurfaceVariant },
-  { rank: 1, name: 'Efsun', score: 12850, color: COLORS.coin },
-  { rank: 3, name: 'Beren', score: 8100, color: '#CD7F32' },
-];
+const PERIODS = ['weekly', 'monthly', 'all'];
 
-const OTHERS = [
-  { rank: 4, name: 'Aslan Kral', tier: 'Legendary League', score: 7950 },
-  { rank: 5, name: 'ZıpZıp', tier: 'Diamond Tier', score: 7210 },
-  { rank: 6, name: 'MeowMaster', tier: 'Gold Tier', score: 6840 },
+// Placeholder data when Supabase not configured
+const PLACEHOLDER = [
+  { display_name: 'Efsun', avatar_emoji: '🦄', score: 12850, level: 45 },
+  { display_name: 'Volkan', avatar_emoji: '🦊', score: 9420, level: 32 },
+  { display_name: 'Beren', avatar_emoji: '🐼', score: 8100, level: 28 },
+  { display_name: 'Aslan', avatar_emoji: '🦁', score: 7950, level: 25 },
+  { display_name: 'Luna', avatar_emoji: '🐰', score: 7210, level: 22 },
+  { display_name: 'Meow', avatar_emoji: '🐱', score: 6840, level: 20 },
 ];
 
 export default function LeaderboardScreen() {
   const { lang } = useLang();
   const lb = LB_TEXT[lang] || LB_TEXT.tr;
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState(2); // default: all time
   const [userScore, setUserScore] = useState(0);
   const [userLevel, setUserLevel] = useState(1);
   const [coins, setCoins] = useState(0);
   const [totalWins, setTotalWins] = useState(0);
   const [totalGames, setTotalGames] = useState(0);
+  const [leaders, setLeaders] = useState(PLACEHOLDER);
+  const [userRank, setUserRank] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    loadProgress().then((p) => {
-      setUserScore(p.bestScore || 0);
-      setUserLevel(p.currentLevel || 1);
-      setCoins(p.coins || 0);
-      setTotalWins(p.totalWins || 0);
-      setTotalGames(p.totalGames || 0);
-    });
-  }, []);
+  const loadData = async (tabIdx) => {
+    setLoading(true);
+    const prog = await loadProgress();
+    setUserScore(prog.bestScore || 0);
+    setUserLevel(prog.currentLevel || 1);
+    setCoins(prog.coins || 0);
+    setTotalWins(prog.totalWins || 0);
+    setTotalGames(prog.totalGames || 0);
+
+    const { data } = await fetchLeaderboard(PERIODS[tabIdx], 20);
+    if (data && data.length > 0) setLeaders(data);
+    else setLeaders(PLACEHOLDER);
+
+    const { rank } = await getUserRank();
+    setUserRank(rank);
+    setLoading(false);
+  };
+
+  useEffect(() => { loadData(activeTab); }, []);
+
+  const changeTab = (idx) => {
+    setActiveTab(idx);
+    loadData(idx);
+  };
 
   return (
     <View style={s.container}>
@@ -70,7 +89,7 @@ export default function LeaderboardScreen() {
       {/* Tab bar */}
       <View style={s.tabBar}>
         {lb.tabs.map((tab, i) => (
-          <TouchableOpacity key={i} style={[s.tab, activeTab === i && s.tabActive]} onPress={() => setActiveTab(i)} activeOpacity={0.7}>
+          <TouchableOpacity key={i} style={[s.tab, activeTab === i && s.tabActive]} onPress={() => changeTab(i)} activeOpacity={0.7}>
             <Text style={[s.tabText, activeTab === i && s.tabTextActive]}>{tab}</Text>
           </TouchableOpacity>
         ))}
@@ -78,63 +97,66 @@ export default function LeaderboardScreen() {
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
-        {/* Podium */}
+        {loading && <ActivityIndicator color={COLORS.primary} style={{ marginVertical: 20 }} />}
+
+        {/* Podium - top 3 */}
+        {leaders.length >= 3 && (
         <View style={s.podium}>
-          {/* 2nd place - left */}
+          {/* 2nd place */}
           <View style={[s.podiumItem, { marginTop: 40 }]}>
             <View style={[s.podiumAvatar, { borderColor: COLORS.onSurfaceVariant }]}>
-              <Text style={{ fontSize: 28 }}>🦊</Text>
+              <Text style={{ fontSize: 28 }}>{leaders[1]?.avatar_emoji || '🦊'}</Text>
               <View style={[s.rankBadge, { backgroundColor: COLORS.onSurfaceVariant }]}><Text style={s.rankText}>2</Text></View>
             </View>
             <View style={[s.podiumBase, { height: 80 }]}>
-              <Text style={s.podiumName}>{PODIUM[0].name}</Text>
-              <Text style={[s.podiumScore, { color: COLORS.primary }]}>{PODIUM[0].score.toLocaleString()}</Text>
+              <Text style={s.podiumName}>{leaders[1]?.display_name}</Text>
+              <Text style={[s.podiumScore, { color: COLORS.primary }]}>{(leaders[1]?.score || 0).toLocaleString()}</Text>
             </View>
           </View>
 
-          {/* 1st place - center */}
+          {/* 1st place */}
           <View style={s.podiumItem}>
             <MaterialIcons name="star" size={24} color={COLORS.coin} style={{ marginBottom: 4 }} />
-            <View style={[s.podiumAvatar, s.podiumAvatarFirst, { borderColor: COLORS.coin }]}>
-              <Text style={{ fontSize: 36 }}>🦄</Text>
+            <View style={[s.podiumAvatar, s.podiumAvatarFirst, { borderColor: COLORS.coin, shadowColor: COLORS.coin, shadowOpacity: 0.6, shadowRadius: 12 }]}>
+              <Text style={{ fontSize: 36 }}>{leaders[0]?.avatar_emoji || '🦄'}</Text>
               <View style={[s.rankBadge, { backgroundColor: COLORS.coin }]}><Text style={[s.rankText, { color: '#000' }]}>1</Text></View>
             </View>
             <View style={[s.podiumBase, { height: 100 }]}>
-              <Text style={[s.podiumName, { fontSize: 16 }]}>{PODIUM[1].name}</Text>
-              <Text style={[s.podiumScore, { color: COLORS.primary, fontSize: 18 }]}>{PODIUM[1].score.toLocaleString()}</Text>
+              <Text style={[s.podiumName, { fontSize: 16 }]}>{leaders[0]?.display_name}</Text>
+              <Text style={[s.podiumScore, { color: COLORS.primary, fontSize: 18 }]}>{(leaders[0]?.score || 0).toLocaleString()}</Text>
             </View>
           </View>
 
-          {/* 3rd place - right */}
+          {/* 3rd place */}
           <View style={[s.podiumItem, { marginTop: 50 }]}>
             <View style={[s.podiumAvatar, { borderColor: '#CD7F32' }]}>
-              <Text style={{ fontSize: 24 }}>🐼</Text>
+              <Text style={{ fontSize: 24 }}>{leaders[2]?.avatar_emoji || '🐼'}</Text>
               <View style={[s.rankBadge, { backgroundColor: '#CD7F32' }]}><Text style={s.rankText}>3</Text></View>
             </View>
             <View style={[s.podiumBase, { height: 65 }]}>
-              <Text style={s.podiumName}>{PODIUM[2].name}</Text>
-              <Text style={[s.podiumScore, { color: COLORS.secondary }]}>{PODIUM[2].score.toLocaleString()}</Text>
+              <Text style={s.podiumName}>{leaders[2]?.display_name}</Text>
+              <Text style={[s.podiumScore, { color: COLORS.secondary }]}>{(leaders[2]?.score || 0).toLocaleString()}</Text>
             </View>
           </View>
         </View>
+        )}
 
-        {/* List */}
-        {OTHERS.map((player, i) => (
+        {/* List - 4th+ */}
+        {leaders.slice(3).map((player, i) => (
           <View key={i} style={s.listRow}>
-            <Text style={s.listRank}>{player.rank}</Text>
-            <View style={s.listAvatar}><Text style={{ fontSize: 22 }}>{['🦁', '🐰', '🐱'][i]}</Text></View>
+            <Text style={s.listRank}>{i + 4}</Text>
+            <View style={s.listAvatar}><Text style={{ fontSize: 22 }}>{player.avatar_emoji || '👤'}</Text></View>
             <View style={{ flex: 1 }}>
-              <Text style={s.listName}>{player.name}</Text>
-              <Text style={s.listTier}>{player.tier}</Text>
+              <Text style={s.listName}>{player.display_name}</Text>
+              <Text style={s.listTier}>{lb.level} {player.level || 1}</Text>
             </View>
-            <Text style={s.listScore}>{player.score.toLocaleString()}</Text>
+            <Text style={s.listScore}>{(player.score || 0).toLocaleString()}</Text>
           </View>
         ))}
 
-        {/* Dots */}
-        <View style={s.dots}>
-          <View style={[s.dot, s.dotActive]} /><View style={s.dot} /><View style={s.dot} />
-        </View>
+        {leaders.length === 0 && !loading && (
+          <Text style={{ fontFamily: FONTS.body, fontSize: 14, color: COLORS.onSurfaceVariant, textAlign: 'center', marginVertical: 30 }}>{lb.noData}</Text>
+        )}
 
         {/* Stats */}
         <View style={s.statsRow}>
@@ -154,14 +176,10 @@ export default function LeaderboardScreen() {
 
         {/* User card */}
         <View style={s.userCard}>
-          <Text style={s.userRank}>42</Text>
+          <Text style={s.userRank}>{userRank || '—'}</Text>
           <View style={s.userAvatar}><Text style={{ fontSize: 20 }}>👤</Text></View>
           <View style={{ flex: 1 }}>
             <Text style={s.userName}>{lb.you}</Text>
-            <View style={s.userProgress}>
-              <View style={s.userProgressBar} />
-              <Text style={s.userProgressLabel}>RISING</Text>
-            </View>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
             <Text style={s.userScore}>{userScore.toLocaleString()}</Text>
@@ -248,6 +266,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 10,
     backgroundColor: COLORS.panelBg, borderRadius: 16, padding: 14,
     borderWidth: 1.5, borderColor: COLORS.primary,
+    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.4, shadowRadius: 12,
   },
   userRank: { fontFamily: FONTS.headlineBlack, fontSize: 16, color: COLORS.onSurfaceVariant, width: 24 },
   userAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: COLORS.primaryContainer + '33', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: COLORS.primary },
