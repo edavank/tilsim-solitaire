@@ -217,9 +217,10 @@ function LevelCompleteOverlay({ score, coins, movesLeft, maxMoves, levelId, onNe
   return (
     <View style={ov.overlay}>
       <LinearGradient colors={['rgba(21,6,41,0.95)', 'rgba(61,53,96,0.95)']} style={StyleSheet.absoluteFillObject} />
-      <View style={ov.card}>
+      <View style={{ alignItems: 'center' }}>
         <Image source={OWL_HAPPY} style={ov.owl} />
-        <Text style={ov.title}>Tebrikler!</Text>
+        <View style={ov.card}>
+          <Text style={ov.title}>Tebrikler!</Text>
         <Text style={ov.subtitle}>BÖLÜM {levelId} TAMAMLANDI</Text>
         <View style={ov.statsRow}>
           <View style={ov.statBox}>
@@ -251,6 +252,7 @@ function LevelCompleteOverlay({ score, coins, movesLeft, maxMoves, levelId, onNe
           </TouchableOpacity>
         </View>
       </View>
+      </View>
     </View>
   );
 }
@@ -260,27 +262,28 @@ function LevelFailedOverlay({ levelId, onAddMoves, onReplay, onHome }) {
   return (
     <View style={ov.overlay}>
       <LinearGradient colors={['rgba(21,6,41,0.95)', 'rgba(61,53,96,0.95)']} style={StyleSheet.absoluteFillObject} />
-      <View style={ov.card}>
-        <MaterialIcons name="heart-broken" size={64} color={COLORS.primary} style={{ marginBottom: 8 }} />
-        <Image source={OWL_HAPPY} style={[ov.owl, { width: 140, height: 140 }]} />
-        <View style={ov.speechBubble}><Text style={ov.speechText}>Bazen kaybetmek de öğretir...</Text></View>
-        <Text style={ov.failTitle}>Hamlen Bitti!</Text>
-        <Text style={ov.failSub}>Üzülme, yıldızlar her zaman parlamaz.</Text>
-        <TouchableOpacity onPress={onAddMoves} activeOpacity={0.85}>
-          <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={ov.addMovesBtn}>
-            <MaterialIcons name="play-circle-filled" size={22} color="#fff" />
-            <Text style={ov.addMovesText}>+20 Hamle (Ad)</Text>
-            <View style={ov.freeBadge}><Text style={ov.freeText}>ÜCRETSİZ</Text></View>
-          </LinearGradient>
-        </TouchableOpacity>
-        <View style={ov.bottomRow}>
-          <TouchableOpacity style={ov.replayBtn} onPress={onReplay} activeOpacity={0.7}>
-            <MaterialIcons name="refresh" size={18} color={COLORS.secondary} />
-            <Text style={ov.replayText}>Tekrar Oyna</Text>
+      <View style={{ alignItems: 'center' }}>
+        <Image source={OWL_HAPPY} style={ov.owl} />
+        <View style={ov.card}>
+          <View style={ov.speechBubble}><Text style={ov.speechText}>Bazen kaybetmek de öğretir...</Text></View>
+          <Text style={ov.failTitle}>Hamlen Bitti!</Text>
+          <Text style={ov.failSub}>Üzülme, yıldızlar her zaman parlamaz.</Text>
+          <TouchableOpacity onPress={onAddMoves} activeOpacity={0.85}>
+            <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={ov.addMovesBtn}>
+              <MaterialIcons name="play-circle-filled" size={22} color="#fff" />
+              <Text style={ov.addMovesText}>+20 Hamle (Ad)</Text>
+              <View style={ov.freeBadge}><Text style={ov.freeText}>ÜCRETSİZ</Text></View>
+            </LinearGradient>
           </TouchableOpacity>
-          <TouchableOpacity style={ov.homeBtn} onPress={onHome} activeOpacity={0.7}>
-            <MaterialIcons name="home" size={20} color={COLORS.onSurface} />
-          </TouchableOpacity>
+          <View style={ov.bottomRow}>
+            <TouchableOpacity style={ov.replayBtn} onPress={onReplay} activeOpacity={0.7}>
+              <MaterialIcons name="refresh" size={18} color={COLORS.secondary} />
+              <Text style={ov.replayText}>Tekrar Oyna</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={ov.homeBtn} onPress={onHome} activeOpacity={0.7}>
+              <MaterialIcons name="home" size={20} color={COLORS.onSurface} />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </View>
@@ -1124,8 +1127,8 @@ function ToolBtn({ icon, label, badge, badgeColor, onPress, big }) {
 /* ── Overlay Styles ── */
 const ov = StyleSheet.create({
   overlay: { ...StyleSheet.absoluteFillObject, zIndex: 999, justifyContent: 'center', alignItems: 'center' },
-  card: { width: SW - 48, backgroundColor: COLORS.surfaceContainerHigh, borderRadius: 28, paddingTop: 80, paddingBottom: 24, paddingHorizontal: 24, alignItems: 'center', borderWidth: 1, borderColor: COLORS.panelBorder },
-  owl: { width: 140, height: 140, borderRadius: 20, position: 'absolute', top: -70 },
+  card: { width: SW - 48, backgroundColor: COLORS.surfaceContainerHigh, borderRadius: 28, paddingTop: 24, paddingBottom: 24, paddingHorizontal: 24, alignItems: 'center', borderWidth: 1, borderColor: COLORS.panelBorder },
+  owl: { width: 120, height: 120, borderRadius: 20, marginBottom: -30, zIndex: 10 },
   title: { fontFamily: FONTS.headlineBlack, fontSize: 36, color: COLORS.onSurface, fontStyle: 'italic' },
   subtitle: { fontFamily: FONTS.headlineBlack, fontSize: 13, color: COLORS.secondary, letterSpacing: 3, marginBottom: 16 },
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 16, width: '100%' },

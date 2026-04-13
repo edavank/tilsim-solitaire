@@ -22,7 +22,7 @@ const BILGE_MESSAGES = [
 
 export default function HomeScreen() {
   const [currentLevel, setCurrentLevel] = useState(1);
-  const [coins, setCoins] = useState(310);
+  const [coins, setCoins] = useState(0);
   const [bilgeMsg] = useState(() => BILGE_MESSAGES[Math.floor(Math.random() * BILGE_MESSAGES.length)]);
 
   // Refresh on screen focus (coming back from game)
@@ -96,7 +96,7 @@ export default function HomeScreen() {
 
         {/* Logo */}
         <Text style={s.logoMain}>Tılsım</Text>
-        <Text style={s.logoSub}>S O L İ T A İ R E</Text>
+        <Text style={s.logoSub}>S O L I T A I R E</Text>
 
         {/* Speech bubble */}
         <View style={s.speechBubble}>

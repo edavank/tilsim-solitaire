@@ -8,7 +8,7 @@ const KEYS = {
 };
 
 const DEFAULT_PROGRESS = {
-  currentLevel: 1, coins: 310, totalGames: 0, totalWins: 0, bestScore: 0, streak: 0, unlockedThemes: ['cosmic'],
+  currentLevel: 1, coins: 50, totalGames: 0, totalWins: 0, bestScore: 0, streak: 0, unlockedThemes: ['cosmic'],
 };
 
 const DEFAULT_SETTINGS = { sound: true, bgm: true, vibration: true, language: 'tr', difficulty: 'normal' };
