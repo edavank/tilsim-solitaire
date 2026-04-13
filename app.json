@@ -14,7 +14,7 @@
       "backgroundColor": "#150629"
     },
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
       "bundleIdentifier": "com.edavank.tilsimsolitaire",
       "buildNumber": "1",
       "infoPlist": {
