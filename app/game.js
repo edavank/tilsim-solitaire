@@ -299,9 +299,10 @@ function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedI
 }
 
 /* ── Win Overlay ── */
-function LevelCompleteOverlay({ t, score, coins, movesLeft, maxMoves, levelId, combo, isDaily, onNext, onReplay, onHome }) {
+function LevelCompleteOverlay({ t, score, coins, movesLeft, maxMoves, levelId, combo, isDaily, elapsedTime, onNext, onReplay, onHome }) {
   const moveBonus = Math.floor(8 * (movesLeft / maxMoves));
-  const totalCoins = coins + moveBonus;
+  const speedBonus = elapsedTime < 60 ? 20 : elapsedTime < 120 ? 10 : elapsedTime < 180 ? 5 : 0;
+  const totalCoins = coins + moveBonus + speedBonus;
   const moveRatio = movesLeft / maxMoves;
   const stars = moveRatio > 0.5 ? 3 : moveRatio > 0.25 ? 2 : 1;
   return (
@@ -316,7 +317,8 @@ function LevelCompleteOverlay({ t, score, coins, movesLeft, maxMoves, levelId, c
         <Image source={OWL_HAPPY} style={ov.owl} />
         <Text style={ov.title}>{t.congrats}</Text>
         <Text style={ov.subtitle}>{isDaily ? '📅 GÜNLÜK GÖREV' : t.level + ' ' + levelId} {t.levelComplete}</Text>
-        {combo > 0 && <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 12, color: COLORS.tertiary, marginBottom: 8 }}>🔥 Max Combo: {combo}x</Text>}
+        {combo > 0 && <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 12, color: COLORS.tertiary, marginBottom: 4 }}>🔥 Max Combo: {combo}x</Text>}
+        <Text style={{ fontFamily: FONTS.body, fontSize: 11, color: COLORS.onSurfaceVariant, marginBottom: 8 }}>⏱ {Math.floor(elapsedTime / 60)}:{String(elapsedTime % 60).padStart(2, '0')}{speedBonus > 0 ? ' ⚡ Hız Bonusu!' : ''}</Text>
         <View style={ov.statsRow}>
           <View style={ov.statBox}>
             <Text style={ov.statLabel}>{t.score}</Text>
@@ -328,7 +330,7 @@ function LevelCompleteOverlay({ t, score, coins, movesLeft, maxMoves, levelId, c
               <Text style={ov.statLabel}>{t.gold}</Text>
             </View>
             <Text style={[ov.statValue, { color: COLORS.coin }]}>+{totalCoins}</Text>
-            {moveBonus > 0 && <Text style={{ fontFamily: FONTS.body, fontSize: 9, color: COLORS.onSurfaceVariant, marginTop: 2 }}>({coins} + {moveBonus} {t.moveBonus})</Text>}
+            {(moveBonus > 0 || speedBonus > 0) && <Text style={{ fontFamily: FONTS.body, fontSize: 9, color: COLORS.onSurfaceVariant, marginTop: 2 }}>({coins}{moveBonus > 0 ? ' +' + moveBonus + ' hamle' : ''}{speedBonus > 0 ? ' +' + speedBonus + ' hız' : ''})</Text>}
           </View>
         </View>
         <TouchableOpacity onPress={onNext} activeOpacity={0.85}>
@@ -406,6 +408,8 @@ export default function GameScreen() {
   const [selected, setSelected] = useState(null);
   const [feedback, setFeedback] = useState('');
   const [history, setHistory] = useState([]);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const startTimeRef = useRef(Date.now());
   const [hintCard, setHintCard] = useState(null);
   const [hintSlot, setHintSlot] = useState(null);
   const [sparkle, setSparkle] = useState(null);
@@ -525,6 +529,15 @@ export default function GameScreen() {
     cancelDrag();
     setFeedback(t.cantPlace);
   }, [gs.slots, gs.columns, placeCard, moveToColumn, moveStackToColumn, cancelDrag]);
+
+  // Timer
+  useEffect(() => {
+    if (gs.isComplete || gs.isFailed || paused) return;
+    const timer = setInterval(() => {
+      setElapsedTime(Math.floor((Date.now() - startTimeRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [gs.isComplete, gs.isFailed, paused]);
 
   // Play win/lose sounds
   useEffect(() => {
@@ -1097,7 +1110,7 @@ export default function GameScreen() {
   const resetGame = useCallback(() => {
     const newLevel = isDaily ? getDailyChallenge(gameLang) : getLevel(levelId, gameLang);
     setGs(generateGameState(newLevel)); setHistory([]); setSelected(null);
-    setHintCard(null); setHintSlot(null); setCombo(0);
+    setHintCard(null); setHintSlot(null); setCombo(0); startTimeRef.current = Date.now(); setElapsedTime(0);
   }, [levelId, isDaily]);
 
   const addMovesAd = useCallback(async () => {
@@ -1185,7 +1198,7 @@ export default function GameScreen() {
     setLevelId(nextId);
     setGs(generateGameState(nextLevel));
     setHistory([]); setSelected(null);
-    setHintCard(null); setHintSlot(null); setCombo(0);
+    setHintCard(null); setHintSlot(null); setCombo(0); startTimeRef.current = Date.now(); setElapsedTime(0);
     setCoins((prog.coins || 0) + 30 + bonus);
   }, [levelId, gs, level, coins]);
 
@@ -1270,6 +1283,10 @@ export default function GameScreen() {
             <Text style={st.movesLabel}>{t.moves}</Text>
             <Text style={[st.movesNum, gs.moves <= 5 && { color: COLORS.fail }]}>{gs.moves}</Text>
             <TouchableOpacity style={st.addBtn} onPress={addMovesAd}><Text style={st.addBtnText}>+20 ▶</Text></TouchableOpacity>
+          </View>
+          <View style={st.movesPanel}>
+            <Text style={st.movesLabel}>SÜRE</Text>
+            <Text style={st.movesNum}>{Math.floor(elapsedTime / 60)}:{String(elapsedTime % 60).padStart(2, '0')}</Text>
           </View>
 
           <TouchableOpacity
@@ -1452,7 +1469,7 @@ export default function GameScreen() {
       {gs.isComplete && (
         <>
           <ConfettiEffect />
-          <LevelCompleteOverlay t={t} score={gs.score} coins={isDaily ? 100 : 30} movesLeft={gs.moves} maxMoves={level.moves} levelId={gs.levelId} combo={combo} isDaily={isDaily} onNext={handleNextLevel} onReplay={handleReplay} onHome={handleHome} />
+          <LevelCompleteOverlay t={t} score={gs.score} coins={isDaily ? 100 : 30} movesLeft={gs.moves} maxMoves={level.moves} levelId={gs.levelId} combo={combo} isDaily={isDaily} elapsedTime={elapsedTime} onNext={handleNextLevel} onReplay={handleReplay} onHome={handleHome} />
         </>
       )}
       {gs.isFailed && !gs.isComplete && (
