@@ -16,6 +16,7 @@ import { submitScore } from '../src/utils/leaderboardService';
 import { getDailyChallenge, markDailyChallengeCompleted } from '../src/utils/dailyChallenge';
 import { checkAchievements } from '../src/utils/achievements';
 import { markCategoryCompleted } from '../src/utils/collection';
+import { getEventCoinMultiplier } from '../src/utils/seasonalEvents';
 
 import { IS_TABLET, rs, fs, getGameLayout } from '../src/utils/responsive';
 
@@ -1135,11 +1136,12 @@ export default function GameScreen() {
   // ── Level Complete → save & advance ──
   const handleNextLevel = useCallback(async () => {
     const bonus = Math.floor(8 * (gs.moves / level.moves));
+    const eventMultiplier = getEventCoinMultiplier();
     const prog = await loadProgress();
 
     if (isDaily) {
       // Daily challenge: 100 coin bonus, mark done, go home
-      const newCoins = (prog.coins || 0) + 100 + bonus;
+      const newCoins = (prog.coins || 0) + Math.floor((100 + bonus) * eventMultiplier);
       await updateProgress({
         coins: newCoins,
         totalGames: (prog.totalGames || 0) + 1,
@@ -1166,7 +1168,7 @@ export default function GameScreen() {
     if (!nextLevel) { router.back(); return; }
     await updateProgress({
       currentLevel: nextId,
-      coins: (prog.coins || 0) + 30 + bonus,
+      coins: (prog.coins || 0) + Math.floor((30 + bonus) * eventMultiplier),
       totalGames: (prog.totalGames || 0) + 1,
       totalWins: (prog.totalWins || 0) + 1,
       bestScore: Math.max(prog.bestScore || 0, gs.score),

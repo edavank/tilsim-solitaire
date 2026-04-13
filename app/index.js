@@ -9,6 +9,7 @@ import { loadProgress, updateProgress } from '../src/utils/storage';
 import { showRewarded } from '../src/utils/ads';
 import { useLang } from '../src/context/LanguageContext';
 import { getDailyDateString, isDailyChallengeCompleted } from '../src/utils/dailyChallenge';
+import { getActiveEvent } from '../src/utils/seasonalEvents';
 
 const { width: SW } = Dimensions.get('window');
 const OWL_IMAGE = require('../assets/bilge-happy.png');
@@ -132,6 +133,17 @@ export default function HomeScreen() {
           <Image source={OWL_IMAGE} style={s.owlImage} />
         </Animated.View>
 
+        {/* Seasonal Event Banner */}
+        {getActiveEvent() && (
+          <View style={s.eventBanner}>
+            <Text style={{ fontSize: 24 }}>{getActiveEvent().icon}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={s.eventTitle}>{getActiveEvent().name}</Text>
+              <Text style={s.eventSub}>Coin x{getActiveEvent().bonus} aktif!</Text>
+            </View>
+          </View>
+        )}
+
         {/* CTA Button */}
         <TouchableOpacity style={s.ctaOuter} activeOpacity={0.85} onPress={() => router.push({ pathname: '/game', params: { level: currentLevel } })}>
           <Animated.View style={[s.ctaGlow, { opacity: glowOpacity }]} />
@@ -252,6 +264,9 @@ const s = StyleSheet.create({
   owlWrap: { width: SW * 0.6, height: SW * 0.35, marginBottom: 16 },
   owlImage: { width: '100%', height: '100%', resizeMode: 'contain' },
 
+  eventBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, width: '100%', maxWidth: 340, backgroundColor: 'rgba(255,209,102,0.1)', borderRadius: 14, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,209,102,0.25)' },
+  eventTitle: { fontFamily: FONTS.headlineBlack, fontSize: 14, color: COLORS.coin },
+  eventSub: { fontFamily: FONTS.body, fontSize: 11, color: COLORS.onSurfaceVariant },
   ctaOuter: { width: '100%', maxWidth: 340, marginBottom: 16 },
   ctaGlow: {
     position: 'absolute', top: -4, left: -4, right: -4, bottom: -4,
