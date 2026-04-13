@@ -38,7 +38,7 @@ export default function ThemesScreen() {
         </TouchableOpacity>
         <Text style={s.headerTitle}>Görünüm Seçici</Text>
         <View style={s.coinBadge}>
-          <MaterialIcons name="monetization-on" size={16} color={COLORS.coin} />
+          <Text style={{ fontSize: 14 }}>🪙</Text>
           <Text style={s.coinText}>{coins.toLocaleString()}</Text>
         </View>
       </View>
@@ -73,7 +73,7 @@ export default function ThemesScreen() {
                   <View style={s.lockOverlay}>
                     <MaterialIcons name="lock" size={22} color="rgba(255,255,255,0.5)" />
                     <View style={s.priceBadge}>
-                      <MaterialIcons name="monetization-on" size={12} color={COLORS.coin} />
+                      <Text style={{ fontSize: 10 }}>🪙</Text>
                       <Text style={s.priceText}>{theme.price}</Text>
                     </View>
                   </View>

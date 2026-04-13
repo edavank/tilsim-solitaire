@@ -99,7 +99,7 @@ export default function SettingsScreen() {
         </TouchableOpacity>
         <Text style={s.headerTitle}>{t.settings}</Text>
         <View style={s.coinBadge}>
-          <MaterialIcons name="monetization-on" size={16} color={COLORS.coin} />
+          <Text style={{ fontSize: 14 }}>🪙</Text>
           <Text style={s.coinText}>{coins.toLocaleString()}</Text>
         </View>
       </View>

@@ -230,7 +230,7 @@ function LevelCompleteOverlay({ t, score, coins, movesLeft, maxMoves, levelId, o
           </View>
           <View style={ov.statBox}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <MaterialIcons name="monetization-on" size={14} color={COLORS.coin} />
+              <Text style={{ fontSize: 10 }}>🪙</Text>
               <Text style={ov.statLabel}>{t.gold}</Text>
             </View>
             <Text style={[ov.statValue, { color: COLORS.coin }]}>+{totalCoins}</Text>
@@ -757,21 +757,36 @@ export default function GameScreen() {
     handleCardTap(gs.drawnCards[gs.drawnCards.length - 1], 'drawn', null);
   }, [gs.drawnCards, handleCardTap]);
 
-  const useUndo = useCallback(() => {
+  const useUndo = useCallback(async () => {
     if (history.length === 0) { setFeedback(t.nothingToUndo); return; }
+    if (coins < 30) { setFeedback('🪙 30 coin gerekli!'); return; }
+    const newCoins = coins - 30;
+    setCoins(newCoins);
+    await updateProgress({ coins: newCoins });
     setGs(history[history.length - 1]); setHistory((h) => h.slice(0, -1)); setSelected(null);
     setFeedback(t.undone);
-  }, [history]);
+  }, [history, coins]);
 
-  const useDelete = useCallback(() => {
+  const useDelete = useCallback(async () => {
     if (gs.drawnCards.length === 0) { setFeedback(t.nothingToDelete); return; }
+    if (coins < 20) { setFeedback('🪙 20 coin gerekli!'); return; }
+    const newCoins = coins - 20;
+    setCoins(newCoins);
+    await updateProgress({ coins: newCoins });
     setFeedback(t.deleted);
     setGs((p) => ({ ...p, drawnCards: p.drawnCards.slice(0, -1), moves: p.moves - 1 })); setSelected(null);
-  }, [gs.drawnCards]);
+  }, [gs.drawnCards, coins]);
 
   // ── Smart Hint ──
-  const useHint = useCallback(() => {
-    if (gs.hints <= 0) { setFeedback(t.noHints); return; }
+  const useHint = useCallback(async () => {
+    if (gs.hints <= 0) {
+      // Buy hint with coins
+      if (coins < 50) { setFeedback('🪙 50 coin gerekli!'); return; }
+      const newCoins = coins - 50;
+      setCoins(newCoins);
+      await updateProgress({ coins: newCoins });
+      setGs((prev) => ({ ...prev, hints: prev.hints + 1 }));
+    }
 
     // 1. Find playable cards (all face-up in columns + top of drawn)
     const playable = [];
@@ -813,7 +828,7 @@ export default function GameScreen() {
     }
     setFeedback(t.noHintFound);
     setGs((prev) => ({ ...prev, hints: prev.hints - 1 }));
-  }, [gs]);
+  }, [gs, coins]);
 
   const resetGame = useCallback(() => {
     const newLevel = getLevel(levelId, gameLang);
@@ -914,7 +929,7 @@ export default function GameScreen() {
 
       <View style={st.header}>
         <View style={st.coinBadge}>
-          <MaterialIcons name="monetization-on" size={16} color={COLORS.coin} />
+          <Text style={{ fontSize: 14 }}>🪙</Text>
           <Text style={st.coinText}>{coins}</Text>
         </View>
         <Text style={st.headerTitle}>{t.level} {gs.levelId}</Text>
@@ -1002,9 +1017,9 @@ export default function GameScreen() {
 
       {/* Toolbar */}
       <View style={st.toolbar}>
-        <ToolBtn icon="lightbulb" label={t.hint} badge={gs.hints} badgeColor={COLORS.fail} onPress={useHint} big />
-        <ToolBtn icon="undo" label={t.undo} badge="+" badgeColor={COLORS.success} onPress={useUndo} big />
-        <ToolBtn icon="auto-fix-normal" label={t.delete} badge="+" badgeColor={COLORS.success} onPress={useDelete} big />
+        <ToolBtn icon="lightbulb" label={t.hint} badge={gs.hints > 0 ? gs.hints : '🪙50'} badgeColor={gs.hints > 0 ? COLORS.fail : COLORS.coin} onPress={useHint} big />
+        <ToolBtn icon="undo" label={t.undo} badge="🪙30" badgeColor={COLORS.coin} onPress={useUndo} big />
+        <ToolBtn icon="auto-fix-normal" label={t.delete} badge="🪙20" badgeColor={COLORS.coin} onPress={useDelete} big />
       </View>
 
       {/* Ad Banner Space */}
@@ -1121,12 +1136,23 @@ const s_tut = StyleSheet.create({
 });
 
 function ToolBtn({ icon, label, badge, badgeColor, onPress, big }) {
+  const pulseAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(Animated.sequence([
+      Animated.timing(pulseAnim, { toValue: 1, duration: 1500, useNativeDriver: true }),
+      Animated.timing(pulseAnim, { toValue: 0, duration: 1500, useNativeDriver: true }),
+    ])).start();
+  }, []);
+  const glowScale = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] });
+  const glowOpacity = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] });
   return (
     <View style={st.toolWrap}>
-      <TouchableOpacity style={[st.toolBtn, big && st.toolBtnBig]} onPress={onPress} activeOpacity={0.6}>
-        <MaterialIcons name={icon} size={big ? 22 : 20} color="#fff" />
-        {badge !== undefined && <View style={[st.toolBdg, { backgroundColor: badgeColor }]}><Text style={st.toolBdgText}>{badge}</Text></View>}
-      </TouchableOpacity>
+      <Animated.View style={{ transform: [{ scale: glowScale }], opacity: glowOpacity }}>
+        <TouchableOpacity style={[st.toolBtn, big && st.toolBtnBig]} onPress={onPress} activeOpacity={0.6}>
+          <MaterialIcons name={icon} size={big ? 22 : 20} color="#fff" />
+          {badge !== undefined && <View style={[st.toolBdg, { backgroundColor: badgeColor }]}><Text style={st.toolBdgText}>{badge}</Text></View>}
+        </TouchableOpacity>
+      </Animated.View>
       {!!label && <Text style={st.toolLabel}>{label}</Text>}
     </View>
   );
@@ -1172,7 +1198,7 @@ const st = StyleSheet.create({
   coinText: { fontFamily: FONTS.headline, fontSize: 13, color: COLORS.onSurface },
   headerTitle: { fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff', letterSpacing: 1 },
   settingsBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: COLORS.panelBg, alignItems: 'center', justifyContent: 'center' },
-  feedbackBar: { position: 'absolute', top: 88, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.65)', paddingVertical: 8, paddingHorizontal: 16, zIndex: 100 },
+  feedbackBar: { position: 'absolute', top: 90, left: 20, right: 20, backgroundColor: 'rgba(0,0,0,0.75)', paddingVertical: 10, paddingHorizontal: 16, zIndex: 200, borderRadius: 12, alignSelf: 'center' },
   feedbackText: { fontFamily: FONTS.headline, fontSize: 13, color: '#fff', textAlign: 'center' },
   scrollContent: { paddingHorizontal: 8, paddingTop: 2, gap: 6 },
   deckRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },

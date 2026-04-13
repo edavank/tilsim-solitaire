@@ -72,7 +72,7 @@ export default function HomeScreen() {
         </View>
         <View style={s.headerRight}>
           <TouchableOpacity style={s.coinBadge} onPress={() => router.push('/store')}>
-            <MaterialIcons name="monetization-on" size={18} color={COLORS.coin} />
+            <Text style={{ fontSize: 14 }}>🪙</Text>
             <Text style={s.coinText}>{coins.toLocaleString()}</Text>
             <Text style={s.coinPlus}>+</Text>
           </TouchableOpacity>

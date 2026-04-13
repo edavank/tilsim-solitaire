@@ -29,7 +29,7 @@ export default function StoreScreen() {
   }, []);
 
   const COIN_PACKS = [
-    { amount: 100, price: '₺24,99', desc: st.small, icon: 'monetization-on', popular: false },
+    { amount: 100, price: '₺24,99', desc: st.small, icon: 'paid', popular: false },
     { amount: 500, price: '₺99,99', desc: st.popular, icon: 'account-balance-wallet', popular: true },
     { amount: 2000, price: '₺299,99', desc: st.best, icon: 'savings', popular: false },
   ];
@@ -60,7 +60,7 @@ export default function StoreScreen() {
           <Text style={s.headerTitle}>Tılsım Solitaire</Text>
         </View>
         <View style={s.coinBadge}>
-          <MaterialIcons name="monetization-on" size={16} color={COLORS.coin} />
+          <Text style={{ fontSize: 12 }}>🪙</Text>
           <Text style={s.coinText}>{coins.toLocaleString()}</Text>
           <Text style={s.coinPlus}>+</Text>
         </View>
@@ -104,7 +104,7 @@ export default function StoreScreen() {
               <Text style={s.boosterName}>{b.name}</Text>
               <Text style={s.boosterDesc}>{b.desc}</Text>
               <View style={s.boosterPrice}>
-                <MaterialIcons name="monetization-on" size={14} color={COLORS.coin} />
+                <Text style={{ fontSize: 12 }}>🪙</Text>
                 <Text style={s.boosterPriceText}>{b.coinCost}</Text>
               </View>
             </TouchableOpacity>

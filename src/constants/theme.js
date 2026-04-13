@@ -14,20 +14,20 @@ export const COLORS = {
   surfaceContainerHigh: '#291543',
   surfaceContainerHighest: '#301A4D',
 
-  // Primary (pembe-turuncu — Stitch cosmic)
+  // Primary (pembe — ana aksiyon rengi)
   primary: '#FF8AA7',
   primaryContainer: '#FF7199',
   primaryDim: '#E3096A',
   onPrimary: '#620029',
 
-  // Secondary (cyan)
-  secondary: '#00D2FD',
-  secondaryContainer: '#00677E',
+  // Secondary (lavanta — yumuşak mor)
+  secondary: '#B794F6',
+  secondaryContainer: '#7C5CFC',
 
-  // Tertiary (turuncu — kart arkası, butonlar)
-  tertiary: '#FF9F4A',
-  tertiaryFixed: '#FF9734',
-  tertiaryContainer: '#FD8B00',
+  // Tertiary (altın — vurgu)
+  tertiary: '#FFD166',
+  tertiaryFixed: '#FFC940',
+  tertiaryContainer: '#E6B000',
 
   // Error
   error: '#FF716C',
@@ -41,33 +41,33 @@ export const COLORS = {
   outlineVariant: '#514166',
   outline: '#806E96',
 
-  // Kart renkleri (bunlar sabit kalıyor)
+  // Kart renkleri
   cardFace: '#FFFFFF',
   cardBorder: '#E8DDCC',
-  cardBackTop: '#FF8C42',
-  cardBackBottom: '#E67530',
-  cardBackBorder: '#FFB074',
+  cardBackTop: '#9B7DFF',
+  cardBackBottom: '#7C5CFC',
+  cardBackBorder: '#B794F6',
 
   // Coin
   coin: '#FFD166',
 
   // Başarı / Hata
-  success: '#5DBE6E',
-  fail: '#EF5350',
+  success: '#6ECB8B',
+  fail: '#FF6B6B',
 
-  // Butonlar
-  buttonBlue: '#3D8BD4',
+  // Butonlar (mor tonu — uyumlu)
+  buttonBlue: '#7C5CFC',
 
-  // Kategori tag renkleri
-  tagOrange: '#FF8C42',
-  tagGreen: '#5DBE6E',
-  tagPink: '#FF6B8A',
-  tagBlue: '#4AAFEF',
-  tagPurple: '#8B6FC0',
+  // Kategori tag renkleri (harmonik)
+  tagOrange: '#FFB074',
+  tagGreen: '#6ECB8B',
+  tagPink: '#FF8AA7',
+  tagBlue: '#B794F6',
+  tagPurple: '#9B7DFF',
   tagYellow: '#FFD166',
 
   // Nav (koyu mor)
-  navBg: 'rgba(21, 6, 41, 0.85)',
+  navBg: 'rgba(21, 6, 41, 0.92)',
   navInactive: '#B7A3CF',
   navActive: '#FF8AA7',
 
