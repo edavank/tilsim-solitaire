@@ -15,13 +15,13 @@ const OWL_IMAGE = require('../assets/bilge-happy.png');
 
 /* ── Floating Particles Background ── */
 function FloatingParticles() {
-  const particles = useRef([...Array(8)].map(() => ({
+  const particles = useRef([...Array(12)].map(() => ({
     anim: new Animated.Value(0),
     x: Math.random() * SW,
-    y: Math.random() * 600,
-    size: 3 + Math.random() * 5,
+    y: 100 + Math.random() * 500,
+    size: 6 + Math.random() * 10,
     duration: 3000 + Math.random() * 4000,
-    color: ['rgba(155,125,255,0.3)', 'rgba(255,138,167,0.2)', 'rgba(255,209,102,0.25)'][Math.floor(Math.random() * 3)],
+    color: ['rgba(155,125,255,0.5)', 'rgba(255,138,167,0.4)', 'rgba(255,209,102,0.45)'][Math.floor(Math.random() * 3)],
   }))).current;
 
   useEffect(() => {
@@ -40,8 +40,8 @@ function FloatingParticles() {
           position: 'absolute', left: p.x, top: p.y,
           width: p.size, height: p.size, borderRadius: p.size,
           backgroundColor: p.color,
-          opacity: p.anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.2, 0.8, 0.2] }),
-          transform: [{ translateY: p.anim.interpolate({ inputRange: [0, 1], outputRange: [0, -30] }) }],
+          opacity: p.anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.3, 1, 0.3] }),
+          transform: [{ translateY: p.anim.interpolate({ inputRange: [0, 1], outputRange: [0, -50] }) }],
         }} />
       ))}
     </View>
