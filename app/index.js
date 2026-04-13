@@ -7,23 +7,21 @@ import { COLORS, FONTS, SIZES } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { loadProgress, updateProgress } from '../src/utils/storage';
 import { showRewarded } from '../src/utils/ads';
+import { useLang } from '../src/context/LanguageContext';
 
 const { width: SW } = Dimensions.get('window');
 const OWL_IMAGE = require('../assets/bilge-happy.png');
 
-const BILGE_MESSAGES = [
-  'Hoş geldin! Bugün harika bir gün.',
-  'Kelimelerin büyüsüne hazır mısın?',
-  'Her bölüm yeni bir macera!',
-  'Bilgelik, sabırla gelir.',
-  'Kartları çöz, zihni aç!',
-  'Bugün kaç bölüm geçeceksin?',
-];
+const LANG_FLAGS = { tr: '🇹🇷 TÜRKÇE', en: '🇬🇧 ENGLISH', de: '🇩🇪 DEUTSCH', fr: '🇫🇷 FRANÇAIS', es: '🇪🇸 ESPAÑOL', ar: '🇸🇦 العربية' };
 
 export default function HomeScreen() {
+  const { lang, t } = useLang();
   const [currentLevel, setCurrentLevel] = useState(1);
   const [coins, setCoins] = useState(0);
-  const [bilgeMsg] = useState(() => BILGE_MESSAGES[Math.floor(Math.random() * BILGE_MESSAGES.length)]);
+  const [bilgeMsg] = useState(() => {
+    const msgs = t.bilgeMessages || [];
+    return msgs[Math.floor(Math.random() * msgs.length)] || '';
+  });
 
   // Refresh on screen focus (coming back from game)
   useFocusEffect(
@@ -90,13 +88,13 @@ export default function HomeScreen() {
         {/* Language picker */}
         <TouchableOpacity style={s.langPicker}>
           <MaterialIcons name="language" size={16} color={COLORS.onSurface} />
-          <Text style={s.langText}>TÜRKÇE</Text>
+          <Text style={s.langText}>{LANG_FLAGS[lang] || 'TÜRKÇE'}</Text>
           <MaterialIcons name="keyboard-arrow-down" size={16} color={COLORS.onSurface} />
         </TouchableOpacity>
 
         {/* Logo */}
         <Text style={s.logoMain}>Tılsım</Text>
-        <Text style={s.logoSub}>S O L I T A I R E</Text>
+        <Text style={s.logoSub}>{t.solitaire}</Text>
 
         {/* Speech bubble */}
         <View style={s.speechBubble}>
@@ -113,15 +111,15 @@ export default function HomeScreen() {
         <TouchableOpacity style={s.ctaOuter} activeOpacity={0.85} onPress={() => router.push({ pathname: '/game', params: { level: currentLevel } })}>
           <Animated.View style={[s.ctaGlow, { opacity: glowOpacity }]} />
           <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.ctaBtn}>
-            <Text style={s.ctaTitle}>BÖLÜM {currentLevel}</Text>
-            <Text style={s.ctaSub}>MACERA DEVAM EDİYOR</Text>
+            <Text style={s.ctaTitle}>{t.level} {currentLevel}</Text>
+            <Text style={s.ctaSub}>{t.adventure}</Text>
           </LinearGradient>
         </TouchableOpacity>
 
         {/* Level select button */}
         <TouchableOpacity style={s.levelSelectBtn} activeOpacity={0.7} onPress={() => router.push('/levels')}>
           <MaterialIcons name="grid-view" size={20} color={COLORS.secondary} />
-          <Text style={s.levelSelectText}>Bölüm Seç</Text>
+          <Text style={s.levelSelectText}>{t.selectLevel}</Text>
           <MaterialIcons name="chevron-right" size={20} color={COLORS.onSurfaceVariant} />
         </TouchableOpacity>
 
@@ -129,10 +127,10 @@ export default function HomeScreen() {
         <TouchableOpacity style={s.adBtn} activeOpacity={0.7} onPress={watchAd}>
           <View style={s.adLeft}>
             <MaterialIcons name="play-circle-filled" size={28} color={COLORS.secondary} />
-            <Text style={s.adText}>Reklam İzle</Text>
+            <Text style={s.adText}>{t.watchAd}</Text>
           </View>
           <View style={s.adBadge}>
-            <Text style={s.adBadgeText}>+50 Altın</Text>
+            <Text style={s.adBadgeText}>{t.goldReward}</Text>
           </View>
         </TouchableOpacity>
 

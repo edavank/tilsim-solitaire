@@ -23,6 +23,7 @@ import ConsentDialog from '../src/components/ConsentDialog';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { setVibrationEnabled, setSoundEnabled, setBgmEnabled, loadSounds, startBgm } from '../src/utils/sounds';
 import { loadSettings, saveSettings } from '../src/utils/storage';
+import { LanguageProvider } from '../src/context/LanguageContext';
 
 const OWL = require('../assets/bilge-happy.png');
 const { width: SW } = Dimensions.get('window');
@@ -152,13 +153,15 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar style="light" />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLORS.surface }, animation: 'fade' }} />
-      {!splashDone && <AnimatedSplash onFinish={() => setSplashDone(true)} />}
-      {splashDone && showLangPicker && <LanguageSelector onSelect={handleLanguageSelect} />}
-      <ConsentDialog />
-    </GestureHandlerRootView>
+    <LanguageProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <StatusBar style="light" />
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLORS.surface }, animation: 'fade' }} />
+        {!splashDone && <AnimatedSplash onFinish={() => setSplashDone(true)} />}
+        {splashDone && showLangPicker && <LanguageSelector onSelect={handleLanguageSelect} />}
+        <ConsentDialog />
+      </GestureHandlerRootView>
+    </LanguageProvider>
   );
 }
 

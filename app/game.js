@@ -8,9 +8,10 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { COLORS, FONTS, SIZES, CATEGORY_COLORS } from '../src/constants/theme';
 import { LEVELS, generateGameState, getLevel } from '../src/data/levels';
-import { loadProgress, updateProgress, clearSavedGame, saveSavedGame, loadSettings } from '../src/utils/storage';
+import { loadProgress, updateProgress, clearSavedGame, saveSavedGame } from '../src/utils/storage';
 import { playHaptic, playSound } from '../src/utils/sounds';
 import { showRewarded, showInterstitial } from '../src/utils/ads';
+import { useLang } from '../src/context/LanguageContext';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const COL_COUNT = 5;
@@ -125,12 +126,12 @@ function FaceUpCard({ card, selected, w, h, hinted, isDragging }) {
   );
 }
 
-function FoundationSlot({ slot, slotIndex, onPress, onUnlock, hinted }) {
+function FoundationSlot({ t, slot, slotIndex, onPress, onUnlock, hinted }) {
   const h = CARD_H * 0.72;
   if (slot.locked) {
     return (
       <View style={[st.slotBox, st.slotDashed, { height: h }]}>
-        <Text style={st.lockedText}>KİLİDİ AÇ</Text>
+        <Text style={st.lockedText}>{t.locked}</Text>
         <MaterialIcons name="style" size={18} color="rgba(255,255,255,0.15)" />
         <TouchableOpacity style={st.adBadge} onPress={() => onUnlock?.('slot', slotIndex)}>
           <Text style={st.adText}>▶ AD</Text>
@@ -140,12 +141,12 @@ function FoundationSlot({ slot, slotIndex, onPress, onUnlock, hinted }) {
   }
   if (slot.category) {
     const clr = CATEGORY_COLORS[slot.category.categoryIndex % CATEGORY_COLORS.length];
-    const p = slot.placedCards.length; const t = slot.category.totalWords;
-    const isDone = p >= t;
+    const p = slot.placedCards.length; const tw = slot.category.totalWords;
+    const isDone = p >= tw;
     return (
       <TouchableOpacity style={[st.slotBox, { height: h, borderColor: isDone ? COLORS.success : clr, borderStyle: 'solid', backgroundColor: isDone ? '#f0fff0' : '#fff' }, hinted && st.slotHinted]} onPress={onPress} activeOpacity={0.7}>
         <View style={[st.slotTag, { backgroundColor: isDone ? COLORS.success : clr }]}>
-          {isDone ? <MaterialIcons name="check" size={10} color="#fff" /> : <Text style={st.slotTagText}>{p}/{t}</Text>}
+          {isDone ? <MaterialIcons name="check" size={10} color="#fff" /> : <Text style={st.slotTagText}>{p}/{tw}</Text>}
         </View>
         {isDone ? (
           <MaterialIcons name="check-circle" size={16} color={COLORS.success} style={{ marginTop: 8 }} />
@@ -158,7 +159,7 @@ function FoundationSlot({ slot, slotIndex, onPress, onUnlock, hinted }) {
   }
   return (
     <TouchableOpacity style={[st.slotBox, st.slotDashed, { height: h }, hinted && st.slotHinted]} onPress={onPress} activeOpacity={0.7}>
-      <Text style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>Boş</Text>
+      <Text style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>{t.empty}</Text>
     </TouchableOpacity>
   );
 }
@@ -211,7 +212,7 @@ function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedI
 }
 
 /* ── Win Overlay ── */
-function LevelCompleteOverlay({ score, coins, movesLeft, maxMoves, levelId, onNext, onReplay, onHome }) {
+function LevelCompleteOverlay({ t, score, coins, movesLeft, maxMoves, levelId, onNext, onReplay, onHome }) {
   const moveBonus = Math.floor(15 * (movesLeft / maxMoves));
   const totalCoins = coins + moveBonus;
   return (
@@ -220,32 +221,32 @@ function LevelCompleteOverlay({ score, coins, movesLeft, maxMoves, levelId, onNe
       <View style={{ alignItems: 'center' }}>
         <Image source={OWL_HAPPY} style={ov.owl} />
         <View style={ov.card}>
-          <Text style={ov.title}>Tebrikler!</Text>
-        <Text style={ov.subtitle}>BÖLÜM {levelId} TAMAMLANDI</Text>
+          <Text style={ov.title}>{t.congrats}</Text>
+        <Text style={ov.subtitle}>{t.level} {levelId} {t.levelComplete}</Text>
         <View style={ov.statsRow}>
           <View style={ov.statBox}>
-            <Text style={ov.statLabel}>SKOR</Text>
+            <Text style={ov.statLabel}>{t.score}</Text>
             <Text style={ov.statValue}>{score.toLocaleString()}</Text>
           </View>
           <View style={ov.statBox}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <MaterialIcons name="monetization-on" size={14} color={COLORS.coin} />
-              <Text style={ov.statLabel}>ALTIN</Text>
+              <Text style={ov.statLabel}>{t.gold}</Text>
             </View>
             <Text style={[ov.statValue, { color: COLORS.coin }]}>+{totalCoins}</Text>
-            {moveBonus > 0 && <Text style={{ fontFamily: FONTS.body, fontSize: 9, color: COLORS.onSurfaceVariant, marginTop: 2 }}>({coins} + {moveBonus} hamle bonus)</Text>}
+            {moveBonus > 0 && <Text style={{ fontFamily: FONTS.body, fontSize: 9, color: COLORS.onSurfaceVariant, marginTop: 2 }}>({coins} + {moveBonus} {t.moveBonus})</Text>}
           </View>
         </View>
         <TouchableOpacity onPress={onNext} activeOpacity={0.85}>
           <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={ov.nextBtn}>
-            <Text style={ov.nextBtnText}>Sonraki Bölüm</Text>
+            <Text style={ov.nextBtnText}>{t.nextLevel}</Text>
             <MaterialIcons name="arrow-forward" size={20} color="#fff" />
           </LinearGradient>
         </TouchableOpacity>
         <View style={ov.bottomRow}>
           <TouchableOpacity style={ov.replayBtn} onPress={onReplay} activeOpacity={0.7}>
             <MaterialIcons name="refresh" size={18} color={COLORS.secondary} />
-            <Text style={ov.replayText}>Tekrar Oyna</Text>
+            <Text style={ov.replayText}>{t.replay}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={ov.homeBtn} onPress={onHome} activeOpacity={0.7}>
             <MaterialIcons name="home" size={20} color={COLORS.onSurface} />
@@ -258,27 +259,27 @@ function LevelCompleteOverlay({ score, coins, movesLeft, maxMoves, levelId, onNe
 }
 
 /* ── Fail Overlay ── */
-function LevelFailedOverlay({ levelId, onAddMoves, onReplay, onHome }) {
+function LevelFailedOverlay({ t, levelId, onAddMoves, onReplay, onHome }) {
   return (
     <View style={ov.overlay}>
       <LinearGradient colors={['rgba(21,6,41,0.95)', 'rgba(61,53,96,0.95)']} style={StyleSheet.absoluteFillObject} />
       <View style={{ alignItems: 'center' }}>
         <Image source={OWL_HAPPY} style={ov.owl} />
         <View style={ov.card}>
-          <View style={ov.speechBubble}><Text style={ov.speechText}>Bazen kaybetmek de öğretir...</Text></View>
-          <Text style={ov.failTitle}>Hamlen Bitti!</Text>
-          <Text style={ov.failSub}>Üzülme, yıldızlar her zaman parlamaz.</Text>
+          <View style={ov.speechBubble}><Text style={ov.speechText}>{t.failSpeech}</Text></View>
+          <Text style={ov.failTitle}>{t.outOfMoves}</Text>
+          <Text style={ov.failSub}>{t.failMsg}</Text>
           <TouchableOpacity onPress={onAddMoves} activeOpacity={0.85}>
             <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={ov.addMovesBtn}>
               <MaterialIcons name="play-circle-filled" size={22} color="#fff" />
-              <Text style={ov.addMovesText}>+20 Hamle (Ad)</Text>
-              <View style={ov.freeBadge}><Text style={ov.freeText}>ÜCRETSİZ</Text></View>
+              <Text style={ov.addMovesText}>{t.addMoves}</Text>
+              <View style={ov.freeBadge}><Text style={ov.freeText}>{t.free}</Text></View>
             </LinearGradient>
           </TouchableOpacity>
           <View style={ov.bottomRow}>
             <TouchableOpacity style={ov.replayBtn} onPress={onReplay} activeOpacity={0.7}>
               <MaterialIcons name="refresh" size={18} color={COLORS.secondary} />
-              <Text style={ov.replayText}>Tekrar Oyna</Text>
+              <Text style={ov.replayText}>{t.replay}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={ov.homeBtn} onPress={onHome} activeOpacity={0.7}>
               <MaterialIcons name="home" size={20} color={COLORS.onSurface} />
@@ -293,8 +294,12 @@ function LevelFailedOverlay({ levelId, onAddMoves, onReplay, onHome }) {
 /* ── Main Game Screen ── */
 export default function GameScreen() {
   const params = useLocalSearchParams();
+  const { lang, t } = useLang();
   const [levelId, setLevelId] = useState(parseInt(params.level) || 1);
-  const [gameLang, setGameLang] = useState('tr');
+  const [gameLang, setGameLang] = useState(lang);
+
+  // Sync game language with context
+  useEffect(() => { setGameLang(lang); }, [lang]);
   const level = getLevel(levelId, gameLang);
   const [gs, setGs] = useState(() => generateGameState(level));
   const [selected, setSelected] = useState(null);
@@ -335,7 +340,7 @@ export default function GameScreen() {
       if (cardIdx < 0) return;
       const stack = col.cards.slice(cardIdx);
       const allValid = stack.every((c) => c.faceUp && c.categoryIndex === card.categoryIndex);
-      if (!allValid) { setFeedback('⚠️ Sadece aynı kategorideki kartlar sürüklenebilir!'); return; }
+      if (!allValid) { setFeedback(t.stackDragError); return; }
       stackCards = stack;
     }
     dragRef.current = { card, source, sourceIndex, isLast, stackCards, startX: pageX, startY: pageY };
@@ -404,7 +409,7 @@ export default function GameScreen() {
     }
 
     cancelDrag();
-    setFeedback('⚠️ Geçersiz hedef');
+    setFeedback(t.cantPlace);
   }, [gs.slots, gs.columns, placeCard, moveToColumn, moveStackToColumn, cancelDrag]);
 
   // Play win/lose sounds
@@ -413,12 +418,8 @@ export default function GameScreen() {
     else if (gs.isFailed) playSound('lose');
   }, [gs.isComplete, gs.isFailed]);
 
-  // Load progress + language
+  // Load progress
   useEffect(() => {
-    loadSettings().then((s) => {
-      const lang = s.language || 'tr';
-      setGameLang(lang);
-    });
     loadProgress().then(async (p) => {
       setCoins(p.coins || 0);
       if (!params.level) setLevelId(p.currentLevel || 1);
@@ -453,13 +454,13 @@ export default function GameScreen() {
     }
   }, [gs]);
 
-  useEffect(() => { if (feedback) { const t = setTimeout(() => setFeedback(''), 2500); return () => clearTimeout(t); } }, [feedback]);
+  useEffect(() => { if (feedback) { const tmr = setTimeout(() => setFeedback(''), 2500); return () => clearTimeout(tmr); } }, [feedback]);
 
   // Clear hint after 2s
   useEffect(() => {
     if (hintCard) {
-      const t = setTimeout(() => { setHintCard(null); setHintSlot(null); }, 2500);
-      return () => clearTimeout(t);
+      const tmr = setTimeout(() => { setHintCard(null); setHintSlot(null); }, 2500);
+      return () => clearTimeout(tmr);
     }
   }, [hintCard]);
 
@@ -480,7 +481,7 @@ export default function GameScreen() {
 
   const placeCard = useCallback((card, source, sourceIndex, slotIndex) => {
     if (slotIndex < 0 || slotIndex >= gs.slots.length) return;
-    if (gs.slots[slotIndex].locked) { setFeedback('🔒 Kilitli!'); return; }
+    if (gs.slots[slotIndex].locked) { setFeedback(t.isLocked); return; }
 
     setGs((prev) => {
       const newSlots = prev.slots.map((sl) => ({ ...sl, placedCards: [...sl.placedCards] }));
@@ -494,13 +495,13 @@ export default function GameScreen() {
         setTimeout(() => playSound('flip'), 10);
         return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + 5, isFailed: prev.moves - 1 <= 0 };
       }
-      if (!target.category && card.type === 'word') { setFeedback('⚠️ Önce kategori koy!'); return prev; }
-      if (target.category && card.type === 'category') { setFeedback('⚠️ Zaten dolu!'); return prev; }
+      if (!target.category && card.type === 'word') { setFeedback(t.putCategoryFirst); return prev; }
+      if (target.category && card.type === 'category') { setFeedback(t.alreadyFull); return prev; }
       if (target.category && card.type === 'word') {
         if (card.categoryIndex !== target.category.categoryIndex) {
           setTimeout(() => { Vibration.vibrate(100); playSound('wrong'); }, 10);
           triggerShake(slotIndex);
-          setFeedback('❌ Yanlış! (-1 hamle)');
+          setFeedback(t.wrongPlace);
           return { ...prev, moves: prev.moves - 1, isFailed: prev.moves - 1 <= 0 };
         }
 
@@ -587,7 +588,7 @@ export default function GameScreen() {
         setHistory((h) => [...h, prev]);
 
         if (catCompleted && !isComplete) {
-          setFeedback('🎉 ' + target.category.word + ' tamamlandı! Slot boşalıyor...');
+          setFeedback('🎉 ' + target.category.word + t.categoryComplete);
           setTimeout(() => playSound('complete'), 10);
         } else if (totalPlaced > 1) {
           
@@ -607,18 +608,18 @@ export default function GameScreen() {
     if (source === 'column' && sourceIndex === targetColIndex) return;
     setGs((prev) => {
       const targetCol = prev.columns[targetColIndex];
-      if (targetCol.locked) { setFeedback('🔒 Kilitli!'); return prev; }
+      if (targetCol.locked) { setFeedback(t.isLocked); return prev; }
       if (targetCol.cards.length > 0) {
         const bottomCard = targetCol.cards[targetCol.cards.length - 1];
-        if (!bottomCard.faceUp) { setFeedback('⚠️ Buraya koyamazsın!'); return prev; }
+        if (!bottomCard.faceUp) { setFeedback(t.cantPlace); return prev; }
         // Kelime kartı kategori kartının üstüne konamaz
         if (card.type === 'word' && bottomCard.type === 'category') {
-          setFeedback('⚠️ Kelime kartı kategori üstüne konamaz!');
+          setFeedback(t.wordOnCategory);
           return prev;
         }
         // Aynı kategorideki kelime kartları üst üste konabilir
         if (card.type === 'word' && bottomCard.type === 'word' && card.categoryIndex !== bottomCard.categoryIndex) {
-          setFeedback('⚠️ Farklı kategori!');
+          setFeedback(t.wrongCategory);
           return prev;
         }
       }
@@ -644,7 +645,7 @@ export default function GameScreen() {
       const stack = col.cards.slice(cardIdx);
       const allValid = stack.every((c) => c.faceUp && c.categoryIndex === card.categoryIndex);
       if (!allValid) {
-        setFeedback('⚠️ Sadece aynı kategorideki kartlar yığın olarak seçilebilir!');
+        setFeedback(t.stackSelectError);
         return;
       }
       // Valid stack — select it
@@ -673,19 +674,19 @@ export default function GameScreen() {
     if (source === 'column' && sourceIndex === targetColIndex) return;
     setGs((prev) => {
       const targetCol = prev.columns[targetColIndex];
-      if (targetCol.locked) { setFeedback('🔒 Kilitli!'); return prev; }
+      if (targetCol.locked) { setFeedback(t.isLocked); return prev; }
 
       if (targetCol.cards.length > 0) {
         const bottomCard = targetCol.cards[targetCol.cards.length - 1];
-        if (!bottomCard.faceUp) { setFeedback('⚠️ Buraya koyamazsın!'); return prev; }
+        if (!bottomCard.faceUp) { setFeedback(t.cantPlace); return prev; }
         // Kelime kartı kategori kartının üstüne konamaz
         if (stackCards[0].type === 'word' && bottomCard.type === 'category') {
-          setFeedback('⚠️ Kelime kartı kategori üstüne konamaz!');
+          setFeedback(t.wordOnCategory);
           return prev;
         }
         // Aynı kategorideki kelime kartları üst üste konabilir
         if (stackCards[0].type === 'word' && bottomCard.type === 'word' && stackCards[0].categoryIndex !== bottomCard.categoryIndex) {
-          setFeedback('⚠️ Farklı kategori!');
+          setFeedback(t.wrongCategory);
           return prev;
         }
       }
@@ -728,21 +729,21 @@ export default function GameScreen() {
   }, [startDrag]);
 
   const handleSlotTap = useCallback((slotIndex) => {
-    if (!selected) { setFeedback('Önce kart seç!'); return; }
+    if (!selected) { setFeedback(t.selectCardFirst); return; }
     placeCard(selected.card, selected.source, selected.sourceIndex, slotIndex);
     setSelected(null);
   }, [selected, placeCard]);
 
   const drawCard = useCallback(() => {
     setGs((p) => {
-      if (p.deck.length === 0 && p.drawnCards.length === 0) { setFeedback('Tüm kartlar kullanıldı!'); return p; }
+      if (p.deck.length === 0 && p.drawnCards.length === 0) { setFeedback(t.allCardsUsed); return p; }
       if (p.deck.length === 0) {
         const recycled = [...p.drawnCards].reverse().map((c) => ({ ...c, faceUp: false }));
         for (let i = recycled.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
           [recycled[i], recycled[j]] = [recycled[j], recycled[i]];
         }
-        setFeedback('🔄 Deste karıştırıldı! (-1 hamle)');
+        setFeedback(t.deckShuffled);
         setTimeout(() => playSound('draw'), 10);
         return { ...p, deck: recycled, drawnCards: [], moves: p.moves - 1, isFailed: p.moves - 1 <= 0 };
       }
@@ -755,25 +756,25 @@ export default function GameScreen() {
   }, []);
 
   const handleDrawnTap = useCallback(() => {
-    if (gs.drawnCards.length === 0) { setFeedback('Önce desteden çek!'); return; }
+    if (gs.drawnCards.length === 0) { setFeedback(t.selectCardFirst); return; }
     handleCardTap(gs.drawnCards[gs.drawnCards.length - 1], 'drawn', null);
   }, [gs.drawnCards, handleCardTap]);
 
   const useUndo = useCallback(() => {
-    if (history.length === 0) { setFeedback('Geri alınacak yok!'); return; }
+    if (history.length === 0) { setFeedback(t.nothingToUndo); return; }
     setGs(history[history.length - 1]); setHistory((h) => h.slice(0, -1)); setSelected(null);
-    setFeedback('↩ Geri alındı');
+    setFeedback(t.undone);
   }, [history]);
 
   const useDelete = useCallback(() => {
-    if (gs.drawnCards.length === 0) { setFeedback('Silinecek yok!'); return; }
-    setFeedback('🗑️ Silindi');
+    if (gs.drawnCards.length === 0) { setFeedback(t.nothingToDelete); return; }
+    setFeedback(t.deleted);
     setGs((p) => ({ ...p, drawnCards: p.drawnCards.slice(0, -1), moves: p.moves - 1 })); setSelected(null);
   }, [gs.drawnCards]);
 
   // ── Smart Hint ──
   const useHint = useCallback(() => {
-    if (gs.hints <= 0) { setFeedback('İpucu hakkın kalmadı!'); return; }
+    if (gs.hints <= 0) { setFeedback(t.noHints); return; }
 
     // 1. Find playable cards (all face-up in columns + top of drawn)
     const playable = [];
@@ -813,7 +814,7 @@ export default function GameScreen() {
         }
       }
     }
-    setFeedback('💡 Şu an yapılabilecek hamle bulunamadı. Desteden çek!');
+    setFeedback(t.noHintFound);
     setGs((prev) => ({ ...prev, hints: prev.hints - 1 }));
   }, [gs]);
 
@@ -827,11 +828,11 @@ export default function GameScreen() {
     const result = await showRewarded();
     if (result.success) {
       setGs((p) => ({ ...p, moves: p.moves + 20, isFailed: false }));
-      setFeedback('⚡ +20 hamle eklendi!');
+      setFeedback('⚡ +20!');
     } else {
       // Fallback: give moves anyway (ad might not be available in Expo Go)
       setGs((p) => ({ ...p, moves: p.moves + 20, isFailed: false }));
-      setFeedback('⚡ +20 hamle eklendi!');
+      setFeedback('⚡ +20!');
     }
   }, []);
 
@@ -893,7 +894,7 @@ export default function GameScreen() {
         }
         return prev;
       });
-      setFeedback('🔓 Kilit açıldı!');
+      setFeedback(t.unlocked);
       playSound('correct');
     }
   }, []);
@@ -910,7 +911,7 @@ export default function GameScreen() {
           <MaterialIcons name="monetization-on" size={16} color={COLORS.coin} />
           <Text style={st.coinText}>{coins}</Text>
         </View>
-        <Text style={st.headerTitle}>Bölüm {gs.levelId}</Text>
+        <Text style={st.headerTitle}>{t.level} {gs.levelId}</Text>
         <TouchableOpacity style={st.settingsBtn} onPress={() => setPaused(true)}>
           <MaterialIcons name="settings" size={20} color={COLORS.onSurfaceVariant} />
         </TouchableOpacity>
@@ -922,7 +923,7 @@ export default function GameScreen() {
         <View style={{ height: 20 }} />
         <View style={st.deckRow}>
           <View style={st.movesPanel}>
-            <Text style={st.movesLabel}>HAMLE</Text>
+            <Text style={st.movesLabel}>{t.moves}</Text>
             <Text style={st.movesNum}>{gs.moves}</Text>
             <TouchableOpacity style={st.addBtn} onPress={addMoves}><Text style={st.addBtnText}>+20 ▶</Text></TouchableOpacity>
           </View>
@@ -941,7 +942,7 @@ export default function GameScreen() {
           >
             {gs.drawnCards.length === 0 ? (
               <View style={[st.emptyCard, { width: DCW, height: DCH }]}>
-                <Text style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>Boş</Text>
+                <Text style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>{t.empty}</Text>
               </View>
             ) : (
               <View style={{ width: DCW + 28, height: DCH, justifyContent: 'center', alignItems: 'center' }}>
@@ -977,7 +978,7 @@ export default function GameScreen() {
         <View style={st.slotsRow}>
           {gs.slots.map((slot, i) => (
             <Animated.View key={i} style={{ flex: 1, transform: [{ translateX: shakeSlotIdx === i ? shakeAnim : 0 }] }}>
-              <FoundationSlot slot={slot} slotIndex={i} onPress={() => handleSlotTap(i)} onUnlock={handleUnlock} hinted={hintSlot === i} />
+              <FoundationSlot t={t} slot={slot} slotIndex={i} onPress={() => handleSlotTap(i)} onUnlock={handleUnlock} hinted={hintSlot === i} />
             </Animated.View>
           ))}
         </View>
@@ -995,9 +996,9 @@ export default function GameScreen() {
 
       {/* Toolbar */}
       <View style={st.toolbar}>
-        <ToolBtn icon="lightbulb" label="İPUCU" badge={gs.hints} badgeColor={COLORS.fail} onPress={useHint} big />
-        <ToolBtn icon="undo" label="GERİ AL" badge="+" badgeColor={COLORS.success} onPress={useUndo} big />
-        <ToolBtn icon="auto-fix-normal" label="SİL" badge="+" badgeColor={COLORS.success} onPress={useDelete} big />
+        <ToolBtn icon="lightbulb" label={t.hint} badge={gs.hints} badgeColor={COLORS.fail} onPress={useHint} big />
+        <ToolBtn icon="undo" label={t.undo} badge="+" badgeColor={COLORS.success} onPress={useUndo} big />
+        <ToolBtn icon="auto-fix-normal" label={t.delete} badge="+" badgeColor={COLORS.success} onPress={useDelete} big />
       </View>
 
       {/* Ad Banner Space */}
@@ -1009,16 +1010,16 @@ export default function GameScreen() {
           <LinearGradient colors={['rgba(21,6,41,0.92)', 'rgba(61,53,96,0.92)']} style={StyleSheet.absoluteFillObject} />
           <View style={ov.card}>
             <Image source={OWL_HAPPY} style={{ width: 100, height: 100, borderRadius: 16, marginBottom: 12 }} />
-            <Text style={[ov.title, { fontSize: 24 }]}>Nasıl Oynanır?</Text>
+            <Text style={[ov.title, { fontSize: 24 }]}>{t.howToPlay}</Text>
             <View style={s_tut.steps}>
-              <TutStep n="1" text="Sütundaki kartlara dokun. Sadece en alttaki kart seçilebilir." icon="touch-app" />
-              <TutStep n="2" text="Kategori kartını bul ve üst slota yerleştir. Bu, o kategoriyi açar." icon="style" />
-              <TutStep n="3" text="Kelime kartlarını doğru kategoriye yerleştir. Aynı kategorideki kartları sütunlarda üst üste koyabilirsin." icon="category" />
-              <TutStep n="4" text="Tüm kartları kategorilerine yerleştir. Hamlelerin bitmeden bitir!" icon="emoji-events" />
+              <TutStep n="1" text={t.tutStep1} icon="touch-app" />
+              <TutStep n="2" text={t.tutStep2} icon="style" />
+              <TutStep n="3" text={t.tutStep3} icon="category" />
+              <TutStep n="4" text={t.tutStep4} icon="emoji-events" />
             </View>
             <TouchableOpacity onPress={() => setShowTutorial(false)} activeOpacity={0.85}>
               <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={[ov.nextBtn, { paddingHorizontal: 48 }]}>
-                <Text style={ov.nextBtnText}>Başla!</Text>
+                <Text style={ov.nextBtnText}>{t.start}</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -1030,29 +1031,29 @@ export default function GameScreen() {
         <View style={ov.overlay}>
           <LinearGradient colors={['rgba(21,6,41,0.95)', 'rgba(61,53,96,0.95)']} style={StyleSheet.absoluteFillObject} />
           <View style={ov.card}>
-            <Text style={[ov.title, { fontSize: 28, marginBottom: 4 }]}>Duraklatıldı</Text>
-            <Text style={[ov.subtitle, { marginBottom: 24 }]}>BÖLÜM {gs.levelId}</Text>
+            <Text style={[ov.title, { fontSize: 28, marginBottom: 4 }]}>{t.paused}</Text>
+            <Text style={[ov.subtitle, { marginBottom: 24 }]}>{t.level} {gs.levelId}</Text>
 
             <TouchableOpacity style={ov.pauseBtn} onPress={() => setPaused(false)} activeOpacity={0.7}>
               <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={ov.pauseBtnInner}>
                 <MaterialIcons name="play-arrow" size={24} color="#fff" />
-                <Text style={ov.pauseBtnText}>Devam Et</Text>
+                <Text style={ov.pauseBtnText}>{t.resume}</Text>
               </LinearGradient>
             </TouchableOpacity>
 
             <TouchableOpacity style={ov.pauseSecBtn} onPress={() => { setPaused(false); resetGame(); }} activeOpacity={0.7}>
               <MaterialIcons name="refresh" size={20} color={COLORS.secondary} />
-              <Text style={ov.pauseSecText}>Tekrar Başla</Text>
+              <Text style={ov.pauseSecText}>{t.restart}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={ov.pauseSecBtn} onPress={() => router.push('/settings')} activeOpacity={0.7}>
               <MaterialIcons name="settings" size={20} color={COLORS.onSurfaceVariant} />
-              <Text style={ov.pauseSecText}>Ayarlar</Text>
+              <Text style={ov.pauseSecText}>{t.settings}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={ov.pauseSecBtn} onPress={() => router.back()} activeOpacity={0.7}>
               <MaterialIcons name="home" size={20} color={COLORS.onSurfaceVariant} />
-              <Text style={ov.pauseSecText}>Ana Sayfa</Text>
+              <Text style={ov.pauseSecText}>{t.home}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1060,10 +1061,10 @@ export default function GameScreen() {
 
       {/* Overlays */}
       {gs.isComplete && (
-        <LevelCompleteOverlay score={gs.score} coins={50} movesLeft={gs.moves} maxMoves={level.moves} levelId={gs.levelId} onNext={handleNextLevel} onReplay={handleReplay} onHome={handleHome} />
+        <LevelCompleteOverlay t={t} score={gs.score} coins={50} movesLeft={gs.moves} maxMoves={level.moves} levelId={gs.levelId} onNext={handleNextLevel} onReplay={handleReplay} onHome={handleHome} />
       )}
       {gs.isFailed && !gs.isComplete && (
-        <LevelFailedOverlay levelId={gs.levelId} onAddMoves={addMoves} onReplay={handleReplay} onHome={handleHome} />
+        <LevelFailedOverlay t={t} levelId={gs.levelId} onAddMoves={addMoves} onReplay={handleReplay} onHome={handleHome} />
       )}
 
       {/* Floating drag card */}
@@ -1090,13 +1091,14 @@ export default function GameScreen() {
 }
 
 function TutStep({ n, text, icon }) {
+  const { t } = useLang();
   return (
     <View style={s_tut.step}>
       <View style={s_tut.stepIcon}>
         <MaterialIcons name={icon} size={18} color={COLORS.secondary} />
       </View>
       <View style={s_tut.stepContent}>
-        <Text style={s_tut.stepNum}>ADIM {n}</Text>
+        <Text style={s_tut.stepNum}>{t.step} {n}</Text>
         <Text style={s_tut.stepText}>{text}</Text>
       </View>
     </View>

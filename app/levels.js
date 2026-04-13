@@ -6,25 +6,21 @@ import { router, useFocusEffect } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { getTotalLevels, getLevel } from '../src/data/levels';
-import { loadProgress, loadSettings } from '../src/utils/storage';
+import { loadProgress } from '../src/utils/storage';
+import { useLang } from '../src/context/LanguageContext';
 
 const OWL = require('../assets/bilge-happy.png');
 
-const CHAPTER_NAMES = [
-  'Başlangıç', 'Keşif', 'Uyanış', 'Yolculuk', 'Gökyüzü',
-  'Fırtına', 'Denge', 'Gizem', 'Takımyıldız', 'Efsane',
-  'Yıldız', 'Bulut', 'Rüzgâr', 'Dalga', 'Ateş',
-  'Toprak', 'Kristal', 'Şafak', 'Gölge', 'Işık',
-];
-
 export default function LevelsScreen() {
+  const { lang, t } = useLang();
   const [currentLevel, setCurrentLevel] = useState(1);
   const [totalLevels, setTotalLevels] = useState(200);
+  const chapters = t.chapters || [];
 
   useEffect(() => {
     loadProgress().then((p) => setCurrentLevel(p.currentLevel || 1));
-    loadSettings().then((s) => setTotalLevels(getTotalLevels(s.language || 'tr')));
-  }, []);
+    setTotalLevels(getTotalLevels(lang));
+  }, [lang]);
 
   useFocusEffect(
     useCallback(() => {
@@ -43,7 +39,7 @@ export default function LevelsScreen() {
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
           <MaterialIcons name="arrow-back" size={22} color={COLORS.onSurface} />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>Bölümler</Text>
+        <Text style={s.headerTitle}>{t.levels}</Text>
         <View style={{ width: 36 }} />
       </View>
 
@@ -52,7 +48,7 @@ export default function LevelsScreen() {
         <View style={s.progressCard}>
           <Image source={OWL} style={s.owl} />
           <View style={s.progressInfo}>
-            <Text style={s.progressLabel}>İLERLEME</Text>
+            <Text style={s.progressLabel}>{t.progress}</Text>
             <Text style={s.progressValue}>{Math.max(currentLevel - 1, 0)} / {totalLevels}</Text>
             <View style={s.progressBar}>
               <View style={[s.progressFill, { width: (Math.max(currentLevel - 1, 0) / totalLevels * 100) + '%' }]} />
@@ -66,7 +62,7 @@ export default function LevelsScreen() {
             const isCompleted = id < currentLevel;
             const isCurrent = id === currentLevel;
             const chapterIdx = Math.floor((id - 1) / 10);
-            const chapterName = (id - 1) % 10 === 0 ? (CHAPTER_NAMES[chapterIdx] || 'Bölüm ' + (chapterIdx + 1)) : null;
+            const chapterName = (id - 1) % 10 === 0 ? (chapters[chapterIdx] || t.level + ' ' + (chapterIdx + 1)) : null;
 
             return (
               <React.Fragment key={id}>

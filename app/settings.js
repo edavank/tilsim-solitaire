@@ -7,6 +7,7 @@ import { COLORS, FONTS, SIZES } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { loadSettings, saveSettings, loadProgress, resetAll } from '../src/utils/storage';
 import { setVibrationEnabled, setSoundEnabled, setBgmEnabled, getBgmEnabled } from '../src/utils/sounds';
+import { useLang } from '../src/context/LanguageContext';
 
 let signInWithGoogle, signOut, getUser, onAuthChange;
 try {
@@ -34,13 +35,13 @@ const LANG_OPTIONS = [
 ];
 
 export default function SettingsScreen() {
+  const { lang, t, setLang } = useLang();
   const [sound, setSound] = useState(true);
   const [vibration, setVibration] = useState(true);
   const [bgm, setBgm] = useState(true);
   const [coins, setCoins] = useState(0);
   const [user, setUser] = useState(getUser());
   const [loading, setLoading] = useState(false);
-  const [language, setLanguage] = useState('tr');
   const [showLangPicker, setShowLangPicker] = useState(false);
 
   useEffect(() => {
@@ -48,7 +49,6 @@ export default function SettingsScreen() {
       setVibration(s.vibration !== false);
       setSound(s.sound !== false);
       setBgm(s.bgm !== false);
-      setLanguage(s.language || 'tr');
     });
     loadProgress().then((p) => setCoins(p.coins));
     const unsub = onAuthChange((u) => setUser(u));
@@ -70,20 +70,19 @@ export default function SettingsScreen() {
   const toggleBgm = (v) => {
     setBgm(v);
     setBgmEnabled(v);
-    saveSettings({ sound, vibration, bgm: v, language });
+    saveSettings({ sound, vibration, bgm: v });
   };
 
   const selectLanguage = (code) => {
-    setLanguage(code);
+    setLang(code);
     setShowLangPicker(false);
-    saveSettings({ sound, vibration, bgm, language: code, languageSelected: true });
-    Alert.alert('Dil Değiştirildi', 'Yeni dil bir sonraki bölümde aktif olacak.');
+    Alert.alert(t.langChanged, t.langChangeMsg);
   };
 
   const handleReset = () => {
-    Alert.alert('İlerlemeyi Sıfırla', 'Tüm ilerleme ve kayıtlı veriler silinecek. Emin misin?', [
-      { text: 'İptal', style: 'cancel' },
-      { text: 'Sıfırla', style: 'destructive', onPress: async () => { await resetAll(); router.replace('/'); } },
+    Alert.alert(t.resetProgress, t.resetConfirm, [
+      { text: t.cancel, style: 'cancel' },
+      { text: t.reset, style: 'destructive', onPress: async () => { await resetAll(); router.replace('/'); } },
     ]);
   };
 
@@ -98,7 +97,7 @@ export default function SettingsScreen() {
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
           <MaterialIcons name="arrow-back" size={22} color={COLORS.onSurface} />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>Ayarlar</Text>
+        <Text style={s.headerTitle}>{t.settings}</Text>
         <View style={s.coinBadge}>
           <MaterialIcons name="monetization-on" size={16} color={COLORS.coin} />
           <Text style={s.coinText}>{coins.toLocaleString()}</Text>
@@ -110,29 +109,29 @@ export default function SettingsScreen() {
         {/* Oyun Tercihleri */}
         <View style={s.sectionHeader}>
           <MaterialIcons name="tune" size={18} color={COLORS.primary} />
-          <Text style={s.sectionTitle}>Oyun Tercihleri</Text>
+          <Text style={s.sectionTitle}>{t.gamePrefs}</Text>
         </View>
         <View style={s.card}>
-          <SettingRow icon="volume-up" iconColor={COLORS.primary} label="Ses Efektleri" right={<Switch value={sound} onValueChange={toggleSound} trackColor={trackColor} thumbColor="#fff" />} />
+          <SettingRow icon="volume-up" iconColor={COLORS.primary} label={t.soundEffects} right={<Switch value={sound} onValueChange={toggleSound} trackColor={trackColor} thumbColor="#fff" />} />
           <View style={s.divider} />
-          <SettingRow icon="music-note" iconColor={COLORS.secondary} label="Arka Plan Müziği" right={<Switch value={bgm} onValueChange={toggleBgm} trackColor={trackColor} thumbColor="#fff" />} />
+          <SettingRow icon="music-note" iconColor={COLORS.secondary} label={t.bgMusic} right={<Switch value={bgm} onValueChange={toggleBgm} trackColor={trackColor} thumbColor="#fff" />} />
           <View style={s.divider} />
-          <SettingRow icon="vibration" iconColor={COLORS.primary} label="Titreşim" right={<Switch value={vibration} onValueChange={toggleVibration} trackColor={trackColor} thumbColor="#fff" />} />
+          <SettingRow icon="vibration" iconColor={COLORS.primary} label={t.vibration} right={<Switch value={vibration} onValueChange={toggleVibration} trackColor={trackColor} thumbColor="#fff" />} />
         </View>
 
         {/* Genel */}
         <View style={s.sectionHeader}>
           <MaterialIcons name="language" size={18} color={COLORS.coin} />
-          <Text style={s.sectionTitle}>Genel</Text>
+          <Text style={s.sectionTitle}>{t.general}</Text>
         </View>
         <TouchableOpacity style={s.card} onPress={() => setShowLangPicker(true)} activeOpacity={0.7}>
-          <SettingRow icon="translate" iconColor={COLORS.secondary} label="Dil" right={<ChevronValue value={LANG_OPTIONS.find(l => l.code === language)?.flag + ' ' + LANG_OPTIONS.find(l => l.code === language)?.name || 'Türkçe'} />} />
+          <SettingRow icon="translate" iconColor={COLORS.secondary} label={t.language} right={<ChevronValue value={LANG_OPTIONS.find(l => l.code === lang)?.flag + ' ' + LANG_OPTIONS.find(l => l.code === lang)?.name || 'Türkçe'} />} />
         </TouchableOpacity>
 
         {/* Hesap */}
         <View style={s.sectionHeader}>
           <MaterialIcons name="person" size={18} color={COLORS.coin} />
-          <Text style={s.sectionTitle}>Hesap</Text>
+          <Text style={s.sectionTitle}>{t.account}</Text>
         </View>
         {user ? (
           <View style={s.card}>
@@ -145,7 +144,7 @@ export default function SettingsScreen() {
             </View>
             <View style={s.divider} />
             <TouchableOpacity style={{ padding: 14, alignItems: 'center' }} onPress={async () => { await signOut(); Alert.alert('Çıkış yapıldı'); }}>
-              <Text style={{ fontFamily: FONTS.body, fontSize: 14, color: COLORS.primary }}>Çıkış Yap</Text>
+              <Text style={{ fontFamily: FONTS.body, fontSize: 14, color: COLORS.primary }}>{t.signOut}</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -156,24 +155,24 @@ export default function SettingsScreen() {
             if (result.error) Alert.alert('Giriş Hatası', result.error);
           }}>
             <MaterialIcons name="public" size={20} color="#fff" />
-            <Text style={s.googleText}>{loading ? 'Bağlanıyor...' : 'Google ile Bağla'}</Text>
+            <Text style={s.googleText}>{loading ? t.connecting : t.connectGoogle}</Text>
           </TouchableOpacity>
         )}
 
         {/* Buttons */}
         <TouchableOpacity style={s.resetBtn} activeOpacity={0.8} onPress={handleReset}>
           <MaterialIcons name="refresh" size={20} color={COLORS.primary} />
-          <Text style={s.resetText}>İlerlemeyi Sıfırla</Text>
+          <Text style={s.resetText}>{t.resetProgress}</Text>
         </TouchableOpacity>
 
         {/* Footer */}
         <View style={s.footer}>
           <View style={s.footerLinks}>
             <TouchableOpacity onPress={() => Linking.openURL('https://tilsim-solitaire.vercel.app/privacy')}>
-              <Text style={s.footerLink}>Gizlilik Politikası</Text>
+              <Text style={s.footerLink}>{t.privacyPolicy}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => Linking.openURL('https://tilsim-solitaire.vercel.app/terms')}>
-              <Text style={s.footerLink}>Kullanım Şartları</Text>
+              <Text style={s.footerLink}>{t.termsOfUse}</Text>
             </TouchableOpacity>
           </View>
           <View style={s.footerBrand}>
@@ -193,17 +192,17 @@ export default function SettingsScreen() {
         <View style={s.langOverlay}>
           <LinearGradient colors={['rgba(21,6,41,0.95)', 'rgba(61,53,96,0.95)']} style={StyleSheet.absoluteFillObject} />
           <View style={s.langCard}>
-            <Text style={s.langTitle}>Dil Seçin</Text>
+            <Text style={s.langTitle}>{t.chooseLang}</Text>
             <Text style={s.langSub}>Choose Language</Text>
             {LANG_OPTIONS.map((l) => (
-              <TouchableOpacity key={l.code} style={[s.langItem, language === l.code && s.langItemActive]} onPress={() => selectLanguage(l.code)} activeOpacity={0.7}>
+              <TouchableOpacity key={l.code} style={[s.langItem, lang === l.code && s.langItemActive]} onPress={() => selectLanguage(l.code)} activeOpacity={0.7}>
                 <Text style={{ fontSize: 24 }}>{l.flag}</Text>
                 <Text style={s.langName}>{l.name}</Text>
-                {language === l.code && <View style={s.langCheck}><Text style={{ color: '#fff', fontSize: 12 }}>✓</Text></View>}
+                {lang === l.code && <View style={s.langCheck}><Text style={{ color: '#fff', fontSize: 12 }}>✓</Text></View>}
               </TouchableOpacity>
             ))}
             <TouchableOpacity style={s.langClose} onPress={() => setShowLangPicker(false)} activeOpacity={0.7}>
-              <Text style={s.langCloseText}>Kapat</Text>
+              <Text style={s.langCloseText}>{t.close}</Text>
             </TouchableOpacity>
           </View>
         </View>
