@@ -106,15 +106,13 @@ export default function HomeScreen() {
       {/* Header */}
       <View style={s.header}>
         <View style={s.headerLeft}>
-          <Image source={OWL_IMAGE} style={s.headerAvatar} />
-          <Text style={s.headerTitle}>Tılsım Solitaire</Text>
-        </View>
-        <View style={s.headerRight}>
           <TouchableOpacity style={s.coinBadge} onPress={() => router.push('/store')}>
             <Text style={{ fontSize: 14 }}>🪙</Text>
             <Text style={s.coinText}>{coins.toLocaleString()}</Text>
             <Text style={s.coinPlus}>+</Text>
           </TouchableOpacity>
+        </View>
+        <View style={s.headerRight}>
           <TouchableOpacity style={s.settingsBtn} onPress={() => router.push('/settings')}>
             <MaterialIcons name="settings" size={22} color={COLORS.onSurfaceVariant} />
           </TouchableOpacity>
@@ -124,22 +122,9 @@ export default function HomeScreen() {
       {/* Main content */}
       <Animated.View style={[s.main, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
 
-        {/* Language picker */}
-        <TouchableOpacity style={s.langPicker} onPress={() => router.push('/settings')}>
-          <MaterialIcons name="language" size={16} color={COLORS.onSurface} />
-          <Text style={s.langText}>{LANG_FLAGS[lang] || 'TÜRKÇE'}</Text>
-          <MaterialIcons name="chevron-right" size={16} color={COLORS.onSurface} />
-        </TouchableOpacity>
-
         {/* Logo */}
         <Text style={s.logoMain}>Tılsım</Text>
         <Text style={s.logoSub}>{t.solitaire}</Text>
-
-        {/* Speech bubble */}
-        <View style={s.speechBubble}>
-          <Text style={s.speechText}>{bilgeMsg}</Text>
-          <View style={s.speechArrow} />
-        </View>
 
         {/* Owl */}
         <Animated.View style={[s.owlWrap, { transform: [{ translateY: owlBounce }] }]}>
