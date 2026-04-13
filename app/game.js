@@ -1649,6 +1649,15 @@ const s_tut = StyleSheet.create({
 });
 
 function ToolBtn({ icon, label, badge, badgeColor, onPress, big, locked, unlockLevel }) {
+  const pulseAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (locked) return;
+    Animated.loop(Animated.sequence([
+      Animated.timing(pulseAnim, { toValue: 1, duration: 1500, useNativeDriver: true }),
+      Animated.timing(pulseAnim, { toValue: 0, duration: 1500, useNativeDriver: true }),
+    ])).start();
+  }, [locked]);
+  
   if (locked) {
     return (
       <View style={st.toolWrap}>
@@ -1659,13 +1668,7 @@ function ToolBtn({ icon, label, badge, badgeColor, onPress, big, locked, unlockL
       </View>
     );
   }
-  const pulseAnim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.loop(Animated.sequence([
-      Animated.timing(pulseAnim, { toValue: 1, duration: 1500, useNativeDriver: true }),
-      Animated.timing(pulseAnim, { toValue: 0, duration: 1500, useNativeDriver: true }),
-    ])).start();
-  }, []);
+  
   const glowScale = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] });
   const glowOpacity = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] });
   return (
