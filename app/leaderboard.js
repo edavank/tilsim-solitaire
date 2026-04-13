@@ -140,7 +140,7 @@ export default function LeaderboardScreen() {
         <View style={s.statsRow}>
           <View style={s.statBox}>
             <Text style={s.statValue}>{totalGames}</Text>
-            <Text style={s.statLabel}>{b.games}</Text>
+            <Text style={s.statLabel}>{lb.games}</Text>
           </View>
           <View style={s.statBox}>
             <Text style={s.statValue}>{totalWins}</Text>
