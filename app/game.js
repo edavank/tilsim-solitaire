@@ -482,8 +482,11 @@ export default function GameScreen() {
   }, [gs.columns]);
 
   const panResponder = useRef(PanResponder.create({
-    onStartShouldSetPanResponder: () => false,
+    onStartShouldSetPanResponder: () => !!dragRef.current.card,
+    onStartShouldSetPanResponderCapture: () => !!dragRef.current.card,
     onMoveShouldSetPanResponder: () => !!dragRef.current.card,
+    onMoveShouldSetPanResponderCapture: () => !!dragRef.current.card,
+    onPanResponderGrant: () => true,
     onPanResponderMove: (_, gestureState) => {
       if (!dragRef.current.card) return;
       dragX.setValue(dragRef.current.startX + gestureState.dx - CARD_W / 2);
