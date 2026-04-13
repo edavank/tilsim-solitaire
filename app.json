@@ -46,14 +46,6 @@
       "eas": {
         "projectId": ""
       }
-    },
-    "updates": {
-      "enabled": true,
-      "fallbackToCacheTimeout": 0,
-      "url": "https://u.expo.dev/tilsim-solitaire"
-    },
-    "runtimeVersion": {
-      "policy": "appVersion"
     }
   }
 }
