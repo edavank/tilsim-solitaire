@@ -39,8 +39,9 @@ export function getDailyChallenge(language = 'tr', customSeed) {
   }));
 
   const totalCards = categories.reduce((sum, c) => sum + c.words.length, 0) + numCats;
-  // Sıkı hamle bütçesi — kolay değil
-  const moves = totalCards + Math.floor(totalCards * 1.2) + 5;
+  // Sıkı hamle bütçesi
+  const slotRecycleOverhead = Math.max(0, numCats - 4) * wordsPerCat;
+  const moves = totalCards + Math.floor(totalCards * 1.1) + slotRecycleOverhead + 5;
 
   return {
     id: dateSeed,
@@ -49,14 +50,14 @@ export function getDailyChallenge(language = 'tr', customSeed) {
     hints: 1,
     undos: 0,
     categories,
-    totalSlots: numCats + 2,
-    lockedSlots: 2,
-    // 5 sütun, 2 kilitli — alan dar
+    // KRİTİK: slot < kategori (6 kat, 4 slot, 1 kilitli = 3 aktif!)
+    totalSlots: 4,
+    lockedSlots: 1,
+    // 5 sütun, KİLİTLİ SÜTUN YOK (alan sorununu çözer)
     columns: [
-      { locked: true },
-      { locked: true },
+      { depth: 5 },
       { depth: 4 },
-      { depth: 3 },
+      { depth: 4 },
       { depth: 3 },
       { depth: 3 },
     ],

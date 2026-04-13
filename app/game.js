@@ -53,7 +53,8 @@ const SW = _layout.sw;
 const SH = _layout.sh;
 const COL_COUNT = 5;
 const COL_GAP = IS_TABLET ? 5 : 3;
-const CARD_W = Math.floor((SW - 16 - (COL_COUNT - 1) * COL_GAP) / COL_COUNT);
+const GAME_PAD = 10; // Sağ/sol eşit padding — tüm satırlar aynı kılavuz
+const CARD_W = Math.floor((SW - GAME_PAD * 2 - (COL_COUNT - 1) * COL_GAP) / COL_COUNT);
 const CARD_H = Math.floor(CARD_W * 1.35);
 const OVERLAP = -Math.floor(CARD_H * 0.72);
 
@@ -494,8 +495,8 @@ export default function GameScreen() {
 
     // Check slots (foundation) — top area (relative to screen height)
     if (dropY < SH * 0.4) {
-      const slotWidth = (SW - 20) / gs.slots.length;
-      const slotIdx = Math.floor((dropX - 10) / slotWidth);
+      const slotWidth = (SW - GAME_PAD * 2) / gs.slots.length;
+      const slotIdx = Math.floor((dropX - GAME_PAD) / slotWidth);
       if (slotIdx >= 0 && slotIdx < gs.slots.length) {
         placeCard(card, source, sourceIndex, slotIdx);
         cancelDrag();
@@ -505,8 +506,8 @@ export default function GameScreen() {
 
     // Check columns — bottom area (use actual column count)
     const actualColCount = gs.columns.length;
-    const colWidth = (SW - 20) / actualColCount;
-    const colIdx = Math.floor((dropX - 10) / colWidth);
+    const colWidth = (SW - GAME_PAD * 2) / actualColCount;
+    const colIdx = Math.floor((dropX - GAME_PAD) / colWidth);
     if (colIdx >= 0 && colIdx < gs.columns.length) {
       if (stack.length > 1) {
         moveStackToColumn(stack, source, sourceIndex, colIdx);
@@ -706,7 +707,7 @@ export default function GameScreen() {
           setFeedback('🎉 ' + target.category.word + t.categoryComplete);
           setTimeout(() => playSound('complete'), 10);
           // Sparkle effect on completed slot
-          const slotWidth = (SW - 20) / gs.slots.length;
+          const slotWidth = (SW - GAME_PAD * 2) / gs.slots.length;
           setSparkle({ x: slotWidth * slotIndex + slotWidth / 2 + 10, y: SH * 0.55 });
           showScorePopup('🎉 +25');
         } else if (totalPlaced > 1) {
@@ -1150,7 +1151,7 @@ export default function GameScreen() {
   
   // Dynamic card sizing based on actual column count
   const colCount = gs.columns.length;
-  const dynCardW = Math.floor((SW - 16 - (colCount - 1) * COL_GAP) / colCount);
+  const dynCardW = Math.floor((SW - GAME_PAD * 2 - (colCount - 1) * COL_GAP) / colCount);
   const dynCardH = Math.floor(dynCardW * 1.3);
   const dynOverlap = -Math.floor(dynCardH * 0.75);
   const DCW = Math.floor(dynCardW * 0.88); const DCH = Math.floor(dynCardH * 0.78);
@@ -1262,16 +1263,19 @@ export default function GameScreen() {
         </View>
 
         <View style={st.slotsRow}>
-          {gs.slots.map((slot, i) => (
-            <Animated.View key={i} style={{ flex: 1, maxWidth: CARD_W + 8, transform: [{ translateX: shakeSlotIdx === i ? shakeAnim : 0 }] }}>
-              <FoundationSlot t={t} slot={slot} slotIndex={i} onPress={() => handleSlotTap(i)} onUnlock={handleUnlock} hinted={hintSlot === i} />
-            </Animated.View>
-          ))}
+          {gs.slots.map((slot, i) => {
+            const slotW = Math.floor((SW - GAME_PAD * 2 - (gs.slots.length - 1) * COL_GAP) / gs.slots.length);
+            return (
+              <Animated.View key={i} style={{ width: slotW, transform: [{ translateX: shakeSlotIdx === i ? shakeAnim : 0 }] }}>
+                <FoundationSlot t={t} slot={slot} slotIndex={i} onPress={() => handleSlotTap(i)} onUnlock={handleUnlock} hinted={hintSlot === i} />
+              </Animated.View>
+            );
+          })}
         </View>
 
         <View style={st.tableauRow}>
           {gs.columns.map((col, i) => (
-            <View key={i} style={{ flex: 1, maxWidth: CARD_W + 8 }}>
+            <View key={i} style={{ width: dynCardW + COL_GAP }}>
               <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard} dragCardId={dragCard?.card?.id} dragStackIds={dragStackIds} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onCardLongPress={handleCardLongPress} onUnlock={handleUnlock} />
             </View>
           ))}
@@ -1515,7 +1519,7 @@ const st = StyleSheet.create({
   settingsBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: COLORS.panelBg, alignItems: 'center', justifyContent: 'center' },
   feedbackBar: { position: 'absolute', top: 90, left: 20, right: 20, backgroundColor: 'rgba(0,0,0,0.75)', paddingVertical: 10, paddingHorizontal: 16, zIndex: 200, borderRadius: 12, alignSelf: 'center' },
   feedbackText: { fontFamily: FONTS.headline, fontSize: 13, color: '#fff', textAlign: 'center' },
-  scrollContent: { paddingHorizontal: 8, paddingTop: 2, gap: 6 },
+  scrollContent: { paddingHorizontal: GAME_PAD, paddingTop: 2, gap: 6 },
   deckRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   movesPanel: { backgroundColor: COLORS.panelBg, borderWidth: 1.5, borderColor: COLORS.panelBorder, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 5, alignItems: 'center', minWidth: 60, shadowColor: '#9B7DFF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.2, shadowRadius: 8 },
   movesLabel: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: COLORS.onSurfaceVariant, letterSpacing: 1 },
@@ -1539,7 +1543,7 @@ const st = StyleSheet.create({
   catName: { fontFamily: FONTS.headlineBlack, fontSize: 11, color: '#1e293b', textAlign: 'center', lineHeight: 14, marginTop: 1 },
   catBadge: { position: 'absolute', top: 3, right: 4, backgroundColor: COLORS.cardBackTop, paddingHorizontal: 4, paddingVertical: 1, borderRadius: 6 },
   catBadgeText: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: '#fff' },
-  slotsRow: { flexDirection: 'row', justifyContent: 'center', gap: 4, paddingHorizontal: 4 },
+  slotsRow: { flexDirection: 'row', justifyContent: 'center', gap: COL_GAP },
   slotBox: { borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', gap: 2 },
   slotDashed: { borderColor: 'rgba(183,148,246,0.3)', borderStyle: 'dashed', backgroundColor: 'rgba(124,92,252,0.05)' },
   slotHinted: { borderColor: COLORS.coin, borderWidth: 2.5, shadowColor: COLORS.coin, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 18 },
