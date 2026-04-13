@@ -201,14 +201,10 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         {/* Watch ad button */}
-        <TouchableOpacity style={s.adBtn} activeOpacity={0.7} onPress={watchAd}>
-          <View style={s.adLeft}>
-            <MaterialIcons name="play-circle-filled" size={28} color={COLORS.secondary} />
-            <Text style={s.adText}>{t.watchAd}</Text>
-          </View>
-          <View style={s.adBadge}>
-            <Text style={s.adBadgeText}>{t.goldReward}</Text>
-          </View>
+        <TouchableOpacity style={s.levelSelectBtn} activeOpacity={0.7} onPress={watchAd}>
+          <MaterialIcons name="play-circle-filled" size={20} color={COLORS.tertiary} />
+          <Text style={s.levelSelectText}>{t.watchAd}</Text>
+          <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 11, color: COLORS.coin }}>{t.goldReward}</Text>
         </TouchableOpacity>
 
       </Animated.View>
