@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'rea
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
-import { COLORS, FONTS, SIZES } from '../src/constants/theme';
+import { COLORS, FONTS, SIZES } , getThemeGradient } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { getTotalLevels, getLevel } from '../src/data/levels';
 import { loadProgress, loadLevelStars, loadXP } from '../src/utils/storage';
@@ -13,6 +13,7 @@ import { useLang } from '../src/context/LanguageContext';
 export default function LevelsScreen() {
   const { lang, t } = useLang();
   const [currentLevel, setCurrentLevel] = useState(1);
+  const [activeTheme, setActiveTheme] = useState("cosmic");
   const [totalLevels, setTotalLevels] = useState(200);
   const [starMap, setStarMap] = useState({});
   const [xpData, setXpData] = useState({ xp: 0, level: 1 });
@@ -38,7 +39,7 @@ export default function LevelsScreen() {
 
   return (
     <View style={s.container}>
-      <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={getThemeGradient(activeTheme)} style={StyleSheet.absoluteFillObject} />
 
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>

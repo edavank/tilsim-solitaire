@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
-import { COLORS, FONTS, SIZES } from '../src/constants/theme';
+import { COLORS, FONTS, SIZES , getThemeGradient } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { loadProgress } from '../src/utils/storage';
 import { useLang } from '../src/context/LanguageContext';
@@ -33,7 +33,8 @@ const PLACEHOLDER = [
 export default function LeaderboardScreen() {
   const { lang } = useLang();
   const lb = LB_TEXT[lang] || LB_TEXT.tr;
-  const [activeTab, setActiveTab] = useState(2); // default: all time
+  const [activeTab, setActiveTab] = useState(2);
+  const [activeTheme, setActiveTheme] = useState('cosmic'); // default: all time
   const [userScore, setUserScore] = useState(0);
   const [userLevel, setUserLevel] = useState(1);
   const [coins, setCoins] = useState(0);
@@ -70,7 +71,7 @@ export default function LeaderboardScreen() {
 
   return (
     <View style={s.container}>
-      <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={getThemeGradient(activeTheme)} style={StyleSheet.absoluteFillObject} />
 
       {/* Header */}
       <View style={s.header}>

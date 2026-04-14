@@ -5,7 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, FONTS } from '../src/constants/theme';
+import { COLORS, FONTS , getThemeGradient } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { ACHIEVEMENTS, loadAchievements, ACHIEVEMENT_I18N } from '../src/utils/achievements';
 import { loadProgress, updateProgress } from '../src/utils/storage';
@@ -14,6 +14,7 @@ import { useLang } from '../src/context/LanguageContext';
 
 export default function AchievementsScreen() {
   const router = useRouter();
+  const [activeTheme, setActiveTheme] = useState('cosmic');
   const { lang } = useLang();
   const ai = ACHIEVEMENT_I18N[lang] || ACHIEVEMENT_I18N.tr;
   const [unlocked, setUnlocked] = useState({});
@@ -25,6 +26,7 @@ export default function AchievementsScreen() {
       loadProgress().then(async (p) => {
         const dailyMap = await getDailyCompletionMap();
         setStats({ ...p, dailyCount: Object.keys(dailyMap).length });
+        if (p.activeTheme) setActiveTheme(p.activeTheme);
         if (p.unseenAch > 0) await updateProgress({ unseenAch: 0 });
       });
     }, [])
@@ -35,7 +37,7 @@ export default function AchievementsScreen() {
 
   return (
     <View style={s.container}>
-      <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={getThemeGradient(activeTheme)} style={StyleSheet.absoluteFillObject} />
       
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
