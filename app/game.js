@@ -1946,7 +1946,7 @@ const ov = StyleSheet.create({
 /* ── Game Styles ── */
 const st = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.surface },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 14, paddingTop: 50, paddingBottom: 4, backgroundColor: COLORS.headerBg, zIndex: 50 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 14, paddingTop: 62, paddingBottom: 6, backgroundColor: COLORS.headerBg, zIndex: 50 },
   coinBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: COLORS.panelBg, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 9999, borderWidth: 1, borderColor: COLORS.panelBorder },
   coinText: { fontFamily: FONTS.headline, fontSize: 13, color: COLORS.onSurface },
   headerTitle: { fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff', letterSpacing: 1 },
