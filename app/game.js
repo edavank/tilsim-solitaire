@@ -1464,7 +1464,7 @@ export default function GameScreen() {
   const dynCardW = Math.floor((SW - GAME_PAD * 2 - (colCount - 1) * COL_GAP) / colCount);
   const dynCardH = Math.floor(dynCardW * 1.3);
   const dynOverlap = -Math.floor(dynCardH * 0.75);
-  const DCW = Math.floor(dynCardW * 0.88); const DCH = Math.floor(dynCardH * 0.78);
+  const DCW = dynCardW; const DCH = dynCardH; // Sütun kartlarıyla aynı boyut
   // dragStackIds hesaplanır ama prop olarak geçilmez (performans)
 
   // Unlock slot or column (via ad or free)
@@ -1594,13 +1594,14 @@ export default function GameScreen() {
             {gs.drawnCards.length === 0 ? (
               <View style={[st.emptyCard, { width: DCW, height: DCH }]} />
             ) : (
-              <View style={{ width: DCW + 20, height: DCH, justifyContent: 'center', alignItems: 'flex-end' }}>
+              <View style={{ width: DCW + 30, height: DCH, justifyContent: 'center', alignItems: 'flex-end' }}>
                 {gs.drawnCards.slice(-3).map((card, i, arr) => {
                   const isTop = i === arr.length - 1;
+                  const isSecond = i === arr.length - 2;
                   return (
-                    <View key={card.id} style={{ position: 'absolute', right: (arr.length - 1 - i) * 6, zIndex: i }}>
-                      {isTop ? (
-                        <FaceUpCard card={card} selected={selId === card.id} hinted={card.id === hintCard} isDragging={false} w={DCW} h={DCH} />
+                    <View key={card.id} style={{ position: 'absolute', right: (arr.length - 1 - i) * 14, zIndex: i }}>
+                      {isTop || isSecond ? (
+                        <FaceUpCard card={card} selected={isTop && selId === card.id} hinted={isTop && card.id === hintCard} isDragging={false} w={DCW} h={DCH} />
                       ) : (
                         <View style={{ width: DCW, height: DCH, borderRadius: 8, backgroundColor: '#e0d8f0', borderWidth: 1, borderColor: 'rgba(155,125,255,0.2)' }} />
                       )}
