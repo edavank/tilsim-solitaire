@@ -253,7 +253,8 @@ function FoundationSlot({ t, slot, slotIndex, onPress, onUnlock, hinted }) {
   );
 }
 
-function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedId, dragCardId, dragStackIds, onCardTap, onColumnTap, onUnlock }) {
+function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedId, dragCardId, dragStackIds, onCardTap, onColumnTap, onUnlock, onDragStart, onDragMove, onDragEnd }) {
+  const touchRef = useRef({ card: null, startX: 0, startY: 0, moved: false });
   if (column.locked) {
     return (
       <View style={[st.slotBox, st.slotDashed, { height: CARD_H }]}>
@@ -282,12 +283,37 @@ function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedI
         return (
           <View key={card.id} style={{ marginTop: ci === 0 ? 0 : OVERLAP, zIndex: ci }}>
             {card.faceUp ? (
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => onCardTap(card, 'column', colIndex, isLast)}
+              <View
+                onStartShouldSetResponder={() => true}
+                onMoveShouldSetResponder={() => true}
+                onResponderGrant={(e) => {
+                  touchRef.current = { card, colIndex, isLast, startX: e.nativeEvent.pageX, startY: e.nativeEvent.pageY, moved: false };
+                }}
+                onResponderMove={(e) => {
+                  const info = touchRef.current;
+                  if (!info.card) return;
+                  const { pageX, pageY } = e.nativeEvent;
+                  const dx = pageX - info.startX;
+                  const dy = pageY - info.startY;
+                  if (!info.moved && Math.abs(dx) + Math.abs(dy) > 8) {
+                    info.moved = true;
+                    onDragStart?.(info.card, 'column', info.colIndex, info.isLast, info.startX, info.startY);
+                  }
+                  if (info.moved) onDragMove?.(pageX, pageY);
+                }}
+                onResponderRelease={(e) => {
+                  const info = touchRef.current;
+                  if (info.moved) {
+                    onDragEnd?.(e.nativeEvent.pageX, e.nativeEvent.pageY);
+                  } else {
+                    onCardTap(card, 'column', colIndex, isLast);
+                  }
+                  touchRef.current = { card: null, startX: 0, startY: 0, moved: false };
+                }}
+                onResponderTerminate={() => { onDragEnd?.(0, 0); touchRef.current = { card: null, startX: 0, startY: 0, moved: false }; }}
               >
                 <FaceUpCard card={card} selected={selectedId === card.id || (selectedStackIds && selectedStackIds.has(card.id))} hinted={isHinted} isDragging={dragStackIds && dragStackIds.has(card.id)} />
-              </TouchableOpacity>
+              </View>
             ) : (
               <FaceDownCard />
             )}
@@ -503,7 +529,24 @@ export default function GameScreen() {
     setSelected(null);
   }, [gs.columns]);
 
-  // Drag: tap-to-select, tap-to-place (sürükleme devre dışı)
+  // Drag handlers — her kart kendi responder'ına sahip
+  const touchInfoRef = useRef({ card: null, source: null, sourceIndex: null, isLast: false, startX: 0, startY: 0, moved: false });
+
+  const onDragStart = useCallback((card, source, sourceIndex, isLast, pageX, pageY) => {
+    startDrag(card, source, sourceIndex, isLast, pageX, pageY);
+  }, [startDrag]);
+
+  const onDragMove = useCallback((pageX, pageY) => {
+    if (!dragRef.current.card) return;
+    dragX.setValue(pageX - CARD_W / 2);
+    dragY.setValue(pageY - CARD_H / 2);
+  }, []);
+
+  const onDragEnd = useCallback((pageX, pageY) => {
+    if (!dragRef.current.card) { cancelDrag(); return; }
+    if (pageX === 0 && pageY === 0) { cancelDrag(); return; }
+    handleDrop(dragRef.current, pageX, pageY);
+  }, []);
 
   const cancelDrag = useCallback(() => {
     Animated.timing(dragOpacity, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
@@ -1495,7 +1538,7 @@ export default function GameScreen() {
         <View style={st.tableauRow}>
           {gs.columns.map((col, i) => (
             <View key={i} style={{ flex: 1 }}>
-              <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard} dragCardId={dragCard?.card?.id} dragStackIds={dragStackIds} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onUnlock={handleUnlock} />
+              <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard} dragCardId={dragCard?.card?.id} dragStackIds={dragStackIds} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onUnlock={handleUnlock} onDragStart={onDragStart} onDragMove={onDragMove} onDragEnd={onDragEnd} />
             </View>
           ))}
         </View>
