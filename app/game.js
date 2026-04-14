@@ -12,6 +12,7 @@ import { loadProgress, updateProgress, clearSavedGame, saveSavedGame, saveLevelS
 import { playSound } from '../src/utils/sounds';
 import { showRewarded, showInterstitial } from '../src/utils/ads';
 import { useLang } from '../src/context/LanguageContext';
+import { useAuth } from '../src/context/AuthContext';
 import { submitScore } from '../src/utils/leaderboardService';
 import { getDailyChallenge, markDailyChallengeCompleted } from '../src/utils/dailyChallenge';
 import { checkAchievements, ACHIEVEMENT_I18N } from '../src/utils/achievements';
@@ -441,6 +442,7 @@ function LevelFailedOverlay({ t, levelId, onAddMovesAd, onAddMovesCoin, onShuffl
 export default function GameScreen() {
   const params = useLocalSearchParams();
   const { lang, t } = useLang();
+  const { user, syncToCloud } = useAuth();
   const [levelId, setLevelId] = useState(parseInt(params.level) || 1);
   const [gameLang, setGameLang] = useState(lang);
   const [isDaily, setIsDaily] = useState(params.daily === 'true');
@@ -1354,6 +1356,18 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         }
       } catch (e) {}
       await markDailyChallengeCompleted(dailyDate);
+      // Cloud sync (günlük görev tamamlandı)
+      if (user) {
+        syncToCloud({
+          currentLevel: prog.currentLevel || 1,
+          coins: newCoins,
+          totalGames: (prog.totalGames || 0) + 1,
+          totalWins: (prog.totalWins || 0) + 1,
+          bestScore: Math.max(prog.bestScore || 0, gs.score),
+          streak: prog.streak || 0,
+          xp: prog.xp || 0,
+        }).catch(() => {});
+      }
       router.canGoBack() ? router.back() : router.replace("/");
       return;
     }
@@ -1417,6 +1431,20 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       setToolCredits(newCredits);
     }
     
+    // ── Cloud sync (arka planda, UI bloklamaz) ──
+    if (user) {
+      const updatedCoins = (prog.coins || 0) + 30 + bonus;
+      syncToCloud({
+        currentLevel: nextId,
+        coins: updatedCoins,
+        totalGames: (prog.totalGames || 0) + 1,
+        totalWins: (prog.totalWins || 0) + 1,
+        bestScore: Math.max(prog.bestScore || 0, gs.score),
+        streak: (prog.streak || 0) + 1,
+        xp: prog.xp || 0,
+      }).catch(() => {}); // Sessizce başarısız olsun
+    }
+
     setLevelId(nextId);
     const nextState = generateGameState(nextLevel);
     if (isTimed) nextState.moves = 9999;
@@ -1439,7 +1467,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       await updateProgress({ timedIntroShown: true });
       setTimeout(() => { setTimedIntro(true); playSound('unlock'); }, introTool ? 1500 : 500);
     }
-  }, [levelId, gs, level, coins]);
+  }, [levelId, gs, level, coins, user, syncToCloud]);
 
   // Hamle bitti → Karıştır (shuffle + 5 hamle ekle)
   const handleFailedShuffle = useCallback(async () => {

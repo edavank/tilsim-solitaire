@@ -54,7 +54,7 @@ const LANG_FLAGS = { tr: '🇹🇷 TÜRKÇE', en: '🇬🇧 ENGLISH', de: '🇩�
 
 export default function HomeScreen() {
   const { lang, t } = useLang();
-  const { shouldShowLogin, authReady } = useAuth();
+  const { shouldShowLogin, authReady, user, syncToCloud } = useAuth();
   const [currentLevel, setCurrentLevel] = useState(1);
   const [coins, setCoins] = useState(0);
   const [dailyDone, setDailyDone] = useState(false);
@@ -75,12 +75,26 @@ export default function HomeScreen() {
   // Refresh on screen focus (coming back from game)
   useFocusEffect(
     useCallback(() => {
-      loadProgress().then((p) => { setCurrentLevel(p.currentLevel); setCoins(p.coins); setUnseenAch(p.unseenAch || 0); });
+      loadProgress().then((p) => {
+        setCurrentLevel(p.currentLevel); setCoins(p.coins); setUnseenAch(p.unseenAch || 0);
+        // Arka planda cloud sync (giriş yapılmışsa)
+        if (user) {
+          syncToCloud({
+            currentLevel: p.currentLevel,
+            coins: p.coins,
+            totalGames: p.totalGames || 0,
+            totalWins: p.totalWins || 0,
+            bestScore: p.bestScore || 0,
+            streak: p.streak || 0,
+            xp: p.xp || 0,
+          }).catch(() => {});
+        }
+      });
       isDailyChallengeCompleted().then(setDailyDone);
       checkDailyLogin().then((result) => {
         if (result.shouldShow) setDailyLoginData(result);
       });
-    }, [])
+    }, [user])
   );
   const owlBounce = useRef(new Animated.Value(0)).current;
   const glowPulse = useRef(new Animated.Value(0)).current;

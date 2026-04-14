@@ -60,16 +60,16 @@ Sonra `app.json` plugins'e ekle:
 ## ADIM 3: Supabase Auth Providers
 
 ### Google OAuth
-1. Google Cloud Console → APIs & Services → Credentials
-2. 3 OAuth 2.0 Client ID oluştur:
+✅ TAMAMLANDI — Google Cloud OAuth yapılandırıldı, Supabase'e bağlandı
 
-| Tip | Ayar |
-|-----|------|
-| Web application | Redirect URI: `https://levaibmnnwxqvuodcdxb.supabase.co/auth/v1/callback` |
-| Android | Package: `com.edavank.tilsimsolitaire`, SHA-1: `npx eas-cli credentials -p android` |
-| iOS | Bundle ID: `com.edavank.tilsimsolitaire` |
-
-3. Web client ID + Secret → Supabase → Authentication → Providers → Google
+### ⚠️ Supabase Production Redirect URL (KRİTİK)
+Şu an Site URL `exp://192.168.68.54:8081/--/` (dev). Production build için:
+1. Supabase → Authentication → URL Configuration
+2. **Site URL** → `tilsim-solitaire://` olarak değiştir
+3. **Redirect URLs** listesine ekle:
+   - `tilsim-solitaire://` (production — iOS + Android)
+   - `exp://192.168.68.54:8081/--/` (dev — kalsın)
+4. auth.js zaten doğru URL üretiyor (Expo Go → exp://, build → tilsim-solitaire://)
 
 ### Apple OAuth
 1. Apple Developer → Certificates, Identifiers & Profiles
@@ -85,30 +85,7 @@ Sonra `app.json` plugins'e ekle:
    - Private Key: (.p8 dosya içeriği)
 
 ### Supabase user_progress Tablosu
-```sql
-CREATE TABLE IF NOT EXISTS user_progress (
-  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  current_level INTEGER DEFAULT 1,
-  coins INTEGER DEFAULT 500,
-  total_games INTEGER DEFAULT 0,
-  total_wins INTEGER DEFAULT 0,
-  best_score INTEGER DEFAULT 0,
-  streak INTEGER DEFAULT 0,
-  xp INTEGER DEFAULT 0,
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-
-ALTER TABLE user_progress ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can read own progress"
-  ON user_progress FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert own progress"
-  ON user_progress FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update own progress"
-  ON user_progress FOR UPDATE USING (auth.uid() = user_id);
-```
+✅ TAMAMLANDI — Tablo + RLS politikaları oluşturuldu
 
 ---
 
