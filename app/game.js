@@ -517,6 +517,9 @@ export default function GameScreen() {
   const scrollRef = useRef(null);
   const saveTimerRef = useRef(null);
   const drawnTouchRef = useRef({ startX: 0, startY: 0, moved: false });
+  const startDragRef = useRef(null);
+  const cancelDragRef = useRef(null);
+  const handleDropRef = useRef(null);
   const [scrollLocked, setScrollLocked] = useState(false);
   const scrollLockedRef = useRef(false);
   const lockScroll = useCallback((val) => { scrollLockedRef.current = val; setScrollLocked(val); }, []);
@@ -552,11 +555,11 @@ export default function GameScreen() {
     playSound('tap');
     setSelected(null);
   }, [gs.columns]);
-
+  startDragRef.current = startDrag;
 
   const onDragStart = useCallback((card, source, sourceIndex, isLast, pageX, pageY) => {
-    startDrag(card, source, sourceIndex, isLast, pageX, pageY);
-  }, [startDrag]);
+    startDragRef.current?.(card, source, sourceIndex, isLast, pageX, pageY);
+  }, []);
 
   const onDragMove = useCallback((pageX, pageY) => {
     if (!dragRef.current.card) return;
@@ -566,9 +569,9 @@ export default function GameScreen() {
   }, []);
 
   const onDragEnd = useCallback((pageX, pageY) => {
-    if (!dragRef.current.card) { cancelDrag(); return; }
-    if (pageX === 0 && pageY === 0) { cancelDrag(); return; }
-    handleDrop(dragRef.current, pageX, pageY);
+    if (!dragRef.current.card) { cancelDragRef.current?.(); return; }
+    if (pageX === 0 && pageY === 0) { cancelDragRef.current?.(); return; }
+    handleDropRef.current?.(dragRef.current, pageX, pageY);
   }, []);
 
   const cancelDrag = useCallback(() => {
@@ -579,6 +582,7 @@ export default function GameScreen() {
     lockScroll(false);
     forceRender(v => v + 1);
   }, []);
+  cancelDragRef.current = cancelDrag;
 
   const handleDrop = useCallback((dragInfo, dropX, dropY) => {
     const { card, source, sourceIndex, stackCards } = dragInfo;
@@ -632,6 +636,7 @@ export default function GameScreen() {
     // Geçersiz bölgeye bırakıldı
     setFeedback(t.cantPlace);
   }, [gs.slots, gs.columns, placeCard, moveToColumn, moveStackToColumn, cancelDrag]);
+  handleDropRef.current = handleDrop;
 
   // Timer
   useEffect(() => {
@@ -1552,7 +1557,7 @@ export default function GameScreen() {
                 dt.moved = true;
                 if (gs.drawnCards.length > 0) {
                   const card = gs.drawnCards[gs.drawnCards.length - 1];
-                  startDrag(card, 'drawn', null, true, dt.startX, dt.startY);
+                  startDragRef.current?.(card, 'drawn', null, true, dt.startX, dt.startY);
                 }
               }
               if (dt.moved && dragRef.current.card) {
@@ -1562,8 +1567,8 @@ export default function GameScreen() {
             }}
             onResponderRelease={(e) => {
               if (drawnTouchRef.current.moved) {
-                if (dragRef.current.card) handleDrop(dragRef.current, e.nativeEvent.pageX, e.nativeEvent.pageY);
-                else cancelDrag();
+                if (dragRef.current.card) handleDropRef.current?.(dragRef.current, e.nativeEvent.pageX, e.nativeEvent.pageY);
+                else cancelDragRef.current?.();
               } else {
                 handleDrawnTap();
               }
@@ -1572,7 +1577,7 @@ export default function GameScreen() {
             }}
             onResponderTerminationRequest={() => !drawnTouchRef.current.moved}
             onResponderTerminate={() => {
-              if (drawnTouchRef.current.moved) cancelDrag();
+              if (drawnTouchRef.current.moved) cancelDragRef.current?.();
               drawnTouchRef.current = { startX: 0, startY: 0, moved: false };
               lockScroll(false);
             }}
