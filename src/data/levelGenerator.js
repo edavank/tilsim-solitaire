@@ -62,8 +62,10 @@ export function generateLevels(startId, count, language = 'tr', initialBlockedCa
     // === ZORLUK PROGRESYONu ===
     const isBoss = id % 10 === 0;
     
-    // Kategoriler: 3 → 4 → 5 → 6 → 7 → 8 (boss: +2)
-    const numCats = Math.min((isBoss ? 5 : 3) + Math.floor(tier / 2), 8);
+    // Kategoriler: 3-8 arası, bölüme göre değişen çeşitlilik
+    const baseNumCats = 3 + Math.floor(tier / 3);
+    const variation = [0, 1, -1, 2, 0, -1, 1, 0, 2, 1][id % 10]; // Her bölüm farklı
+    const numCats = Math.min(Math.max((isBoss ? baseNumCats + 2 : baseNumCats + variation), 3), 8);
     
     // Kelime/kategori: 3 → 4 → 5 → 6 → 7 → 8 (boss: +1)
     const wordsPerCat = Math.min((isBoss ? 4 : 3) + Math.floor(tier / 3), 8);
