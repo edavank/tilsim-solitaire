@@ -501,8 +501,8 @@ export default function GameScreen() {
   const panResponder = useRef(PanResponder.create({
     onStartShouldSetPanResponder: () => !!dragRef.current.card,
     onStartShouldSetPanResponderCapture: () => !!dragRef.current.card,
-    onMoveShouldSetPanResponder: () => !!dragRef.current.card,
-    onMoveShouldSetPanResponderCapture: () => !!dragRef.current.card,
+    onMoveShouldSetPanResponder: (_, gs) => !!dragRef.current.card && (Math.abs(gs.dx) > 2 || Math.abs(gs.dy) > 2),
+    onMoveShouldSetPanResponderCapture: (_, gs) => !!dragRef.current.card && (Math.abs(gs.dx) > 2 || Math.abs(gs.dy) > 2),
     onPanResponderGrant: () => true,
     onPanResponderMove: (_, gestureState) => {
       if (!dragRef.current.card) return;
@@ -519,6 +519,20 @@ export default function GameScreen() {
       cancelDrag();
     },
   })).current;
+
+  // Direct touch handlers for New Architecture compatibility
+  const handleTouchMove = useCallback((e) => {
+    if (!dragRef.current.card) return;
+    const touch = e.nativeEvent.touches?.[0] || e.nativeEvent;
+    dragX.setValue(touch.pageX - CARD_W / 2);
+    dragY.setValue(touch.pageY - CARD_H / 2);
+  }, []);
+
+  const handleTouchEnd = useCallback((e) => {
+    if (!dragRef.current.card) return;
+    const touch = e.nativeEvent.changedTouches?.[0] || e.nativeEvent;
+    handleDrop(dragRef.current, touch.pageX, touch.pageY);
+  }, []);
 
   const cancelDrag = useCallback(() => {
     Animated.timing(dragOpacity, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
@@ -1348,7 +1362,7 @@ export default function GameScreen() {
   }, []);
 
   return (
-    <View style={st.container} {...panResponder.panHandlers}>
+    <View style={st.container} {...panResponder.panHandlers} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
       <LinearGradient colors={getThemeGradient(activeTheme)} style={StyleSheet.absoluteFillObject} />
 
       {/* Sparkle */}
