@@ -319,7 +319,10 @@ const TableauColumn = React.memo(function TableauColumn({ column, colIndex, sele
                   onScrollLock?.(false);
                 }}
                 onResponderTerminate={() => {
-                  if (touchRef.current.moved) onDragEnd?.(0, 0);
+                  if (touchRef.current.moved) {
+                    // Drag aktifse anında temizle
+                    onDragEnd?.(0, 0);
+                  }
                   touchRef.current = { card: null, startX: 0, startY: 0, moved: false };
                   onScrollLock?.(false);
                 }}
@@ -504,7 +507,7 @@ export default function GameScreen() {
 
   // ── Drag & Drop System ──
   const dragCardRef = useRef(null);
-  const [dragVersion, setDragVersion] = useState(0);
+  const [, forceRender] = useState(0); // floating kart içeriği için
   const dragX = useRef(new Animated.Value(0)).current;
   const dragY = useRef(new Animated.Value(0)).current;
   const dragScale = useRef(new Animated.Value(1)).current;
@@ -538,11 +541,13 @@ export default function GameScreen() {
     }
     dragRef.current = { card, source, sourceIndex, isLast, stackCards, startX: pageX, startY: pageY };
     dragCardRef.current = { card, source, sourceIndex, isLast, stackCards };
-    setDragVersion(v => v + 1);
+    forceRender(v => v + 1); // floating kart içeriğini güncelle
     dragX.setValue(pageX - CARD_W / 2);
     dragY.setValue(pageY - CARD_H / 2);
     dragOpacity.setValue(1);
     dragScale.setValue(1.1);
+    // Güvenlik: 3sn sonra hala drag aktifse temizle
+    setTimeout(() => { if (dragRef.current.card) cancelDrag(); }, 3000);
     playSound('tap');
     setSelected(null);
   }, [gs.columns]);
@@ -554,6 +559,7 @@ export default function GameScreen() {
 
   const onDragMove = useCallback((pageX, pageY) => {
     if (!dragRef.current.card) return;
+    forceRender(v => v + 1); // floating kart içeriğini güncelle
     dragX.setValue(pageX - CARD_W / 2);
     dragY.setValue(pageY - CARD_H / 2);
   }, []);
@@ -567,10 +573,10 @@ export default function GameScreen() {
   const cancelDrag = useCallback(() => {
     dragOpacity.setValue(0);
     dragScale.setValue(1);
-    dragCardRef.current = null;
     dragRef.current = { card: null, source: null, sourceIndex: null, isLast: false, startX: 0, startY: 0 };
     lockScroll(false);
-    setDragVersion(v => v + 1);
+    // dragCardRef temizlenmez — floating card opacity:0 ile gizli
+    // Bu sayede re-render gerekmez, kart anında kaybolur
   }, []);
 
   const handleDrop = useCallback((dragInfo, dropX, dropY) => {
@@ -1792,25 +1798,18 @@ export default function GameScreen() {
         <LevelFailedOverlay t={t} levelId={gs.levelId} onAddMovesAd={addMovesAd} onAddMovesCoin={addMovesCoin} onShuffle={handleFailedShuffle} onReplay={handleReplay} onHome={handleHome} />
       )}
 
-      {/* Floating drag card */}
-      {dragCardRef.current && (
-        <Animated.View
-          pointerEvents="none"
-          style={{
-            position: 'absolute', zIndex: 99999,
-            left: 0, top: 0,
-            opacity: dragOpacity,
-            transform: [{ translateX: dragX }, { translateY: dragY }, { scale: dragScale }],
-          }}
-        >
-          <FaceUpCard card={dragCardRef.current.card} selected={true} w={CARD_W} h={CARD_H} />
-          {dragCardRef.current.stackCards && dragCardRef.current.stackCards.length > 1 && (
-            <View style={{ position: 'absolute', top: -10, right: -10, backgroundColor: COLORS.primary, width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' }}>
-              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 11, color: '#fff' }}>{dragCardRef.current.stackCards.length}</Text>
-            </View>
-          )}
-        </Animated.View>
-      )}
+      {/* Floating drag card — her zaman render, opacity ile gizle */}
+      <Animated.View
+        pointerEvents="none"
+        style={{
+          position: 'absolute', zIndex: 99999,
+          left: 0, top: 0,
+          opacity: dragOpacity,
+          transform: [{ translateX: dragX }, { translateY: dragY }, { scale: dragScale }],
+        }}
+      >
+        {dragCardRef.current && <FaceUpCard card={dragCardRef.current.card} selected={true} w={CARD_W} h={CARD_H} />}
+      </Animated.View>
     </View>
   );
 }
