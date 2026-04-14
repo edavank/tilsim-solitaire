@@ -7,12 +7,15 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, FONTS } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
-import { ACHIEVEMENTS, loadAchievements } from '../src/utils/achievements';
+import { ACHIEVEMENTS, loadAchievements, ACHIEVEMENT_I18N } from '../src/utils/achievements';
 import { loadProgress, updateProgress } from '../src/utils/storage';
 import { getDailyCompletionMap } from '../src/utils/dailyChallenge';
+import { useLang } from '../src/context/LanguageContext';
 
 export default function AchievementsScreen() {
   const router = useRouter();
+  const { lang } = useLang();
+  const ai = ACHIEVEMENT_I18N[lang] || ACHIEVEMENT_I18N.tr;
   const [unlocked, setUnlocked] = useState({});
   const [stats, setStats] = useState({});
 
@@ -38,7 +41,7 @@ export default function AchievementsScreen() {
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
           <MaterialIcons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>Başarımlar</Text>
+        <Text style={s.headerTitle}>{ai.pageTitle}</Text>
         <Text style={s.headerCount}>{done}/{total}</Text>
       </View>
 
@@ -57,8 +60,8 @@ export default function AchievementsScreen() {
             <View key={ach.id} style={[s.achCard, !isUnlocked && s.achLocked]}>
               <Text style={s.achIcon}>{isUnlocked ? ach.icon : '🔒'}</Text>
               <View style={s.achInfo}>
-                <Text style={[s.achTitle, !isUnlocked && s.achTitleLocked]}>{ach.title}</Text>
-                <Text style={s.achDesc}>{ach.desc}</Text>
+                <Text style={[s.achTitle, !isUnlocked && s.achTitleLocked]}>{ai[ach.id]?.[0] || ach.title}</Text>
+                <Text style={s.achDesc}>{ai[ach.id]?.[1] || ach.desc}</Text>
               </View>
               {isUnlocked ? (
                 <MaterialIcons name="check-circle" size={24} color={COLORS.success} />

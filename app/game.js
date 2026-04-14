@@ -14,7 +14,7 @@ import { showRewarded, showInterstitial } from '../src/utils/ads';
 import { useLang } from '../src/context/LanguageContext';
 import { submitScore } from '../src/utils/leaderboardService';
 import { getDailyChallenge, markDailyChallengeCompleted } from '../src/utils/dailyChallenge';
-import { checkAchievements } from '../src/utils/achievements';
+import { checkAchievements, ACHIEVEMENT_I18N } from '../src/utils/achievements';
 import { markCategoryCompleted } from '../src/utils/collection';
 // seasonalEvents kaldırıldı
 
@@ -499,24 +499,18 @@ export default function GameScreen() {
     setSelected(null);
   }, [gs.columns]);
 
-  // Drag overlay touch handlers — full screen transparent view captures all touches
-  const handleDragTouchMove = useCallback((e) => {
+  // Drag overlay responder handlers
+  const handleDragResponderMove = useCallback((e) => {
     if (!dragRef.current.card) return;
-    const touch = e.nativeEvent.touches?.[0] || e.nativeEvent;
-    if (touch.pageX !== undefined) {
-      dragX.setValue(touch.pageX - CARD_W / 2);
-      dragY.setValue(touch.pageY - CARD_H / 2);
-    }
+    const { pageX, pageY } = e.nativeEvent;
+    dragX.setValue(pageX - CARD_W / 2);
+    dragY.setValue(pageY - CARD_H / 2);
   }, []);
 
-  const handleDragTouchEnd = useCallback((e) => {
+  const handleDragResponderRelease = useCallback((e) => {
     if (!dragRef.current.card) return;
-    const touch = e.nativeEvent.changedTouches?.[0] || e.nativeEvent;
-    if (touch.pageX !== undefined) {
-      handleDrop(dragRef.current, touch.pageX, touch.pageY);
-    } else {
-      cancelDrag();
-    }
+    const { pageX, pageY } = e.nativeEvent;
+    handleDrop(dragRef.current, pageX, pageY);
   }, []);
 
   const cancelDrag = useCallback(() => {
@@ -1503,8 +1497,8 @@ export default function GameScreen() {
         <TouchableOpacity style={st.achievPopup} activeOpacity={0.9} onPress={() => setAchievementPopup(null)}>
           <Text style={{ fontSize: 28 }}>{achievementPopup.icon}</Text>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 14, color: '#FFD166' }}>Başarım Kazanıldı!</Text>
-            <Text style={{ fontFamily: FONTS.body, fontSize: 12, color: '#fff' }}>{achievementPopup.title}</Text>
+            <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 14, color: '#FFD166' }}>{(ACHIEVEMENT_I18N[gameLang] || ACHIEVEMENT_I18N.tr).earned}</Text>
+            <Text style={{ fontFamily: FONTS.body, fontSize: 12, color: '#fff' }}>{(ACHIEVEMENT_I18N[gameLang] || ACHIEVEMENT_I18N.tr)[achievementPopup.id]?.[0] || achievementPopup.title}</Text>
           </View>
           {achievementPopup.reward > 0 && (
             <View style={{ backgroundColor: '#FFD700', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4 }}>
@@ -1685,13 +1679,15 @@ export default function GameScreen() {
         <LevelFailedOverlay t={t} levelId={gs.levelId} onAddMovesAd={addMovesAd} onAddMovesCoin={addMovesCoin} onReplay={handleReplay} onHome={handleHome} />
       )}
 
-      {/* Drag touch overlay — captures all touch events during drag */}
+      {/* Drag touch overlay — responder captures all gestures during drag */}
       {dragCard && (
         <View 
           style={{ ...StyleSheet.absoluteFillObject, zIndex: 99998, backgroundColor: 'transparent' }}
-          onTouchMove={handleDragTouchMove}
-          onTouchEnd={handleDragTouchEnd}
-          onTouchCancel={() => cancelDrag()}
+          onStartShouldSetResponder={() => true}
+          onMoveShouldSetResponder={() => true}
+          onResponderMove={handleDragResponderMove}
+          onResponderRelease={handleDragResponderRelease}
+          onResponderTerminate={() => cancelDrag()}
         />
       )}
 
