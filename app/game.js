@@ -563,31 +563,32 @@ export default function GameScreen() {
   }, []);
 
   const cancelDrag = useCallback(() => {
-    Animated.timing(dragOpacity, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
-      dragCardRef.current = null;
-      setDragVersion(v => v + 1);
-      lockScroll(false);
-      dragRef.current = { card: null, source: null, sourceIndex: null, isLast: false, startX: 0, startY: 0 };
-      dragScale.setValue(1);
-    });
+    dragOpacity.setValue(0);
+    dragScale.setValue(1);
+    dragCardRef.current = null;
+    dragRef.current = { card: null, source: null, sourceIndex: null, isLast: false, startX: 0, startY: 0 };
+    lockScroll(false);
+    setDragVersion(v => v + 1);
   }, []);
 
   const handleDrop = useCallback((dragInfo, dropX, dropY) => {
     const { card, source, sourceIndex, stackCards } = dragInfo;
     const stack = stackCards || [card];
 
-    // Check slots (foundation) — top area (relative to screen height)
+    // Her durumda önce drag'i temizle
+    cancelDrag();
+
+    // Check slots (foundation) — top area
     if (dropY < SH * 0.4) {
       const slotWidth = (SW - GAME_PAD * 2) / gs.slots.length;
       const slotIdx = Math.floor((dropX - GAME_PAD) / slotWidth);
       if (slotIdx >= 0 && slotIdx < gs.slots.length) {
         placeCard(card, source, sourceIndex, slotIdx);
-        cancelDrag();
         return;
       }
     }
 
-    // Check columns — bottom area (use actual column count)
+    // Check columns — bottom area
     const actualColCount = gs.columns.length;
     const colWidth = (SW - GAME_PAD * 2) / actualColCount;
     const colIdx = Math.floor((dropX - GAME_PAD) / colWidth);
@@ -597,11 +598,10 @@ export default function GameScreen() {
       } else {
         moveToColumn(card, source, sourceIndex, colIdx);
       }
-      cancelDrag();
       return;
     }
 
-    cancelDrag();
+    // Geçersiz bölgeye bırakıldı
     setFeedback(t.cantPlace);
   }, [gs.slots, gs.columns, placeCard, moveToColumn, moveStackToColumn, cancelDrag]);
 
