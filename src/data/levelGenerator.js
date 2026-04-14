@@ -71,8 +71,9 @@ export function generateLevels(startId, count, language = 'tr', initialBlockedCa
     const wordsPerCat = Math.min((isBoss ? 4 : 3) + Math.floor(tier / 3), 6);
     
     // KRİTİK: Slot sayısı < kategori sayısı (zorluk burada!)
-    const slotDeficit = isBoss ? 2 : 1;
-    const totalSlots = Math.max(Math.min(numCats - slotDeficit, 6) + Math.floor(tier / 8), 3);
+    // tier arttıkça fark ARTAR (oyun zorlaşır)
+    const slotDeficit = isBoss ? (tier < 10 ? 2 : 3) : (tier < 5 ? 1 : 2);
+    const totalSlots = Math.min(Math.max(numCats - slotDeficit, 2), 5);
     // Kilitli slotlar — HER ZAMAN en az 2 açık slot kalmalı
     const rawLocked = isBoss ? 2 : (tier < 5 ? 0 : tier < 10 ? 1 : 2);
     const lockedSlots = Math.min(rawLocked, totalSlots - 2);
