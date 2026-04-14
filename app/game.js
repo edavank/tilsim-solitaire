@@ -1,10 +1,9 @@
-import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Dimensions,
   ScrollView, Vibration, Image, Animated, Easing,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { COLORS, FONTS, SIZES, CATEGORY_COLORS, getThemeGradient, getThemeColors } from '../src/constants/theme';
@@ -263,37 +262,7 @@ function FoundationSlot({ t, slot, slotIndex, onPress, onUnlock, hinted, themeCo
   );
 }
 
-// Sürüklenebilir kart — Gesture.Pan + Gesture.Tap
-function DraggableCard({ card, colIndex, isLast, onCardTap, onDragStart, onDragMove, onDragEnd, children }) {
-  const startPos = useRef({ x: 0, y: 0 });
-  
-  const tap = Gesture.Tap().onEnd(() => {
-    onCardTap(card, 'column', colIndex, isLast);
-  });
-  
-  const pan = Gesture.Pan()
-    .minDistance(5)
-    .onStart((e) => {
-      startPos.current = { x: e.absoluteX, y: e.absoluteY };
-      onDragStart?.(card, 'column', colIndex, isLast, e.absoluteX, e.absoluteY);
-    })
-    .onUpdate((e) => {
-      onDragMove?.(e.absoluteX, e.absoluteY);
-    })
-    .onEnd((e) => {
-      onDragEnd?.(e.absoluteX, e.absoluteY);
-    });
-  
-  const gesture = Gesture.Exclusive(pan, tap);
-  
-  return (
-    <GestureDetector gesture={gesture}>
-      <View>{children}</View>
-    </GestureDetector>
-  );
-}
-
-const TableauColumn = React.memo(function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedId, dragCardId, dragStackIds, onCardTap, onColumnTap, onUnlock, onDragStart, onDragMove, onDragEnd, themeColors }) {
+const TableauColumn = React.memo(function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedId, dragCardId, dragStackIds, onCardTap, onColumnTap, onUnlock, themeColors }) {
   if (column.locked) {
     return (
       <View style={[st.slotBox, st.slotDashed, { height: CARD_H }]}>
@@ -322,9 +291,9 @@ const TableauColumn = React.memo(function TableauColumn({ column, colIndex, sele
         return (
           <View key={card.id} style={{ marginTop: ci === 0 ? 0 : OVERLAP, zIndex: ci }}>
             {card.faceUp ? (
-              <DraggableCard card={card} colIndex={colIndex} isLast={isLast} onCardTap={onCardTap} onDragStart={onDragStart} onDragMove={onDragMove} onDragEnd={onDragEnd}>
-                <FaceUpCard card={card} selected={selectedId === card.id || (selectedStackIds && selectedStackIds.has(card.id))} hinted={isHinted} isDragging={dragStackIds && dragStackIds.has(card.id)} themeColors={themeColors} />
-              </DraggableCard>
+              <TouchableOpacity activeOpacity={0.7} onPress={() => onCardTap(card, 'column', colIndex, isLast)}>
+                <FaceUpCard card={card} selected={selectedId === card.id || (selectedStackIds && selectedStackIds.has(card.id))} hinted={isHinted} isDragging={false} themeColors={themeColors} />
+              </TouchableOpacity>
             ) : (
               <FaceDownCard themeColors={themeColors} />
             )}
@@ -1550,7 +1519,7 @@ export default function GameScreen() {
         <View style={st.tableauRow}>
           {gs.columns.map((col, i) => (
             <View key={i} style={{ flex: 1 }}>
-              <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard} dragCardId={dragCard?.card?.id} dragStackIds={dragStackIds} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onUnlock={handleUnlock} onDragStart={onDragStart} onDragMove={onDragMove} onDragEnd={onDragEnd} themeColors={tc} />
+              <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard} dragCardId={dragCard?.card?.id} dragStackIds={dragStackIds} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onUnlock={handleUnlock} themeColors={tc} />
             </View>
           ))}
         </View>
