@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'rea
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
-import { COLORS, FONTS, SIZES } , getThemeGradient } from '../src/constants/theme';
+import { COLORS, FONTS, SIZES, getThemeGradient } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { getTotalLevels, getLevel } from '../src/data/levels';
 import { loadProgress, loadLevelStars, loadXP } from '../src/utils/storage';
