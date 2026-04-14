@@ -434,6 +434,7 @@ export default function GameScreen() {
   const [unlockedTools, setUnlockedTools] = useState([]);
   const [toolIntro, setToolIntro] = useState(null); // { tool, icon, title, desc }
   const [dailyIntro, setDailyIntro] = useState(false);
+  const [timedIntro, setTimedIntro] = useState(false);
   const [scorePopups, setScorePopups] = useState([]); // [{id, text, x, y}]
   const [achievementPopup, setAchievementPopup] = useState(null); // { icon, title }
   
@@ -1213,7 +1214,13 @@ export default function GameScreen() {
         const achStats = { ...prog, coins: newCoins, totalWins: (prog.totalWins || 0) + 1, dailyCount: 1, noHintWin: gs.hints === level.hints, speedWin: gs.moves > level.moves / 2, maxCombo: combo };
         const newAch = await checkAchievements(achStats);
         if (newAch.length > 0) {
-          setAchievementPopup(newAch[0]);
+          const totalReward = newAch.reduce((sum, a) => sum + (a.reward || 0), 0);
+          if (totalReward > 0) {
+            const rc = (prog.coins || 0) + totalReward;
+            setCoins(rc);
+            await updateProgress({ coins: rc });
+          }
+          setAchievementPopup({ ...newAch[0], reward: newAch[0].reward || 0 });
           await updateProgress({ unseenAch: (prog.unseenAch || 0) + newAch.length });
           setTimeout(() => setAchievementPopup(null), 3000);
         }
@@ -1255,7 +1262,13 @@ export default function GameScreen() {
       const achStats = { currentLevel: nextId, coins: (prog.coins || 0) + 30 + bonus, totalWins: (prog.totalWins || 0) + 1, bestScore: Math.max(prog.bestScore || 0, gs.score), streak: (prog.streak || 0) + 1, noHintWin: gs.hints === level.hints, speedWin: gs.moves > level.moves / 2, perfectWin: true, maxCombo: combo };
       const newAch = await checkAchievements(achStats);
       if (newAch.length > 0) {
-        setAchievementPopup(newAch[0]);
+        const totalReward = newAch.reduce((sum, a) => sum + (a.reward || 0), 0);
+        if (totalReward > 0) {
+          const rc = (prog.coins || 0) + 30 + bonus + totalReward;
+          setCoins(rc);
+          await updateProgress({ coins: rc });
+        }
+        setAchievementPopup({ ...newAch[0], reward: newAch[0].reward || 0 });
         await updateProgress({ unseenAch: (prog.unseenAch || 0) + newAch.length });
         setTimeout(() => setAchievementPopup(null), 3000);
       }
@@ -1298,6 +1311,11 @@ export default function GameScreen() {
     if (nextId === 10 && !(prog.dailyIntroShown)) {
       await updateProgress({ dailyIntroShown: true });
       setTimeout(() => { setDailyIntro(true); playSound('unlock'); }, introTool ? 1500 : 500);
+    }
+    // Zamanlı Mod tanıtımı (Lv.5)
+    if (nextId === 5 && !(prog.timedIntroShown)) {
+      await updateProgress({ timedIntroShown: true });
+      setTimeout(() => { setTimedIntro(true); playSound('unlock'); }, introTool ? 1500 : 500);
     }
   }, [levelId, gs, level, coins]);
 
@@ -1470,7 +1488,7 @@ export default function GameScreen() {
 
       {/* Toolbar */}
       <View style={st.toolbar}>
-        <ToolBtn icon="lightbulb" label={t.hint} badge={toolCredits.hint > 0 ? toolCredits.hint : '🪙'} badgeColor={toolCredits.hint > 0 ? COLORS.fail : COLORS.coin} onPress={useHint} locked={!isToolUnlocked('hint')} unlockLevel={TOOL_UNLOCK.hint} pulse={gs.moves <= 5 && !isTimed} />
+        <ToolBtn icon="lightbulb" label={t.hint} badge={toolCredits.hint > 0 ? toolCredits.hint : '🪙'} badgeColor={toolCredits.hint > 0 ? COLORS.success : COLORS.coin} onPress={useHint} locked={!isToolUnlocked('hint')} unlockLevel={TOOL_UNLOCK.hint} pulse={gs.moves <= 5 && !isTimed} />
         <ToolBtn icon="undo" label={t.undo} badge={toolCredits.undo > 0 ? toolCredits.undo : '🪙'} badgeColor={toolCredits.undo > 0 ? COLORS.success : COLORS.coin} onPress={useUndo} locked={!isToolUnlocked('undo')} unlockLevel={TOOL_UNLOCK.undo} pulse={gs.moves <= 3 && !isTimed} />
         <ToolBtn icon="style" label="JOKER" badge={toolCredits.joker > 0 ? toolCredits.joker : '🪙'} badgeColor={toolCredits.joker > 0 ? COLORS.success : COLORS.coin} onPress={useJoker} locked={!isToolUnlocked('joker')} unlockLevel={TOOL_UNLOCK.joker} />
         <ToolBtn icon="shuffle" label="KARIŞTIR" badge={toolCredits.shuffle > 0 ? toolCredits.shuffle : '🪙'} badgeColor={toolCredits.shuffle > 0 ? COLORS.success : COLORS.coin} onPress={useShuffle} locked={!isToolUnlocked('shuffle')} unlockLevel={TOOL_UNLOCK.shuffle} />
@@ -1484,10 +1502,15 @@ export default function GameScreen() {
       {achievementPopup && (
         <TouchableOpacity style={st.achievPopup} activeOpacity={0.9} onPress={() => setAchievementPopup(null)}>
           <Text style={{ fontSize: 28 }}>{achievementPopup.icon}</Text>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 14, color: '#FFD166' }}>Başarım Kazanıldı!</Text>
             <Text style={{ fontFamily: FONTS.body, fontSize: 12, color: '#fff' }}>{achievementPopup.title}</Text>
           </View>
+          {achievementPopup.reward > 0 && (
+            <View style={{ backgroundColor: '#FFD700', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4 }}>
+              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 12, color: '#000' }}>+{achievementPopup.reward} 🪙</Text>
+            </View>
+          )}
         </TouchableOpacity>
       )}
 
@@ -1568,6 +1591,29 @@ export default function GameScreen() {
               activeOpacity={0.8}
             >
               <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff' }}>{t.dailyGotIt || 'Anladım!'} 🎯</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* Timed Mode Introduction */}
+      {timedIntro && (
+        <View style={ov.overlay}>
+          <View style={[ov.card, { paddingTop: 24, paddingBottom: 24 }]}>
+            <Image source={OWL_HAPPY} style={{ width: 100, height: 75, resizeMode: 'contain', marginBottom: 12 }} />
+            <Text style={{ fontSize: 40, marginBottom: 8 }}>⏱️</Text>
+            <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 20, color: '#FF7043', textAlign: 'center', marginBottom: 6 }}>{t.timedModeUnlocked || 'Zamanlı Mod Açıldı!'}</Text>
+            <Text style={{ fontFamily: FONTS.body, fontSize: 14, color: COLORS.onSurfaceVariant, textAlign: 'center', marginBottom: 16, paddingHorizontal: 10 }}>{t.timedModeDesc || 'Süre dolmadan bölümü tamamla! Hız ve strateji gerektiren özel mod.'}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, marginBottom: 16 }}>
+              <Text style={{ fontSize: 20 }}>🔥</Text>
+              <Text style={{ fontFamily: FONTS.headline, fontSize: 14, color: '#fff' }}>{t.timedModePlay || 'Ana sayfadan oyna!'}</Text>
+            </View>
+            <TouchableOpacity
+              style={{ backgroundColor: '#FF7043', borderRadius: 14, paddingVertical: 14, alignItems: 'center', width: '100%' }}
+              onPress={() => setTimedIntro(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff' }}>{t.toolGreat || 'Harika!'} ⏱️</Text>
             </TouchableOpacity>
           </View>
         </View>

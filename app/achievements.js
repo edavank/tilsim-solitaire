@@ -60,7 +60,11 @@ export default function AchievementsScreen() {
                 <Text style={[s.achTitle, !isUnlocked && s.achTitleLocked]}>{ach.title}</Text>
                 <Text style={s.achDesc}>{ach.desc}</Text>
               </View>
-              {isUnlocked && <MaterialIcons name="check-circle" size={24} color={COLORS.success} />}
+              {isUnlocked ? (
+                <MaterialIcons name="check-circle" size={24} color={COLORS.success} />
+              ) : ach.reward ? (
+                <Text style={{ fontFamily: FONTS.headline, fontSize: 11, color: COLORS.coin }}>+{ach.reward} 🪙</Text>
+              ) : null}
             </View>
           );
         })}
