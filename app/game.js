@@ -517,7 +517,8 @@ export default function GameScreen() {
   const scrollRef = useRef(null);
   const saveTimerRef = useRef(null);
   const drawnTouchRef = useRef({ startX: 0, startY: 0, moved: false });
-// Drop detection: basit SH * 0.45 eşiği — karmaşık ölçüm kaldırıldı
+const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
+  const colLayoutsRef = useRef([]); // her sütunun {x, y, w, h} ölçümü
   const startDragRef = useRef(null);
   const cancelDragRef = useRef(null);
   const handleDropRef = useRef(null);
@@ -594,8 +595,24 @@ export default function GameScreen() {
     // Basit Y tespiti: ekranın üst %45'i → slot, alt %55'i → sütun
     const isUpperHalf = dropY < SH * 0.45;
 
-    // En yakın hedefi bul (gap dahil)
-    const findNearest = (count, startX, totalW) => {
+    // En yakın hedefi bul — gerçek ölçümlerden
+    const findNearestFromLayouts = (layouts, count) => {
+      let best = -1, bestD = 9999;
+      for (let i = 0; i < count; i++) {
+        const l = layouts[i];
+        if (!l) continue;
+        const center = l.x + l.w / 2;
+        const d = Math.abs(dropX - center);
+        if (d < bestD) { bestD = d; best = i; }
+      }
+      return best;
+    };
+    const findNearest = (count, startX, totalW, layouts) => {
+      // Önce gerçek ölçümlerden dene
+      if (layouts && layouts.length >= count && layouts[0]) {
+        return findNearestFromLayouts(layouts, count);
+      }
+      // Fallback: hesapla
       const totalGap = COL_GAP * (count - 1);
       const itemW = (totalW - totalGap) / count;
       let best = -1, bestD = 9999;
@@ -608,7 +625,7 @@ export default function GameScreen() {
     };
 
     const trySlot = () => {
-      const idx = findNearest(gs.slots.length, GAME_PAD, SW - GAME_PAD * 2);
+      const idx = findNearest(gs.slots.length, GAME_PAD, SW - GAME_PAD * 2, slotLayoutsRef.current);
       if (idx < 0 || idx >= gs.slots.length) return false;
       const slot = gs.slots[idx];
       // Slot kilitliyse → geç
@@ -631,7 +648,7 @@ export default function GameScreen() {
     };
 
     const tryColumn = () => {
-      const idx = findNearest(gs.columns.length, GAME_PAD, SW - GAME_PAD * 2);
+      const idx = findNearest(gs.columns.length, GAME_PAD, SW - GAME_PAD * 2, colLayoutsRef.current);
       if (idx >= 0 && idx < gs.columns.length) {
         if (stack.length > 1) moveStackToColumn(stack, source, sourceIndex, idx);
         else moveToColumn(card, source, sourceIndex, idx);
@@ -1639,7 +1656,7 @@ export default function GameScreen() {
 
         <View style={st.slotsRow}>
           {gs.slots.map((slot, i) => (
-            <Animated.View key={i} style={{ flex: 1, transform: [{ translateX: shakeSlotIdx === i ? shakeAnim : 0 }] }}>
+            <Animated.View key={i} style={{ flex: 1, transform: [{ translateX: shakeSlotIdx === i ? shakeAnim : 0 }] }} onLayout={(e) => { const { x, y, width, height } = e.nativeEvent.layout; slotLayoutsRef.current[i] = { x: x + GAME_PAD, w: width }; }}>
               <FoundationSlot t={t} slot={slot} slotIndex={i} onPress={() => handleSlotTap(i)} onUnlock={handleUnlock} hinted={hintSlot === i} />
             </Animated.View>
           ))}
@@ -1647,7 +1664,7 @@ export default function GameScreen() {
 
         <View style={st.tableauRow}>
           {gs.columns.map((col, i) => (
-            <View key={i} style={{ flex: 1 }}>
+            <View key={i} style={{ flex: 1 }} onLayout={(e) => { const { x, width } = e.nativeEvent.layout; colLayoutsRef.current[i] = { x: x + GAME_PAD, w: width }; }}>
               <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard}  onCardTap={handleCardTap} onColumnTap={handleColumnTap} onUnlock={handleUnlock} onDragStart={onDragStart} onDragMove={onDragMove} onDragEnd={onDragEnd} onScrollLock={lockScroll} onCancelDrag={cancelDrag} />
             </View>
           ))}
