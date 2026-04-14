@@ -1424,8 +1424,9 @@ export default function GameScreen() {
     <View 
       style={st.container}
       onStartShouldSetResponderCapture={() => !!dragRef.current.card}
-      onMoveShouldSetResponderCapture={() => !!dragRef.current.card}
-      onMoveShouldSetResponder={() => !!dragRef.current.card}
+      onMoveShouldSetResponderCapture={() => !!dragRef.current.card || scrollLocked}
+      onMoveShouldSetResponder={() => !!dragRef.current.card || scrollLocked}
+      onResponderTerminationRequest={() => !dragRef.current.card}
       onResponderMove={(e) => {
         if (!dragRef.current.card) return;
         const { pageX, pageY } = e.nativeEvent;
