@@ -518,6 +518,7 @@ export default function GameScreen() {
   const dragRef = useRef({ card: null, source: null, sourceIndex: null, isLast: false, startX: 0, startY: 0 });
   const scrollRef = useRef(null);
   const saveTimerRef = useRef(null);
+  const drawnTouchRef = useRef({ startX: 0, startY: 0, moved: false });
   const [scrollLocked, setScrollLocked] = useState(false);
   const scrollLockedRef = useRef(false);
   const lockScroll = useCallback((val) => { scrollLockedRef.current = val; setScrollLocked(val); }, []);
@@ -1552,20 +1553,45 @@ export default function GameScreen() {
             </View>
           )}
 
-          <TouchableOpacity
+          <View
             style={st.drawnArea}
-            onPress={handleDrawnTap}
-            onPressIn={() => lockScroll(true)}
-            onPressOut={() => lockScroll(false)}
-            onLongPress={(e) => {
-              if (gs.drawnCards.length > 0) {
-                const card = gs.drawnCards[gs.drawnCards.length - 1];
-                const { pageX, pageY } = e.nativeEvent;
-                startDrag(card, 'drawn', null, true, pageX, pageY);
+            onStartShouldSetResponder={() => true}
+            onResponderGrant={(e) => {
+              if (drawnTouchRef.current.moved) cancelDrag();
+              const { pageX, pageY } = e.nativeEvent;
+              drawnTouchRef.current = { startX: pageX, startY: pageY, moved: false };
+              lockScroll(true);
+            }}
+            onResponderMove={(e) => {
+              const dt = drawnTouchRef.current;
+              const { pageX, pageY } = e.nativeEvent;
+              if (!dt.moved && (Math.abs(pageX - dt.startX) + Math.abs(pageY - dt.startY)) > 5) {
+                dt.moved = true;
+                if (gs.drawnCards.length > 0) {
+                  const card = gs.drawnCards[gs.drawnCards.length - 1];
+                  startDrag(card, 'drawn', null, true, dt.startX, dt.startY);
+                }
+              }
+              if (dt.moved && dragRef.current.card) {
+                dragX.setValue(pageX - CARD_W / 2);
+                dragY.setValue(pageY - CARD_H / 2);
               }
             }}
-            delayLongPress={50}
-            activeOpacity={0.7}
+            onResponderRelease={(e) => {
+              if (drawnTouchRef.current.moved) {
+                if (dragRef.current.card) handleDrop(dragRef.current, e.nativeEvent.pageX, e.nativeEvent.pageY);
+                else cancelDrag();
+              } else {
+                handleDrawnTap();
+              }
+              drawnTouchRef.current = { startX: 0, startY: 0, moved: false };
+              lockScroll(false);
+            }}
+            onResponderTerminate={() => {
+              if (drawnTouchRef.current.moved) cancelDrag();
+              drawnTouchRef.current = { startX: 0, startY: 0, moved: false };
+              lockScroll(false);
+            }}
           >
             {gs.drawnCards.length === 0 ? (
               <View style={[st.emptyCard, { width: DCW, height: DCH }]} />
@@ -1578,7 +1604,7 @@ export default function GameScreen() {
                 ))}
               </View>
             )}
-          </TouchableOpacity>
+          </View>
 
           <TouchableOpacity onPress={drawCard} activeOpacity={0.7}>
             {gs.deck.length > 0 ? (
