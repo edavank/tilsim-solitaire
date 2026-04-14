@@ -1662,7 +1662,7 @@ export default function GameScreen() {
               }}
               activeOpacity={0.7}
             >
-              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 13, color: '#000' }}>+{achievementPopup.pendingCoins} 💰 Topla</Text>
+              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 13, color: '#000' }}>+{achievementPopup.pendingCoins} 🪙 Topla</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity onPress={() => setAchievementPopup(null)}>
