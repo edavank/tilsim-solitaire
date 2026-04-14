@@ -1479,21 +1479,6 @@ export default function GameScreen() {
   return (
     <View 
       style={st.container}
-      onStartShouldSetResponderCapture={() => !!dragRef.current.card}
-      onMoveShouldSetResponderCapture={() => !!dragRef.current.card}
-      onMoveShouldSetResponder={() => !!dragRef.current.card}
-      onResponderTerminationRequest={() => false}
-      onResponderMove={(e) => {
-        if (!dragRef.current.card) return;
-        const { pageX, pageY } = e.nativeEvent;
-        dragX.setValue(pageX - CARD_W / 2);
-        dragY.setValue(pageY - CARD_H / 2);
-      }}
-      onResponderRelease={(e) => {
-        if (!dragRef.current.card) return;
-        handleDrop(dragRef.current, e.nativeEvent.pageX, e.nativeEvent.pageY);
-      }}
-      onResponderTerminate={() => { if (dragRef.current.card) cancelDrag(); }}
     >
       <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
 
