@@ -99,7 +99,7 @@ export default function LevelsScreen() {
                       ))}
                     </View>
                   )}
-                  {id % 10 === 0 && <Text style={{ fontSize: 8, color: '#FFD166', position: 'absolute', top: 2 }}>BOSS</Text>}
+                  {id % 10 === 0 && <Text style={{ fontSize: 7, color: '#FFD166', fontFamily: FONTS.headlineBlack, position: 'absolute', bottom: 2, letterSpacing: 1 }}>BOSS</Text>}
                   <Text style={[s.levelNum, !isUnlocked && s.levelNumLocked]}>
                     {isUnlocked ? id : ''}
                   </Text>

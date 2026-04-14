@@ -6,7 +6,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { COLORS, FONTS, SIZES, CATEGORY_COLORS, getThemeGradient } from '../src/constants/theme';
+import { COLORS, FONTS, SIZES, CATEGORY_COLORS, getThemeGradient, getThemeColors } from '../src/constants/theme';
 import { generateGameState, getLevel } from '../src/data/levels';
 import { loadProgress, updateProgress, clearSavedGame, saveSavedGame, saveLevelStars, addXP } from '../src/utils/storage';
 import { playSound } from '../src/utils/sounds';
@@ -176,9 +176,10 @@ function PopInView({ children, trigger }) {
 }
 
 /* ── Card Components ── */
-function FaceDownCard({ w, h }) {
+function FaceDownCard({ w, h, themeColors }) {
+  const cb = themeColors?.cardBack || COLORS.cardBackTop;
   return (
-    <LinearGradient colors={[COLORS.cardBackTop, COLORS.cardBackBottom]}
+    <LinearGradient colors={[cb, cb]}
       start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
       style={[st.faceDown, { width: w || '100%', height: h || CARD_H }]}>
       <View style={st.innerFrame}><View style={st.innerFrameInner} /></View>
@@ -186,28 +187,30 @@ function FaceDownCard({ w, h }) {
   );
 }
 
-function FaceUpCard({ card, selected, w, h, hinted, isDragging }) {
+function FaceUpCard({ card, selected, w, h, hinted, isDragging, themeColors }) {
   const cw = w || '100%'; const ch = h || CARD_H;
   const isCat = card.type === 'category';
   const isJoker = card.isJoker;
   const catColor = isJoker ? '#FFD166' : CATEGORY_COLORS[card.categoryIndex % CATEGORY_COLORS.length];
-  // SABİT boyutlar — tüm kartlarda aynı, kart genişliğinden bağımsız
+  const bg = themeColors?.cardFace || '#FFFFFF';
+  const txt = themeColors?.cardText || '#1e293b';
+  const bdr = themeColors?.cardBorder || 'rgba(155,125,255,0.15)';
   const catEmojiSize = 26;
   const wordEmojiSize = 22;
   const catTextSize = 10;
   const wordTextSize = 10;
   return (
-    <View style={[st.faceUp, { width: cw, height: ch, borderBottomWidth: isCat ? 0 : 3, borderBottomColor: catColor }, selected && st.cardSelected, isCat && st.catCardBorder, isJoker && { borderColor: '#FFD166', borderWidth: 2, shadowColor: '#FFD166', shadowOpacity: 0.8, shadowRadius: 12, backgroundColor: '#FFFBF0' }, hinted && st.cardHinted, isDragging && { opacity: 0.3 }]}>
+    <View style={[st.faceUp, { width: cw, height: ch, backgroundColor: bg, borderColor: bdr, borderBottomWidth: isCat ? 0 : 3, borderBottomColor: catColor }, selected && st.cardSelected, isCat && st.catCardBorder, isJoker && { borderColor: '#FFD166', borderWidth: 2, shadowColor: '#FFD166', shadowOpacity: 0.8, shadowRadius: 12, backgroundColor: '#FFFBF0' }, hinted && st.cardHinted, isDragging && { opacity: 0.3 }]}>
       {isCat ? (
         <>
           <View style={st.catBadge}><Text style={st.catBadgeText}>0/{card.totalWords}</Text></View>
           <Text style={{ fontSize: catEmojiSize, textAlign: 'center' }}>{card.emoji}</Text>
-          <Text style={[st.catName, { fontSize: catTextSize }]} numberOfLines={1} ellipsizeMode="tail">{card.word}</Text>
+          <Text style={[st.catName, { fontSize: catTextSize, color: txt }]} numberOfLines={1} ellipsizeMode="tail">{card.word}</Text>
         </>
       ) : (
         <>
           <Text style={{ fontSize: wordEmojiSize, textAlign: 'center' }}>{card.emoji}</Text>
-          <Text style={[st.word, { fontSize: wordTextSize, color: isJoker ? '#B8860B' : '#1e293b' }]} numberOfLines={1} ellipsizeMode="tail">{card.word}</Text>
+          <Text style={[st.word, { fontSize: wordTextSize, color: isJoker ? '#B8860B' : txt }]} numberOfLines={1} ellipsizeMode="tail">{card.word}</Text>
           {!isJoker && <View style={{ position: 'absolute', top: 3, right: 3, width: 6, height: 6, borderRadius: 3, backgroundColor: catColor }} />}
         </>
       )}
@@ -215,11 +218,15 @@ function FaceUpCard({ card, selected, w, h, hinted, isDragging }) {
   );
 }
 
-function FoundationSlot({ t, slot, slotIndex, onPress, onUnlock, hinted }) {
+function FoundationSlot({ t, slot, slotIndex, onPress, onUnlock, hinted, themeColors }) {
   const h = CARD_H * 0.72;
+  const slotBdr = themeColors?.slotBorder || 'rgba(183,148,246,0.3)';
+  const slotBgC = themeColors?.slotBg || 'rgba(124,92,252,0.05)';
+  const cardBg = themeColors?.cardFace || '#fff';
+  const cardTxt = themeColors?.cardText || '#1e293b';
   if (slot.locked) {
     return (
-      <View style={[st.slotBox, st.slotDashed, { height: h }]}>
+      <View style={[st.slotBox, { height: h, borderColor: slotBdr, borderStyle: 'dashed', backgroundColor: slotBgC }]}>
         <Text style={st.lockedText}>{t.locked}</Text>
         <MaterialIcons name="style" size={18} color="rgba(255,255,255,0.15)" />
         <TouchableOpacity style={st.adBadge} onPress={() => onUnlock?.('slot', slotIndex)}>
@@ -233,7 +240,7 @@ function FoundationSlot({ t, slot, slotIndex, onPress, onUnlock, hinted }) {
     const p = slot.placedCards.length; const tw = slot.category.totalWords;
     const isDone = p >= tw;
     return (
-      <TouchableOpacity style={[st.slotBox, { height: h, borderColor: isDone ? COLORS.success : clr, borderStyle: 'solid', backgroundColor: isDone ? '#f0fff0' : '#fff' }, hinted && st.slotHinted]} onPress={onPress} activeOpacity={0.7}>
+      <TouchableOpacity style={[st.slotBox, { height: h, borderColor: isDone ? COLORS.success : clr, borderStyle: 'solid', backgroundColor: isDone ? '#f0fff0' : cardBg }, hinted && st.slotHinted]} onPress={onPress} activeOpacity={0.7}>
         <View style={[st.slotTag, { backgroundColor: isDone ? COLORS.success : clr }]}>
           {isDone ? <MaterialIcons name="check" size={10} color="#fff" /> : <Text style={st.slotTagText}>{p}/{tw}</Text>}
         </View>
@@ -242,18 +249,18 @@ function FoundationSlot({ t, slot, slotIndex, onPress, onUnlock, hinted }) {
         ) : (
           <Text style={{ fontSize: 18, marginTop: 8 }}>{slot.category.emoji}</Text>
         )}
-        <Text style={[st.word, { fontSize: 9, marginTop: 2, color: isDone ? COLORS.success : '#1e293b' }]} numberOfLines={1} ellipsizeMode="tail">{slot.category.word}</Text>
+        <Text style={[st.word, { fontSize: 9, marginTop: 2, color: isDone ? COLORS.success : cardTxt }]} numberOfLines={1} ellipsizeMode="tail">{slot.category.word}</Text>
       </TouchableOpacity>
     );
   }
   return (
-    <TouchableOpacity style={[st.slotBox, st.slotDashed, { height: h }, hinted && st.slotHinted]} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity style={[st.slotBox, { height: h, borderColor: slotBdr, borderStyle: 'dashed', backgroundColor: slotBgC }, hinted && st.slotHinted]} onPress={onPress} activeOpacity={0.7}>
       <Text style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>{t.empty}</Text>
     </TouchableOpacity>
   );
 }
 
-function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedId, dragCardId, dragStackIds, onCardTap, onColumnTap, onUnlock, onDragStart, onDragMove, onDragEnd }) {
+function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedId, dragCardId, dragStackIds, onCardTap, onColumnTap, onUnlock, onDragStart, onDragMove, onDragEnd, themeColors }) {
   const touchRef = useRef({ card: null, startX: 0, startY: 0, moved: false });
   if (column.locked) {
     return (
@@ -312,10 +319,10 @@ function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedI
                 }}
                 onResponderTerminate={() => { onDragEnd?.(0, 0); touchRef.current = { card: null, startX: 0, startY: 0, moved: false }; }}
               >
-                <FaceUpCard card={card} selected={selectedId === card.id || (selectedStackIds && selectedStackIds.has(card.id))} hinted={isHinted} isDragging={dragStackIds && dragStackIds.has(card.id)} />
+                <FaceUpCard card={card} selected={selectedId === card.id || (selectedStackIds && selectedStackIds.has(card.id))} hinted={isHinted} isDragging={dragStackIds && dragStackIds.has(card.id)} themeColors={themeColors} />
               </View>
             ) : (
-              <FaceDownCard />
+              <FaceDownCard themeColors={themeColors} />
             )}
           </View>
         );
@@ -456,6 +463,7 @@ export default function GameScreen() {
   const [coins, setCoins] = useState(500);
   const [combo, setCombo] = useState(0);
   const [activeTheme, setActiveTheme] = useState('cosmic');
+  const tc = getThemeColors(activeTheme); // full theme palette
   const [paused, setPaused] = useState(false);
   const [shakeSlotIdx, setShakeSlotIdx] = useState(-1);
   const [showTutorial, setShowTutorial] = useState(false);
@@ -1500,7 +1508,7 @@ export default function GameScreen() {
               <View style={{ width: DCW + 40, height: DCH, justifyContent: 'center', alignItems: 'flex-end' }}>
                 {gs.drawnCards.slice(-3).map((card, i, arr) => (
                   <View key={card.id} style={{ position: 'absolute', right: (arr.length - 1 - i) * 18, zIndex: i, opacity: i === arr.length - 1 ? 1 : 0.4 }}>
-                    <FaceUpCard card={card} selected={i === arr.length - 1 && selId === card.id} hinted={card.id === hintCard} isDragging={card.id === dragCard?.card?.id} w={DCW} h={DCH} />
+                    <FaceUpCard card={card} selected={i === arr.length - 1 && selId === card.id} hinted={card.id === hintCard} isDragging={card.id === dragCard?.card?.id} w={DCW} h={DCH} themeColors={tc} />
                   </View>
                 ))}
               </View>
@@ -1530,7 +1538,7 @@ export default function GameScreen() {
         <View style={st.slotsRow}>
           {gs.slots.map((slot, i) => (
             <Animated.View key={i} style={{ flex: 1, transform: [{ translateX: shakeSlotIdx === i ? shakeAnim : 0 }] }}>
-              <FoundationSlot t={t} slot={slot} slotIndex={i} onPress={() => handleSlotTap(i)} onUnlock={handleUnlock} hinted={hintSlot === i} />
+              <FoundationSlot t={t} slot={slot} slotIndex={i} onPress={() => handleSlotTap(i)} onUnlock={handleUnlock} hinted={hintSlot === i} themeColors={tc} />
             </Animated.View>
           ))}
         </View>
@@ -1538,7 +1546,7 @@ export default function GameScreen() {
         <View style={st.tableauRow}>
           {gs.columns.map((col, i) => (
             <View key={i} style={{ flex: 1 }}>
-              <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard} dragCardId={dragCard?.card?.id} dragStackIds={dragStackIds} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onUnlock={handleUnlock} onDragStart={onDragStart} onDragMove={onDragMove} onDragEnd={onDragEnd} />
+              <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard} dragCardId={dragCard?.card?.id} dragStackIds={dragStackIds} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onUnlock={handleUnlock} onDragStart={onDragStart} onDragMove={onDragMove} onDragEnd={onDragEnd} themeColors={tc} />
             </View>
           ))}
         </View>
@@ -1548,11 +1556,11 @@ export default function GameScreen() {
 
       {/* Toolbar */}
       <View style={st.toolbar}>
-        <ToolBtn icon="lightbulb" label={t.hint} badge={toolCredits.hint > 0 ? toolCredits.hint : '🪙'} badgeColor={toolCredits.hint > 0 ? COLORS.success : COLORS.coin} onPress={useHint} locked={!isToolUnlocked('hint')} unlockLevel={TOOL_UNLOCK.hint} pulse={gs.moves <= 5 && !isTimed} />
-        <ToolBtn icon="undo" label={t.undo} badge={toolCredits.undo > 0 ? toolCredits.undo : '🪙'} badgeColor={toolCredits.undo > 0 ? COLORS.success : COLORS.coin} onPress={useUndo} locked={!isToolUnlocked('undo')} unlockLevel={TOOL_UNLOCK.undo} pulse={gs.moves <= 3 && !isTimed} />
-        <ToolBtn icon="style" label="JOKER" badge={toolCredits.joker > 0 ? toolCredits.joker : '🪙'} badgeColor={toolCredits.joker > 0 ? COLORS.success : COLORS.coin} onPress={useJoker} locked={!isToolUnlocked('joker')} unlockLevel={TOOL_UNLOCK.joker} />
-        <ToolBtn icon="shuffle" label="KARIŞTIR" badge={toolCredits.shuffle > 0 ? toolCredits.shuffle : '🪙'} badgeColor={toolCredits.shuffle > 0 ? COLORS.success : COLORS.coin} onPress={useShuffle} locked={!isToolUnlocked('shuffle')} unlockLevel={TOOL_UNLOCK.shuffle} />
-        <ToolBtn icon="auto-fix-normal" label={t.delete} badge={toolCredits.delete > 0 ? toolCredits.delete : '🪙'} badgeColor={toolCredits.delete > 0 ? COLORS.success : COLORS.coin} onPress={useDelete} locked={!isToolUnlocked('delete')} unlockLevel={TOOL_UNLOCK.delete} />
+        <ToolBtn icon="lightbulb" label={t.hint} badge={toolCredits.hint > 0 ? toolCredits.hint : '🪙'} badgeColor={toolCredits.hint > 0 ? COLORS.success : COLORS.coin} onPress={useHint} btnColor={tc.toolbarBtn} locked={!isToolUnlocked('hint')} unlockLevel={TOOL_UNLOCK.hint} pulse={gs.moves <= 5 && !isTimed} />
+        <ToolBtn icon="undo" label={t.undo} badge={toolCredits.undo > 0 ? toolCredits.undo : '🪙'} badgeColor={toolCredits.undo > 0 ? COLORS.success : COLORS.coin} onPress={useUndo} btnColor={tc.toolbarBtn} locked={!isToolUnlocked('undo')} unlockLevel={TOOL_UNLOCK.undo} pulse={gs.moves <= 3 && !isTimed} />
+        <ToolBtn icon="style" label="JOKER" badge={toolCredits.joker > 0 ? toolCredits.joker : '🪙'} badgeColor={toolCredits.joker > 0 ? COLORS.success : COLORS.coin} onPress={useJoker} btnColor={tc.toolbarBtn} locked={!isToolUnlocked('joker')} unlockLevel={TOOL_UNLOCK.joker} />
+        <ToolBtn icon="shuffle" label="KARIŞTIR" badge={toolCredits.shuffle > 0 ? toolCredits.shuffle : '🪙'} badgeColor={toolCredits.shuffle > 0 ? COLORS.success : COLORS.coin} onPress={useShuffle} btnColor={tc.toolbarBtn} locked={!isToolUnlocked('shuffle')} unlockLevel={TOOL_UNLOCK.shuffle} />
+        <ToolBtn icon="auto-fix-normal" label={t.delete} badge={toolCredits.delete > 0 ? toolCredits.delete : '🪙'} badgeColor={toolCredits.delete > 0 ? COLORS.success : COLORS.coin} onPress={useDelete} btnColor={tc.toolbarBtn} locked={!isToolUnlocked('delete')} unlockLevel={TOOL_UNLOCK.delete} />
       </View>
 
       {/* Ad Banner Space */}
@@ -1766,12 +1774,12 @@ export default function GameScreen() {
           pointerEvents="none"
           style={{
             position: 'absolute', zIndex: 99999,
-            left: dragX, top: dragY,
+            left: 0, top: 0,
             opacity: dragOpacity,
-            transform: [{ scale: dragScale }],
+            transform: [{ translateX: dragX }, { translateY: dragY }, { scale: dragScale }],
           }}
         >
-          <FaceUpCard card={dragCard.card} selected={true} w={CARD_W} h={CARD_H} />
+          <FaceUpCard card={dragCard.card} selected={true} w={CARD_W} h={CARD_H} themeColors={tc} />
           {dragCard.stackCards && dragCard.stackCards.length > 1 && (
             <View style={{ position: 'absolute', top: -10, right: -10, backgroundColor: COLORS.primary, width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' }}>
               <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 11, color: '#fff' }}>{dragCard.stackCards.length}</Text>
@@ -1807,7 +1815,7 @@ const s_tut = StyleSheet.create({
   stepText: { fontFamily: FONTS.body, fontSize: 12, color: COLORS.onSurfaceVariant, lineHeight: 17 },
 });
 
-function ToolBtn({ icon, label, badge, badgeColor, onPress, big, locked, unlockLevel, pulse }) {
+function ToolBtn({ icon, label, badge, badgeColor, onPress, big, locked, unlockLevel, pulse, btnColor }) {
   const pulseAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (locked || !pulse) { pulseAnim.setValue(0); return; }
@@ -1835,7 +1843,7 @@ function ToolBtn({ icon, label, badge, badgeColor, onPress, big, locked, unlockL
   return (
     <View style={st.toolWrap}>
       <Animated.View style={{ transform: [{ scale: glowScale }], opacity: glowOpacity }}>
-        <TouchableOpacity style={[st.toolBtn, big && st.toolBtnBig]} onPress={onPress} activeOpacity={0.6}>
+        <TouchableOpacity style={[st.toolBtn, big && st.toolBtnBig, btnColor && { backgroundColor: btnColor }]} onPress={onPress} activeOpacity={0.6}>
           <MaterialIcons name={icon} size={big ? 26 : 22} color="#fff" />
           {badge !== undefined && <View style={[st.toolBdg, { backgroundColor: badgeColor }]}><Text style={st.toolBdgText}>{badge}</Text></View>}
         </TouchableOpacity>

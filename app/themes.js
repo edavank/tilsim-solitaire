@@ -14,20 +14,20 @@ const CARD_W = (SW - 48 - 12) / 2;
 
 const THEMES = [
   // Ücretsiz — baştan açık
-  { id: 'cosmic', name: 'Kozmik Mor', price: 0, unlockLevel: 0, colors: ['#150629', '#1e0a38'], accent: '#9B7DFF', cardBack: '#6B5B8A', category: 'free' },
-  // Bölüm bazlı açılma (her 10 bölümde 1)
-  { id: 'ocean', name: 'Okyanus', price: 0, unlockLevel: 10, colors: ['#0a1628', '#0d2137'], accent: '#4FC3F7', cardBack: '#1565C0', category: 'level' },
-  { id: 'forest', name: 'Orman', price: 0, unlockLevel: 20, colors: ['#0a1f0a', '#0d2a12'], accent: '#66BB6A', cardBack: '#2E7D32', category: 'level' },
-  { id: 'sunset', name: 'Gün Batımı', price: 0, unlockLevel: 30, colors: ['#2a0a0a', '#3a1010'], accent: '#FF7043', cardBack: '#D84315', category: 'level' },
-  { id: 'sakura', name: 'Sakura', price: 0, unlockLevel: 40, colors: ['#1f0a1a', '#2a0d22'], accent: '#F48FB1', cardBack: '#C2185B', category: 'level' },
+  { id: 'cosmic', name: 'Kozmik Mor', desc: 'Varsayılan kozmik tema', price: 0, unlockLevel: 0, colors: ['#150629', '#1e0a38'], accent: '#9B7DFF', cardBack: '#6B5B8A', category: 'free' },
+  // Bölüm ödülü (20'den başlar)
+  { id: 'ocean', name: 'Okyanus Derinliği', desc: 'Turkuaz kartlar, deniz mavisi dünyası', price: 0, unlockLevel: 20, colors: ['#0a1628', '#071222'], accent: '#4FC3F7', cardBack: '#1565C0', category: 'level' },
+  { id: 'sunset', name: 'Gün Batımı', desc: 'Sıcak krem kartlar, amber vurgular', price: 0, unlockLevel: 40, colors: ['#1A0A0A', '#2A1018'], accent: '#FF8C42', cardBack: '#D84315', category: 'level' },
+  { id: 'forest', name: 'Sonbahar Ormanı', desc: 'Parşömen kartlar, altın-yeşil dünya', price: 0, unlockLevel: 60, colors: ['#0a1a0a', '#071407'], accent: '#81C784', cardBack: '#2E7D32', category: 'level' },
+  { id: 'sakura', name: 'Kiraz Çiçeği', desc: 'Pembe-beyaz kartlar, romantik his', price: 0, unlockLevel: 80, colors: ['#1A0A14', '#2A0D22'], accent: '#FFB7C5', cardBack: '#C2185B', category: 'level' },
   // Premium — coin ile
-  { id: 'gold', name: 'Altın', price: 2000, unlockLevel: 0, colors: ['#1a1500', '#2a2000'], accent: '#FFD54F', cardBack: '#F9A825', category: 'premium' },
-  { id: 'arctic', name: 'Kutup', price: 2500, unlockLevel: 0, colors: ['#0a1a2a', '#0d2238'], accent: '#80DEEA', cardBack: '#00838F', category: 'premium' },
-  { id: 'ruby', name: 'Yakut', price: 3000, unlockLevel: 0, colors: ['#2a0505', '#3a0808'], accent: '#EF5350', cardBack: '#C62828', category: 'premium' },
-  { id: 'neon', name: 'Neon', price: 3500, unlockLevel: 0, colors: ['#0a0a1a', '#0d0d22'], accent: '#76FF03', cardBack: '#1B5E20', category: 'premium' },
+  { id: 'gold', name: 'Altın Lüks', desc: 'Krem kartlar, altın çerçeveler, premium', price: 2000, unlockLevel: 0, colors: ['#0D0D0D', '#1A1500'], accent: '#FFD54F', cardBack: '#F9A825', category: 'premium' },
+  { id: 'neon', name: 'Neon Şehir', desc: 'Koyu kartlar, neon yeşil ışıklar', price: 2500, unlockLevel: 0, colors: ['#050510', '#0A0A1A'], accent: '#00FF87', cardBack: '#1B5E20', category: 'premium' },
+  { id: 'ruby', name: 'Yakut', desc: 'Kırmızı ateş, güçlü kontrast', price: 3000, unlockLevel: 0, colors: ['#2a0505', '#1A0303'], accent: '#EF5350', cardBack: '#C62828', category: 'premium' },
+  { id: 'arctic', name: 'Buz Krallığı', desc: 'Buzlu kartlar, gümüş-mavi parıltı', price: 3500, unlockLevel: 0, colors: ['#0A1A2A', '#0D2238'], accent: '#B0C4DE', cardBack: '#00838F', category: 'premium' },
   // Reklam ile açılabilir
-  { id: 'midnight', name: 'Gece Yarısı', price: 0, unlockLevel: 0, colors: ['#05050f', '#0a0a1a'], accent: '#B388FF', cardBack: '#4527A0', category: 'ad', adCount: 3 },
-  { id: 'desert', name: 'Çöl', price: 0, unlockLevel: 0, colors: ['#1a1008', '#2a1a0d'], accent: '#FFAB40', cardBack: '#E65100', category: 'ad', adCount: 5 },
+  { id: 'midnight', name: 'Gece Yarısı', desc: 'Derin karanlık, mor parıltılar', price: 0, unlockLevel: 0, colors: ['#05050f', '#0a0a1a'], accent: '#B388FF', cardBack: '#4527A0', category: 'ad', adCount: 3 },
+  { id: 'desert', name: 'Çöl Güneşi', desc: 'Sıcak kumsal, turuncu ışık', price: 0, unlockLevel: 0, colors: ['#1a1008', '#120A04'], accent: '#FFAB40', cardBack: '#E65100', category: 'ad', adCount: 5 },
 ];
 
 function ThemePreview({ theme, small }) {

@@ -115,17 +115,79 @@ export const SIZES = {
 
 // Dinamik tema renkleri
 export const THEME_COLORS = {
-  cosmic: { gradientTop: '#1e0a38', gradientBottom: '#150629', accent: '#9B7DFF' },
-  ocean: { gradientTop: '#0a1628', gradientBottom: '#0d2137', accent: '#4FC3F7' },
-  forest: { gradientTop: '#0a1f0a', gradientBottom: '#0d2a12', accent: '#66BB6A' },
-  sunset: { gradientTop: '#2a0a0a', gradientBottom: '#3a1010', accent: '#FF7043' },
-  gold: { gradientTop: '#1a1500', gradientBottom: '#2a2000', accent: '#FFD54F' },
-  sakura: { gradientTop: '#1f0a1a', gradientBottom: '#2a0d22', accent: '#F48FB1' },
-  arctic: { gradientTop: '#0a1a2a', gradientBottom: '#0d2238', accent: '#80DEEA' },
-  ruby: { gradientTop: '#2a0505', gradientBottom: '#3a0808', accent: '#EF5350' },
+  cosmic: {
+    gradientTop: '#1e0a38', gradientBottom: '#150629', accent: '#9B7DFF',
+    cardFace: '#FFFFFF', cardText: '#1a1a2e', cardBorder: 'rgba(155,125,255,0.15)',
+    cardBack: '#6B5B8A', slotBorder: 'rgba(183,148,246,0.3)', slotBg: 'rgba(124,92,252,0.05)',
+    toolbarBtn: '#4A6CF7', panelBg: 'rgba(255,255,255,0.06)', panelBorder: 'rgba(255,255,255,0.08)',
+  },
+  ocean: {
+    gradientTop: '#0a1628', gradientBottom: '#071222', accent: '#4FC3F7',
+    cardFace: '#E8F4FD', cardText: '#0D2137', cardBorder: 'rgba(79,195,247,0.2)',
+    cardBack: '#1565C0', slotBorder: 'rgba(79,195,247,0.3)', slotBg: 'rgba(21,101,192,0.08)',
+    toolbarBtn: '#0277BD', panelBg: 'rgba(79,195,247,0.06)', panelBorder: 'rgba(79,195,247,0.1)',
+  },
+  forest: {
+    gradientTop: '#0a1a0a', gradientBottom: '#071407', accent: '#81C784',
+    cardFace: '#F5ECD7', cardText: '#1B3B2A', cardBorder: 'rgba(129,199,132,0.2)',
+    cardBack: '#2E7D32', slotBorder: 'rgba(129,199,132,0.3)', slotBg: 'rgba(46,125,50,0.08)',
+    toolbarBtn: '#388E3C', panelBg: 'rgba(129,199,132,0.06)', panelBorder: 'rgba(129,199,132,0.1)',
+  },
+  sunset: {
+    gradientTop: '#1A0A0A', gradientBottom: '#2A1018', accent: '#FF8C42',
+    cardFace: '#FFF8F0', cardText: '#3E2723', cardBorder: 'rgba(255,140,66,0.2)',
+    cardBack: '#D84315', slotBorder: 'rgba(255,140,66,0.3)', slotBg: 'rgba(216,67,21,0.08)',
+    toolbarBtn: '#E64A19', panelBg: 'rgba(255,140,66,0.06)', panelBorder: 'rgba(255,140,66,0.1)',
+  },
+  gold: {
+    gradientTop: '#0D0D0D', gradientBottom: '#1A1500', accent: '#FFD54F',
+    cardFace: '#FFF8E7', cardText: '#3E2723', cardBorder: 'rgba(255,213,79,0.25)',
+    cardBack: '#F9A825', slotBorder: 'rgba(255,213,79,0.35)', slotBg: 'rgba(249,168,37,0.08)',
+    toolbarBtn: '#F57F17', panelBg: 'rgba(255,213,79,0.06)', panelBorder: 'rgba(255,213,79,0.12)',
+  },
+  sakura: {
+    gradientTop: '#1A0A14', gradientBottom: '#2A0D22', accent: '#FFB7C5',
+    cardFace: '#FFF0F5', cardText: '#4A1942', cardBorder: 'rgba(255,183,197,0.2)',
+    cardBack: '#C2185B', slotBorder: 'rgba(255,183,197,0.3)', slotBg: 'rgba(194,24,91,0.08)',
+    toolbarBtn: '#AD1457', panelBg: 'rgba(255,183,197,0.06)', panelBorder: 'rgba(255,183,197,0.1)',
+  },
+  arctic: {
+    gradientTop: '#0A1A2A', gradientBottom: '#0D2238', accent: '#B0C4DE',
+    cardFace: '#F0F8FF', cardText: '#1B3050', cardBorder: 'rgba(176,196,222,0.2)',
+    cardBack: '#00838F', slotBorder: 'rgba(176,196,222,0.35)', slotBg: 'rgba(0,131,143,0.08)',
+    toolbarBtn: '#00695C', panelBg: 'rgba(176,196,222,0.06)', panelBorder: 'rgba(176,196,222,0.12)',
+  },
+  ruby: {
+    gradientTop: '#2a0505', gradientBottom: '#1A0303', accent: '#EF5350',
+    cardFace: '#FFF5F5', cardText: '#3E1A1A', cardBorder: 'rgba(239,83,80,0.2)',
+    cardBack: '#C62828', slotBorder: 'rgba(239,83,80,0.3)', slotBg: 'rgba(198,40,40,0.08)',
+    toolbarBtn: '#D32F2F', panelBg: 'rgba(239,83,80,0.06)', panelBorder: 'rgba(239,83,80,0.1)',
+  },
+  neon: {
+    gradientTop: '#050510', gradientBottom: '#0A0A1A', accent: '#00FF87',
+    cardFace: '#1A1A2E', cardText: '#E0E0E0', cardBorder: 'rgba(0,255,135,0.25)',
+    cardBack: '#1B5E20', slotBorder: 'rgba(0,255,135,0.35)', slotBg: 'rgba(0,255,135,0.05)',
+    toolbarBtn: '#00C853', panelBg: 'rgba(0,255,135,0.06)', panelBorder: 'rgba(0,255,135,0.15)',
+  },
+  midnight: {
+    gradientTop: '#05050f', gradientBottom: '#0a0a1a', accent: '#B388FF',
+    cardFace: '#1E1E2E', cardText: '#D0D0E0', cardBorder: 'rgba(179,136,255,0.2)',
+    cardBack: '#4527A0', slotBorder: 'rgba(179,136,255,0.3)', slotBg: 'rgba(69,39,160,0.08)',
+    toolbarBtn: '#5E35B1', panelBg: 'rgba(179,136,255,0.06)', panelBorder: 'rgba(179,136,255,0.1)',
+  },
+  desert: {
+    gradientTop: '#1a1008', gradientBottom: '#120A04', accent: '#FFAB40',
+    cardFace: '#FFF3E0', cardText: '#4E342E', cardBorder: 'rgba(255,171,64,0.2)',
+    cardBack: '#E65100', slotBorder: 'rgba(255,171,64,0.3)', slotBg: 'rgba(230,81,0,0.08)',
+    toolbarBtn: '#EF6C00', panelBg: 'rgba(255,171,64,0.06)', panelBorder: 'rgba(255,171,64,0.1)',
+  },
 };
 
 export function getThemeGradient(themeId) {
   const t = THEME_COLORS[themeId] || THEME_COLORS.cosmic;
   return [t.gradientTop, t.gradientBottom];
+}
+
+export function getThemeColors(themeId) {
+  return THEME_COLORS[themeId] || THEME_COLORS.cosmic;
 }
