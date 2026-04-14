@@ -1418,6 +1418,7 @@ export default function GameScreen() {
   return (
     <View 
       style={st.container}
+      onMoveShouldSetResponderCapture={() => !!dragRef.current.card}
       onMoveShouldSetResponder={() => !!dragRef.current.card}
       onResponderMove={(e) => {
         if (!dragRef.current.card) return;
