@@ -24,16 +24,16 @@ const AD_IDS = {
   },
   production: {
     banner: Platform.select({
-      ios: 'ca-app-pub-XXXX/BANNER_IOS',      // ← Gerçek ID
-      android: 'ca-app-pub-XXXX/BANNER_AND',   // ← Gerçek ID
+      ios: 'ca-app-pub-6957067642370440/1277929434',
+      android: 'ca-app-pub-6957067642370440/4650198232',
     }),
     interstitial: Platform.select({
-      ios: 'ca-app-pub-XXXX/INTER_IOS',        // ← Gerçek ID
-      android: 'ca-app-pub-XXXX/INTER_AND',    // ← Gerçek ID
+      ios: 'ca-app-pub-6957067642370440/8964847764',
+      android: 'ca-app-pub-6957067642370440/7620585313',
     }),
     rewarded: Platform.select({
-      ios: 'ca-app-pub-XXXX/REWARD_IOS',       // ← Gerçek ID
-      android: 'ca-app-pub-XXXX/REWARD_AND',   // ← Gerçek ID
+      ios: 'ca-app-pub-6957067642370440/4182248190',
+      android: 'ca-app-pub-6957067642370440/6307503647',
     }),
   },
 };
