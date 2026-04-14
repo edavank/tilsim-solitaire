@@ -472,7 +472,8 @@ export default function GameScreen() {
   const shakeAnim = useRef(new Animated.Value(0)).current;
 
   // ── Drag & Drop System ──
-  const [dragCard, setDragCard] = useState(null); // { card, source, sourceIndex, isLast }
+  const dragCardRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
   const dragX = useRef(new Animated.Value(0)).current;
   const dragY = useRef(new Animated.Value(0)).current;
   const dragScale = useRef(new Animated.Value(1)).current;
@@ -502,7 +503,8 @@ export default function GameScreen() {
       stackCards = stack;
     }
     dragRef.current = { card, source, sourceIndex, isLast, stackCards, startX: pageX, startY: pageY };
-    setDragCard({ card, source, sourceIndex, isLast, stackCards });
+    dragCardRef.current = { card, source, sourceIndex, isLast, stackCards };
+    setIsDragging(true);
     dragX.setValue(pageX - CARD_W / 2);
     dragY.setValue(pageY - CARD_H / 2);
     dragOpacity.setValue(1);
@@ -532,7 +534,8 @@ export default function GameScreen() {
 
   const cancelDrag = useCallback(() => {
     Animated.timing(dragOpacity, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
-      setDragCard(null);
+      dragCardRef.current = null;
+      setIsDragging(false);
       setScrollLocked(false);
       dragRef.current = { card: null, source: null, sourceIndex: null, isLast: false, startX: 0, startY: 0 };
       dragScale.setValue(1);
@@ -1394,7 +1397,7 @@ export default function GameScreen() {
   const dynCardH = Math.floor(dynCardW * 1.3);
   const dynOverlap = -Math.floor(dynCardH * 0.75);
   const DCW = Math.floor(dynCardW * 0.88); const DCH = Math.floor(dynCardH * 0.78);
-  const dragStackIds = dragCard?.stackCards ? new Set(dragCard.stackCards.map((c) => c.id)) : null;
+  const dragStackIds = dragCardRef.current?.stackCards ? new Set(dragCardRef.current.stackCards.map((c) => c.id)) : null;
 
   // Unlock slot or column (via ad or free)
   const handleUnlock = useCallback(async (type, index) => {
@@ -1465,7 +1468,7 @@ export default function GameScreen() {
 
       {!!feedback && <View style={st.feedbackBar}><Text style={st.feedbackText}>{feedback}</Text></View>}
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={st.scrollContent} showsVerticalScrollIndicator={false} scrollEnabled={!dragCard && !scrollLocked} ref={scrollRef}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={st.scrollContent} showsVerticalScrollIndicator={false} scrollEnabled={!isDragging && !scrollLocked} ref={scrollRef}>
         <View style={{ height: 20 }} />
         <View style={st.deckRow}>
           {isTimed ? (
@@ -1512,7 +1515,7 @@ export default function GameScreen() {
               <View style={{ width: DCW + 40, height: DCH, justifyContent: 'center', alignItems: 'flex-end' }}>
                 {gs.drawnCards.slice(-3).map((card, i, arr) => (
                   <View key={card.id} style={{ position: 'absolute', right: (arr.length - 1 - i) * 18, zIndex: i, opacity: i === arr.length - 1 ? 1 : 0.4 }}>
-                    <FaceUpCard card={card} selected={i === arr.length - 1 && selId === card.id} hinted={card.id === hintCard} isDragging={card.id === dragCard?.card?.id} w={DCW} h={DCH} themeColors={tc} />
+                    <FaceUpCard card={card} selected={i === arr.length - 1 && selId === card.id} hinted={card.id === hintCard} isDragging={card.id === dragCardRef.current?.card?.id} w={DCW} h={DCH} themeColors={tc} />
                   </View>
                 ))}
               </View>
@@ -1550,7 +1553,7 @@ export default function GameScreen() {
         <View style={st.tableauRow}>
           {gs.columns.map((col, i) => (
             <View key={i} style={{ flex: 1 }}>
-              <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard} dragCardId={dragCard?.card?.id} dragStackIds={dragStackIds} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onUnlock={handleUnlock} onCardLongPress={handleCardLongPress} onScrollLock={setScrollLocked} themeColors={tc} />
+              <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard} dragCardId={dragCardRef.current?.card?.id} dragStackIds={dragStackIds} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onUnlock={handleUnlock} onCardLongPress={handleCardLongPress} onScrollLock={setScrollLocked} themeColors={tc} />
             </View>
           ))}
         </View>
@@ -1773,7 +1776,7 @@ export default function GameScreen() {
       )}
 
       {/* Floating drag card */}
-      {dragCard && (
+      {isDragging && dragCardRef.current && (
         <Animated.View
           pointerEvents="none"
           style={{
@@ -1783,10 +1786,10 @@ export default function GameScreen() {
             transform: [{ translateX: dragX }, { translateY: dragY }, { scale: dragScale }],
           }}
         >
-          <FaceUpCard card={dragCard.card} selected={true} w={CARD_W} h={CARD_H} themeColors={tc} />
-          {dragCard.stackCards && dragCard.stackCards.length > 1 && (
+          <FaceUpCard card={dragCardRef.current.card} selected={true} w={CARD_W} h={CARD_H} themeColors={tc} />
+          {dragCardRef.current.stackCards && dragCardRef.current.stackCards.length > 1 && (
             <View style={{ position: 'absolute', top: -10, right: -10, backgroundColor: COLORS.primary, width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' }}>
-              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 11, color: '#fff' }}>{dragCard.stackCards.length}</Text>
+              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 11, color: '#fff' }}>{dragCardRef.current.stackCards.length}</Text>
             </View>
           )}
         </Animated.View>

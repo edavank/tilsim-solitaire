@@ -67,8 +67,8 @@ export function generateLevels(startId, count, language = 'tr', initialBlockedCa
     const variation = [0, 1, -1, 2, 0, -1, 1, 0, 2, 1][id % 10]; // Her bölüm farklı
     const numCats = Math.min(Math.max((isBoss ? baseNumCats + 2 : baseNumCats + variation), 3), 8);
     
-    // Kelime/kategori: 3 → 4 → 5 → 6 → 7 → 8 (boss: +1)
-    const wordsPerCat = Math.min((isBoss ? 4 : 3) + Math.floor(tier / 3), 8);
+    // Kelime/kategori BASE (varyasyon categories map'te uygulanır)
+    const wordsPerCat = Math.min((isBoss ? 4 : 3) + Math.floor(tier / 3), 6);
     
     // KRİTİK: Slot sayısı < kategori sayısı (zorluk burada!)
     // Boss: slot farkı daha büyük (numCats - 2 veya - 3)
@@ -85,7 +85,7 @@ export function generateLevels(startId, count, language = 'tr', initialBlockedCa
 
     // Kategori seçimi — ÖNCEKİ 3 BÖLÜM + ÇAKIŞAN KATEGORİLER ENGELLENİR
     const blocked = new Set([...lastUsedCats, ...prevPrevCats, ...prevPrevPrevCats]);
-    const allEligible = pools.filter((p) => p.words.length >= wordsPerCat);
+    const allEligible = pools.filter((p) => p.words.length >= 3);
     const shuffled = seededShuffle(allEligible, rand);
     
     const picked = [];
@@ -113,10 +113,18 @@ export function generateLevels(startId, count, language = 'tr', initialBlockedCa
     prevPrevCats = new Set(lastUsedCats);
     lastUsedCats = new Set(picked.map(p => p.name));
 
-    const categories = picked.map((p) => ({
-      name: p.name,
-      words: seededShuffle(p.words, rand).slice(0, wordsPerCat),
-    }));
+    // Kelime/kategori: BASE + varyasyon (her kategori farklı sayıda)
+    const baseWords = Math.min((isBoss ? 4 : 3) + Math.floor(tier / 3), 6);
+    const wordVariations = [0, 1, -1, 2, 0, 1, -1, 2, 0, 1]; // 10 elemanlı dizi
+
+    const categories = picked.map((p, ci) => {
+      const variation = wordVariations[(id + ci) % wordVariations.length];
+      const wpc = Math.min(Math.max(baseWords + variation, 3), Math.min(p.words.length, 8));
+      return {
+        name: p.name,
+        words: seededShuffle(p.words, rand).slice(0, wpc),
+      };
+    });
 
     const totalCards = categories.reduce((sum, c) => sum + c.words.length, 0) + numCats;
 
