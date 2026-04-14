@@ -51,48 +51,50 @@ export async function initAuth() {
   return currentUser;
 }
 
-// ─── Google Sign-In (OAuth — works on both platforms) ────────
+// ─── Google Sign-In (ID Token flow — bypasses redirect issues) ────
 export async function signInWithGoogle() {
   try {
     if (!supabase) return { error: 'Supabase bağlantısı yok' };
 
     const { makeRedirectUri } = require('expo-auth-session');
     const WebBrowser = require('expo-web-browser');
-    const Constants = require('expo-constants');
     WebBrowser.maybeCompleteAuthSession();
 
-    // Expo Go: use exp://IP:PORT, Standalone: use tilsim-solitaire://
-    const isExpoGo = Constants.default?.appOwnership === 'expo';
-    const hostUri = Constants.default?.expoConfig?.hostUri;
-    const redirectUrl = isExpoGo && hostUri
-      ? `exp://${hostUri}`
-      : makeRedirectUri({ scheme: 'tilsim-solitaire' });
-    console.log('[Auth] redirectUrl:', redirectUrl);
+    const GOOGLE_CLIENT_ID = '1018253953395-r7ltflc82uchh219dk45tc14qe77tnv8.apps.googleusercontent.com';
 
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: redirectUrl, skipBrowserRedirect: true },
-    });
+    // makeRedirectUri() returns http://localhost in Expo Go — Google allows this
+    const redirectUri = makeRedirectUri();
+    const nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);
 
-    if (error) return { error: error.message };
-    if (!data?.url) return { error: 'OAuth URL alınamadı' };
+    console.log('[Auth] Google redirectUri:', redirectUri);
 
-    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+    // Go directly to Google (not through Supabase OAuth)
+    const authUrl =
+      'https://accounts.google.com/o/oauth2/v2/auth' +
+      '?client_id=' + GOOGLE_CLIENT_ID +
+      '&redirect_uri=' + encodeURIComponent(redirectUri) +
+      '&response_type=id_token' +
+      '&scope=openid%20email%20profile' +
+      '&nonce=' + nonce;
+
+    const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
 
     if (result.type === 'success' && result.url) {
-      const url = new URL(result.url);
-      const params = new URLSearchParams(url.hash.substring(1));
-      const access_token = params.get('access_token');
-      const refresh_token = params.get('refresh_token');
+      // Token is in the hash fragment: #id_token=...
+      const hashParams = new URLSearchParams(result.url.split('#')[1] || '');
+      const idToken = hashParams.get('id_token');
 
-      if (access_token) {
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token,
-          refresh_token,
+      if (idToken) {
+        // Pass ID token directly to Supabase
+        const { data, error: signInError } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: idToken,
+          nonce: nonce,
         });
-        if (sessionError) return { error: sessionError.message };
+        if (signInError) return { error: signInError.message };
         return { user: currentUser };
       }
+      return { error: 'Token alınamadı' };
     }
 
     return { error: 'Giriş iptal edildi' };
