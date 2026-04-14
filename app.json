@@ -3,7 +3,7 @@
     "name": "Tılsım Solitaire",
     "slug": "tilsim-solitaire",
     "version": "1.0.0",
-    "orientation": "default",
+    "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
