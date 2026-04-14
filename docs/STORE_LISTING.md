@@ -6,7 +6,7 @@
 Tılsım Solitaire - Kelime Oyunu
 
 ### Kısa Açıklama (80 karakter)
-Kelime bulmaca + kart solitaire! Kategorileri keşfet, kartları eşleştir.
+200 bölüm kelime solitaire! 90+ kategori, 6 dil. Kartları eşleştir, kelimeleri keşfet!
 
 ### Uzun Açıklama (Türkçe)
 
@@ -23,23 +23,26 @@ Bilge baykuş, sana bu büyülü kart dünyasında eşlik edecek. Her bölümde 
 • Hamlelerin bitmeden tüm kartları yerleştir!
 
 🌟 ÖZELLİKLER
-• 50 benzersiz bölüm, artan zorluk
-• 18 farklı kelime kategorisi: Meyveler, Hayvanlar, Gezegenler, Duygular ve daha fazlası
-• Klasik Klondike Solitaire mekaniği
-• Akıllı ipucu sistemi
-• Güzel Cosmic Dawn tasarımı
-• Türkçe kelime hazineni geliştir
+• 200 bölüm, artan zorluk — her biri benzersiz
+• 90+ kelime kategorisi: Meyveler, Hayvanlar, Gezegenler, Duygular, Müzik, Uzay ve çok daha fazlası
+• 6 dil desteği: Türkçe, İngilizce, Almanca, Fransızca, İspanyolca, Arapça
+• Günlük meydan okuma — her gün yeni bir bulmaca
+• Haftalık turnuva — liderlik tablosunda yarış
+• Koleksiyon albümü — keşfettiğin kelimeleri biriktir
+• Başarım sistemi — hedefleri tamamla, ödülleri topla
+• Mağaza — güçlendiriciler ve altın paketleri
+• Google ve Apple hesabınla giriş yap, ilerlemenı buluta kaydet
 
 🎮 STRATEJİK DERİNLİK
 Rastgele bir kart oyunu değil! Hangi kategoriyi önce açacağına, kartları nasıl gruplandıracağına ve hamlelerini nasıl kullanacağına strateji yapman gerekiyor.
 
 📱 ÜCRETSİZ
-Tılsım Solitaire tamamen ücretsiz! İsteğe bağlı uygulama içi satın alımlar bulunmaktadır.
+Tılsım Solitaire tamamen ücretsiz! Reklam izleyerek altın ve ekstra hamle kazanabilirsin.
 
 Hemen indir, Bilge ile maceraya başla! 🦉✨
 
 ### Keywords (Apple — 100 karakter max)
-solitaire,kelime,bulmaca,kart,oyun,türkçe,kategori,iskambil,eğitici,strateji
+solitaire,kelime,bulmaca,kart,oyun,türkçe,kategori,günlük,turnuva,strateji
 
 ### Category
 Games > Word
@@ -66,12 +69,13 @@ Google Play:
 - 16:9 veya 9:16 oran
 - Min 320px, max 3840px
 
-### Önerilen 5 Ekran Görüntüsü:
-1. **Ana sayfa** — Bilge + "BÖLÜM 1 / MACERA DEVAM EDİYOR" butonu
+### Önerilen 6 Ekran Görüntüsü:
+1. **Ana sayfa** — Bilge + "BÖLÜM X / MACERA DEVAM EDİYOR" butonu + coin
 2. **Oyun ekranı** — Kartlar, foundation slotları, toolbar
 3. **Bölüm tamamlandı** — Tebrikler overlay, skor, altın
-4. **Bölüm seçimi** — 50 bölüm grid
-5. **Mağaza** — Altın paketleri, güçlendiriciler
+4. **Bölüm seçimi** — 200 bölüm grid, yıldız ilerlemesi
+5. **Koleksiyon albümü** — Keşfedilen kelimeler, kategoriler
+6. **Günlük meydan okuma** — Günlük bulmaca ekranı
 
 ### Feature Graphic (Google Play — 1024x500)
 Mor gradient arka plan + Bilge owl + "Tılsım Solitaire" logo + kartlar

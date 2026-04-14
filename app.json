@@ -29,8 +29,7 @@
         "backgroundColor": "#150629"
       },
       "package": "com.edavank.tilsimsolitaire",
-      "versionCode": 1,
-      "newArchEnabled": true
+      "versionCode": 1
     },
     "web": {
       "bundler": "metro",
