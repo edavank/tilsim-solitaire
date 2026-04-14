@@ -262,7 +262,7 @@ function FoundationSlot({ t, slot, slotIndex, onPress, onUnlock, hinted }) {
   );
 }
 
-const TableauColumn = React.memo(function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedId, onCardTap, onColumnTap, onUnlock, onDragStart, onDragMove, onDragEnd, onScrollLock }) {
+const TableauColumn = React.memo(function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedId, onCardTap, onColumnTap, onUnlock, onDragStart, onDragMove, onDragEnd, onScrollLock, onCancelDrag }) {
   const touchRef = useRef({ card: null, startX: 0, startY: 0, moved: false });
   if (column.locked) {
     return (
@@ -320,11 +320,9 @@ const TableauColumn = React.memo(function TableauColumn({ column, colIndex, sele
                   touchRef.current = { card: null, startX: 0, startY: 0, moved: false };
                   onScrollLock?.(false);
                 }}
+                onResponderTerminationRequest={() => !touchRef.current.moved}
                 onResponderTerminate={() => {
-                  if (touchRef.current.moved) {
-                    // Drag aktifse anında temizle
-                    onDragEnd?.(0, 0);
-                  }
+                  if (touchRef.current.moved) onCancelDrag?.();
                   touchRef.current = { card: null, startX: 0, startY: 0, moved: false };
                   onScrollLock?.(false);
                 }}
@@ -1572,6 +1570,7 @@ export default function GameScreen() {
               drawnTouchRef.current = { startX: 0, startY: 0, moved: false };
               lockScroll(false);
             }}
+            onResponderTerminationRequest={() => !drawnTouchRef.current.moved}
             onResponderTerminate={() => {
               if (drawnTouchRef.current.moved) cancelDrag();
               drawnTouchRef.current = { startX: 0, startY: 0, moved: false };
@@ -1622,7 +1621,7 @@ export default function GameScreen() {
         <View style={st.tableauRow}>
           {gs.columns.map((col, i) => (
             <View key={i} style={{ flex: 1 }}>
-              <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard}  onCardTap={handleCardTap} onColumnTap={handleColumnTap} onUnlock={handleUnlock} onDragStart={onDragStart} onDragMove={onDragMove} onDragEnd={onDragEnd} onScrollLock={lockScroll} />
+              <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard}  onCardTap={handleCardTap} onColumnTap={handleColumnTap} onUnlock={handleUnlock} onDragStart={onDragStart} onDragMove={onDragMove} onDragEnd={onDragEnd} onScrollLock={lockScroll} onCancelDrag={cancelDrag} />
             </View>
           ))}
         </View>
