@@ -517,9 +517,7 @@ export default function GameScreen() {
   const scrollRef = useRef(null);
   const saveTimerRef = useRef(null);
   const drawnTouchRef = useRef({ startX: 0, startY: 0, moved: false });
-  const slotsRowY = useRef({ top: 0, bottom: 0 });
-  const tableauRowY = useRef({ top: 0, bottom: 0 });
-  const scrollOffsetRef = useRef(0);
+// Drop detection: basit SH * 0.45 eşiği — karmaşık ölçüm kaldırıldı
   const startDragRef = useRef(null);
   const cancelDragRef = useRef(null);
   const handleDropRef = useRef(null);
@@ -594,23 +592,11 @@ export default function GameScreen() {
     // ÖNCE drag'i temizle
     cancelDrag();
 
-    // Scroll offset'i hesapla — layout Y değerleri content-relative, dropY screen-relative
-    // Header yüksekliği yaklaşık 70px (paddingTop:62 + içerik)
-    const headerH = 70;
-    const contentY = dropY - headerH + scrollOffsetRef.current;
+    // Basit Y tespiti: ekranın üst %45'i → slot, alt %55'i → sütun
+    const isUpperHalf = dropY < SH * 0.45;
 
-    // Slot satırının gerçek Y pozisyonunu kullan
-    const slotMid = (slotsRowY.current.top + slotsRowY.current.bottom) / 2;
-    const colTop = tableauRowY.current.top;
-    
-    // Bırakma noktası slot bölgesine mi, sütun bölgesine mi yakın?
-    const slotTolerance = CARD_H * 1.5; // Cömert tolerans
-    const isNearSlots = slotsRowY.current.bottom > 0 && Math.abs(contentY - slotMid) < slotTolerance;
-    const isNearColumns = tableauRowY.current.bottom > 0 && contentY > colTop - CARD_H;
-
-    // En yakın slot/sütun merkezini bul (pixel-perfect değil, cömert)
+    // En yakın hedefi bul (gap dahil)
     const findNearest = (count, startX, totalW) => {
-      // gap'i hesaba kat — flex:1 + gap layout
       const totalGap = COL_GAP * (count - 1);
       const itemW = (totalW - totalGap) / count;
       let best = -1, bestD = 9999;
@@ -622,34 +608,27 @@ export default function GameScreen() {
       return best;
     };
 
-    // Slot kontrolü
-    if (isNearSlots) {
+    const trySlot = () => {
       const idx = findNearest(gs.slots.length, GAME_PAD, SW - GAME_PAD * 2);
-      if (idx >= 0) {
-        placeCard(card, source, sourceIndex, idx);
-        return;
-      }
-    }
+      if (idx >= 0) { placeCard(card, source, sourceIndex, idx); return true; }
+      return false;
+    };
 
-    // Sütun kontrolü
-    if (isNearColumns || !isNearSlots) {
+    const tryColumn = () => {
       const idx = findNearest(gs.columns.length, GAME_PAD, SW - GAME_PAD * 2);
       if (idx >= 0 && idx < gs.columns.length) {
-        if (stack.length > 1) {
-          moveStackToColumn(stack, source, sourceIndex, idx);
-        } else {
-          moveToColumn(card, source, sourceIndex, idx);
-        }
-        return;
+        if (stack.length > 1) moveStackToColumn(stack, source, sourceIndex, idx);
+        else moveToColumn(card, source, sourceIndex, idx);
+        return true;
       }
-    }
+      return false;
+    };
 
-    // Fallback — en yakın sütun
-    const idx = findNearest(gs.columns.length, GAME_PAD, SW - GAME_PAD * 2);
-    if (stack.length > 1) {
-      moveStackToColumn(stack, source, sourceIndex, Math.max(0, idx));
+    // Üst yarı → önce slot, sonra sütun. Alt yarı → önce sütun, sonra slot.
+    if (isUpperHalf) {
+      if (!trySlot()) tryColumn();
     } else {
-      moveToColumn(card, source, sourceIndex, Math.max(0, idx));
+      if (!tryColumn()) trySlot();
     }
   }, [gs.slots, gs.columns, placeCard, moveToColumn, moveStackToColumn, cancelDrag]);
   handleDropRef.current = handleDrop;
@@ -1530,7 +1509,7 @@ export default function GameScreen() {
 
       {!!feedback && <View style={st.feedbackBar}><Text style={st.feedbackText}>{feedback}</Text></View>}
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={st.scrollContent} showsVerticalScrollIndicator={false} scrollEnabled={!scrollLocked} bounces={false} overScrollMode="never" ref={scrollRef} onScroll={(e) => { scrollOffsetRef.current = e.nativeEvent.contentOffset.y; }} scrollEventThrottle={16}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={st.scrollContent} showsVerticalScrollIndicator={false} scrollEnabled={!scrollLocked} bounces={false} overScrollMode="never" ref={scrollRef}>
         <View style={{ height: 20 }} />
         <View style={st.deckRow}>
           {isTimed ? (
@@ -1639,7 +1618,7 @@ export default function GameScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={st.slotsRow} onLayout={(e) => { const { y, height } = e.nativeEvent.layout; slotsRowY.current = { top: y, bottom: y + height }; }}>
+        <View style={st.slotsRow}>
           {gs.slots.map((slot, i) => (
             <Animated.View key={i} style={{ flex: 1, transform: [{ translateX: shakeSlotIdx === i ? shakeAnim : 0 }] }}>
               <FoundationSlot t={t} slot={slot} slotIndex={i} onPress={() => handleSlotTap(i)} onUnlock={handleUnlock} hinted={hintSlot === i} />
@@ -1647,7 +1626,7 @@ export default function GameScreen() {
           ))}
         </View>
 
-        <View style={st.tableauRow} onLayout={(e) => { const { y, height } = e.nativeEvent.layout; tableauRowY.current = { top: y, bottom: y + height }; }}>
+        <View style={st.tableauRow}>
           {gs.columns.map((col, i) => (
             <View key={i} style={{ flex: 1 }}>
               <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard}  onCardTap={handleCardTap} onColumnTap={handleColumnTap} onUnlock={handleUnlock} onDragStart={onDragStart} onDragMove={onDragMove} onDragEnd={onDragEnd} onScrollLock={lockScroll} onCancelDrag={cancelDrag} />
