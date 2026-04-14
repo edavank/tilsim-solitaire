@@ -443,7 +443,7 @@ export const EMOJI_MAP = {
   // Kitchen
   'Tencere': '🍲', 'Pot': '🍲', 'Tava': '🥘', 'Pan': '🥘', 'Bıçak': '🔪', 'Knife': '🔪', 'Tabak': '🍽️', 'Plate': '🍽️', 'Bardak': '🥃', 'Glass': '🥃', 'Kaşık': '🥄', 'Spoon': '🥄',
   // Nature
-  'Dağ': '⛰️', 'Mountain': '⛰️', 'Orman': '🌲', 'Forest': '🌲', 'Nehir': '🏞️', 'River': '🏞️', 'Göl': '💧', 'Lake': '💧', 'Şelale': '💦', 'Waterfall': '💦', 'Mağara': '🕳️', 'Cave': '🕳️',
+  'Dağ': '⛰️', 'Mountain': '⛰️', 'Orman': '🌲', 'Forest': '🌲', 'Nehir': '🏞️', 'River': '🏞️', 'Göl': '💧', 'Lake': '💧', 'Şelale': '⛲', 'Waterfall': '⛲', 'Mağara': '🕳️', 'Cave': '🕳️',
   // Vacation
   'Plaj': '⛱️', 'Beach': '🏝️', 'Otel': '🏨', 'Hotel': '🏨', 'Bavul': '💼', 'Suitcase': '🧳', 'Pasaport': '🛂', 'Passport': '🛂', 'Güneş kremi': '🧴', 'Sunscreen': '🧴', 'Harita': '🗺️', 'Map': '🗺️',
   // Toys
@@ -517,7 +517,7 @@ export const EMOJI_MAP = {
   // Düğün
   'Gelin': '👰', 'Damat': '🤵', 'Nikah': '💍', 'Düvak': '👗', 'Davetiye': '💌', 'Dans': '💃',
   // Bebek
-  'Emzik': '👄', 'Biberon': '🍼', 'Bez': '🧷', 'Beşik': '🛏️', 'Mama': '🥣', 'Kundak': '👣',
+  'Emzik': '👶', 'Biberon': '🍼', 'Bez': '🧷', 'Beşik': '🛏️', 'Mama': '🥣', 'Kundak': '👣',
   // Bahçe
   'Tohum': '🥜', 'Toprak': '🟤', 'Gübre': '🌾', 'Sulama': '💧', 'Kürek': '⛏️', 'Sera': '🌱',
   // Enstrüman
@@ -539,7 +539,7 @@ export const EMOJI_MAP = {
   // Uzay Araçları
   'Roket': '🚀', 'Teleskop': '🔭', 'Astronot': '👨‍🚀', 'İstasyon': '🛰️', 'Modül': '📦',
   // Dondurma
-  'Karamel': '🍮', 'Çilek': '🍓', 'Fıstık': '🥜', 'Frambuaz': '🫐', 'Kayısı': '🍑',
+  'Karamel': '🍮', 'Çilek': '🍓', 'Fıstık': '🥜', 'Frambuaz': '🫐', 'Kayısı': '🟠',
   // Kumaş
   'İpek': '🧣', 'Pamuk': '☁️', 'Keten': '🧶', 'Yün': '🐑', 'Kadife': '🎀', 'Denim': '👖',
   // Hukuk
@@ -547,7 +547,7 @@ export const EMOJI_MAP = {
   // Film Türleri
   'Aksiyon': '💥', 'Komedi': '😂', 'Korku': '😨', 'Dram': '🎭', 'Belgesel': '🎥', 'Animasyon': '🎨',
   // Kozmetik
-  'Ruj': '👄', 'Fondöten': '🧴', 'Maskara': '👁️', 'Allık': '🌸', 'Oje': '💅', 'Parfüm': '🌹',
+  'Ruj': '💄', 'Fondöten': '🧴', 'Maskara': '👁️', 'Allık': '🌸', 'Oje': '💅', 'Parfüm': '🌹',
   // Balık
   'Levrek': '🐠', 'Hamsi': '🐟', 'Palamut': '🎣', 'Çipura': '🎏', 'Somon': '🍣', 'Alabalık': '🐡',
   // Ekmek
