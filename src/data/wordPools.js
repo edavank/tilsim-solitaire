@@ -457,7 +457,7 @@ export const EMOJI_MAP = {
   // Stationery
   'Makas': '✂️', 'Yapıştırıcı': '🩹', 'Bant': '🖇️', 'Zımba': '📌', 'Dosya': '📁', 'Klasör': '📂',
   // Heroes
-  'Maske': '🥸', 'Pelerin': '👘', 'Güç': '💪', 'Kalkan': '🛡️', 'Kılıç': '⚔️', 'Zırh': '🪖',
+  'Maske': '👺', 'Pelerin': '👘', 'Güç': '💪', 'Kalkan': '🛡️', 'Kılıç': '⚔️', 'Zırh': '🪖',
   // Kahvaltı
   'Peynir': '🧀', 'Bal': '🍯', 'Yumurta': '🥚', 'Reçel': '🫙', 'Tereyağı': '🧈',
   // Masal

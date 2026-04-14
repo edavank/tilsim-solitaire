@@ -482,6 +482,8 @@ export default function GameScreen() {
   const dragRef = useRef({ card: null, source: null, sourceIndex: null, isLast: false, startX: 0, startY: 0 });
   const scrollRef = useRef(null);
   const [scrollLocked, setScrollLocked] = useState(false);
+  const scrollLockedRef = useRef(false);
+  const lockScroll = useCallback((val) => { scrollLockedRef.current = val; setScrollLocked(val); }, []);
 
   const measureDropZone = useCallback((type, index, event) => {
     const { x, y, width, height } = event.nativeEvent.layout;
@@ -536,7 +538,7 @@ export default function GameScreen() {
     Animated.timing(dragOpacity, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
       dragCardRef.current = null;
       setIsDragging(false);
-      setScrollLocked(false);
+      lockScroll(false);
       dragRef.current = { card: null, source: null, sourceIndex: null, isLast: false, startX: 0, startY: 0 };
       dragScale.setValue(1);
     });
@@ -1423,9 +1425,9 @@ export default function GameScreen() {
   return (
     <View 
       style={st.container}
-      onStartShouldSetResponderCapture={() => !!dragRef.current.card}
-      onMoveShouldSetResponderCapture={() => !!dragRef.current.card || scrollLocked}
-      onMoveShouldSetResponder={() => !!dragRef.current.card || scrollLocked}
+      onStartShouldSetResponderCapture={() => !!dragRef.current.card || scrollLockedRef.current}
+      onMoveShouldSetResponderCapture={() => !!dragRef.current.card || scrollLockedRef.current}
+      onMoveShouldSetResponder={() => !!dragRef.current.card || scrollLockedRef.current}
       onResponderTerminationRequest={() => !dragRef.current.card}
       onResponderMove={(e) => {
         if (!dragRef.current.card) return;
@@ -1472,7 +1474,7 @@ export default function GameScreen() {
 
       {!!feedback && <View style={st.feedbackBar}><Text style={st.feedbackText}>{feedback}</Text></View>}
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={st.scrollContent} showsVerticalScrollIndicator={false} scrollEnabled={!isDragging && !scrollLocked} ref={scrollRef}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={st.scrollContent} showsVerticalScrollIndicator={false} scrollEnabled={!isDragging && !scrollLocked} bounces={false} overScrollMode="never" ref={scrollRef}>
         <View style={{ height: 20 }} />
         <View style={st.deckRow}>
           {isTimed ? (
@@ -1502,8 +1504,8 @@ export default function GameScreen() {
           <TouchableOpacity
             style={st.drawnArea}
             onPress={handleDrawnTap}
-            onPressIn={() => setScrollLocked(true)}
-            onPressOut={() => setScrollLocked(false)}
+            onPressIn={() => lockScroll(true)}
+            onPressOut={() => lockScroll(false)}
             onLongPress={(e) => {
               if (gs.drawnCards.length > 0) {
                 const card = gs.drawnCards[gs.drawnCards.length - 1];
@@ -1557,7 +1559,7 @@ export default function GameScreen() {
         <View style={st.tableauRow}>
           {gs.columns.map((col, i) => (
             <View key={i} style={{ flex: 1 }}>
-              <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard} dragCardId={dragCardRef.current?.card?.id} dragStackIds={dragStackIds} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onUnlock={handleUnlock} onCardLongPress={handleCardLongPress} onScrollLock={setScrollLocked} themeColors={tc} />
+              <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard} dragCardId={dragCardRef.current?.card?.id} dragStackIds={dragStackIds} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onUnlock={handleUnlock} onCardLongPress={handleCardLongPress} onScrollLock={lockScroll} themeColors={tc} />
             </View>
           ))}
         </View>
