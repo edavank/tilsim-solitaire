@@ -9,7 +9,6 @@ import { getTotalLevels, getLevel } from '../src/data/levels';
 import { loadProgress, loadLevelStars, loadXP } from '../src/utils/storage';
 import { useLang } from '../src/context/LanguageContext';
 
-const OWL = require('../assets/bilge-happy.png');
 
 export default function LevelsScreen() {
   const { lang, t } = useLang();
@@ -52,7 +51,6 @@ export default function LevelsScreen() {
       <ScrollView style={{ flex: 1 }} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         <View style={s.progressCard}>
-          <Image source={OWL} style={s.owl} />
           <View style={s.progressInfo}>
             <Text style={s.progressLabel}>{t.progress}</Text>
             <Text style={s.progressValue}>{Math.max(currentLevel - 1, 0)} / {totalLevels}</Text>

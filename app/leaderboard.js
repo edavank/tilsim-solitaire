@@ -8,7 +8,6 @@ import { loadProgress } from '../src/utils/storage';
 import { useLang } from '../src/context/LanguageContext';
 import { fetchLeaderboard, getUserRank } from '../src/utils/leaderboardService';
 
-const OWL = require('../assets/bilge-happy.png');
 
 const LB_TEXT = {
   tr: { tabs: ['Haftalık', 'Aylık', 'Tüm Zamanlar'], games: 'Oyun', wins: 'Kazanma', success: 'Başarı', you: 'Sen', level: 'Bölüm', noData: 'Henüz veri yok' },
@@ -76,8 +75,9 @@ export default function LeaderboardScreen() {
       {/* Header */}
       <View style={s.header}>
         <View style={s.headerLeft}>
-          <Image source={OWL} style={s.headerAvatar} />
-          <Text style={s.headerTitle}>Tılsım Solitaire</Text>
+          <TouchableOpacity onPress={() => router.back()}>
+            <MaterialIcons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
         </View>
         <View style={s.coinBadge}>
           <Text style={s.coinText}>{coins.toLocaleString()}</Text>

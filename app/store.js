@@ -8,7 +8,6 @@ import BottomNav from '../src/components/BottomNav';
 import { loadProgress, updateProgress } from '../src/utils/storage';
 import { useLang } from '../src/context/LanguageContext';
 
-const OWL = require('../assets/bilge-happy.png');
 
 const STORE_TEXT = {
   tr: { premium: 'PREMİUM', noAds: 'Reklamsız Deneyim', noAdsDesc: 'Kesintisiz oyun keyfi için reklamları kaldırın.', coinPacks: 'Coin Paketleri', small: 'Küçük bir başlangıç', popular: 'En çok tercih edilen', popularBadge: 'EN POPÜLER', best: 'EN İYİ FİYAT', boosters: 'Güçlendiriciler', hint: 'İpucu', hintDesc: 'Tıkanınca yolunu bul', undo: 'Geri Al', undoDesc: 'Hatalı hamleyi düzelt', restore: 'Satın Alımları Geri Yükle', coming: 'Yakında!', comingMsg: 'IAP entegrasyonu gerekli.', notEnough: 'Yetersiz Coin', bought: 'Satın Alındı!', boughtMsg: ' eklendi.', footer: 'TILSIM SOLITAIRE MAĞAZA' },
@@ -56,8 +55,10 @@ export default function StoreScreen() {
 
       <View style={s.header}>
         <View style={s.headerLeft}>
-          <Image source={OWL} style={s.headerAvatar} />
-          <Text style={s.headerTitle}>Tılsım Solitaire</Text>
+          <TouchableOpacity onPress={() => router.back()}>
+            <MaterialIcons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={s.headerTitle}>{tx.coinPacks ? tx.premium : 'STORE'}</Text>
         </View>
         <View style={s.coinBadge}>
           <Text style={{ fontSize: 12 }}>🪙</Text>

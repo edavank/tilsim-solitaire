@@ -23,7 +23,6 @@ try {
   signOut = async () => {};
 }
 
-const OWL = require('../assets/bilge-happy.png');
 
 const LANG_OPTIONS = [
   { code: 'tr', flag: '🇹🇷', name: 'Türkçe' },
@@ -176,8 +175,7 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
           <View style={s.footerBrand}>
-            <Image source={OWL} style={s.footerOwl} />
-            <Text style={s.footerName}>TILSIM</Text>
+            <Text style={s.footerName}>TILSIM SOLITAIRE</Text>
           </View>
           <Text style={s.footerVersion}>VERSİON V1.0.0</Text>
         </View>

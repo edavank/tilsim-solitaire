@@ -499,15 +499,15 @@ export default function GameScreen() {
     setSelected(null);
   }, [gs.columns]);
 
-  // Drag overlay responder handlers
-  const handleDragResponderMove = useCallback((e) => {
+  // Drag responder handlers on main container
+  const handleResponderMove = useCallback((e) => {
     if (!dragRef.current.card) return;
     const { pageX, pageY } = e.nativeEvent;
     dragX.setValue(pageX - CARD_W / 2);
     dragY.setValue(pageY - CARD_H / 2);
   }, []);
 
-  const handleDragResponderRelease = useCallback((e) => {
+  const handleResponderRelease = useCallback((e) => {
     if (!dragRef.current.card) return;
     const { pageX, pageY } = e.nativeEvent;
     handleDrop(dragRef.current, pageX, pageY);
@@ -1358,7 +1358,14 @@ export default function GameScreen() {
   }, []);
 
   return (
-    <View style={st.container}>
+    <View 
+      style={st.container}
+      onStartShouldSetResponderCapture={() => !!dragRef.current.card}
+      onMoveShouldSetResponderCapture={() => !!dragRef.current.card}
+      onResponderMove={handleResponderMove}
+      onResponderRelease={handleResponderRelease}
+      onResponderTerminate={() => cancelDrag()}
+    >
       <LinearGradient colors={getThemeGradient(activeTheme)} style={StyleSheet.absoluteFillObject} />
 
       {/* Sparkle */}
@@ -1677,18 +1684,6 @@ export default function GameScreen() {
       )}
       {gs.isFailed && !gs.isComplete && (
         <LevelFailedOverlay t={t} levelId={gs.levelId} onAddMovesAd={addMovesAd} onAddMovesCoin={addMovesCoin} onReplay={handleReplay} onHome={handleHome} />
-      )}
-
-      {/* Drag touch overlay — responder captures all gestures during drag */}
-      {dragCard && (
-        <View 
-          style={{ ...StyleSheet.absoluteFillObject, zIndex: 99998, backgroundColor: 'transparent' }}
-          onStartShouldSetResponder={() => true}
-          onMoveShouldSetResponder={() => true}
-          onResponderMove={handleDragResponderMove}
-          onResponderRelease={handleDragResponderRelease}
-          onResponderTerminate={() => cancelDrag()}
-        />
       )}
 
       {/* Floating drag card */}
