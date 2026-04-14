@@ -262,7 +262,7 @@ function FoundationSlot({ t, slot, slotIndex, onPress, onUnlock, hinted, themeCo
   );
 }
 
-const TableauColumn = React.memo(function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedId, dragCardId, dragStackIds, onCardTap, onColumnTap, onUnlock, themeColors }) {
+const TableauColumn = React.memo(function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedId, dragCardId, dragStackIds, onCardTap, onColumnTap, onUnlock, onCardLongPress, themeColors }) {
   if (column.locked) {
     return (
       <View style={[st.slotBox, st.slotDashed, { height: CARD_H }]}>
@@ -291,7 +291,7 @@ const TableauColumn = React.memo(function TableauColumn({ column, colIndex, sele
         return (
           <View key={card.id} style={{ marginTop: ci === 0 ? 0 : OVERLAP, zIndex: ci }}>
             {card.faceUp ? (
-              <TouchableOpacity activeOpacity={0.7} onPress={() => onCardTap(card, 'column', colIndex, isLast)}>
+              <TouchableOpacity activeOpacity={0.7} onPress={() => onCardTap(card, 'column', colIndex, isLast)} onLongPress={(e) => onCardLongPress?.(card, 'column', colIndex, isLast, e)} delayLongPress={100}>
                 <FaceUpCard card={card} selected={selectedId === card.id || (selectedStackIds && selectedStackIds.has(card.id))} hinted={isHinted} isDragging={false} themeColors={themeColors} />
               </TouchableOpacity>
             ) : (
@@ -935,6 +935,12 @@ export default function GameScreen() {
     setSelected(null);
   }, []);
 
+  const handleCardLongPress = useCallback((card, source, sourceIndex, isLast, event) => {
+    if (!event?.nativeEvent) return;
+    const { pageX, pageY } = event.nativeEvent;
+    startDrag(card, source, sourceIndex, isLast, pageX, pageY);
+  }, [startDrag]);
+
   const handleColumnTap = useCallback((colIndex) => {
     if (!selected) return;
     if (selected.stackCards && selected.stackCards.length > 1) {
@@ -1412,6 +1418,18 @@ export default function GameScreen() {
   return (
     <View 
       style={st.container}
+      onMoveShouldSetResponder={() => !!dragRef.current.card}
+      onResponderMove={(e) => {
+        if (!dragRef.current.card) return;
+        const { pageX, pageY } = e.nativeEvent;
+        dragX.setValue(pageX - CARD_W / 2);
+        dragY.setValue(pageY - CARD_H / 2);
+      }}
+      onResponderRelease={(e) => {
+        if (!dragRef.current.card) return;
+        handleDrop(dragRef.current, e.nativeEvent.pageX, e.nativeEvent.pageY);
+      }}
+      onResponderTerminate={() => cancelDrag()}
     >
       <LinearGradient colors={getThemeGradient(activeTheme)} style={StyleSheet.absoluteFillObject} />
 
@@ -1473,6 +1491,13 @@ export default function GameScreen() {
           <TouchableOpacity
             style={st.drawnArea}
             onPress={handleDrawnTap}
+            onLongPress={(e) => {
+              if (gs.drawnCards.length > 0) {
+                const card = gs.drawnCards[gs.drawnCards.length - 1];
+                handleCardLongPress(card, 'drawn', null, true, e);
+              }
+            }}
+            delayLongPress={100}
             activeOpacity={0.7}
           >
             {gs.drawnCards.length === 0 ? (
@@ -1519,7 +1544,7 @@ export default function GameScreen() {
         <View style={st.tableauRow}>
           {gs.columns.map((col, i) => (
             <View key={i} style={{ flex: 1 }}>
-              <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard} dragCardId={dragCard?.card?.id} dragStackIds={dragStackIds} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onUnlock={handleUnlock} themeColors={tc} />
+              <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard} dragCardId={dragCard?.card?.id} dragStackIds={dragStackIds} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onUnlock={handleUnlock} onCardLongPress={handleCardLongPress} themeColors={tc} />
             </View>
           ))}
         </View>
