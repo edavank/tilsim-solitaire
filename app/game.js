@@ -1446,25 +1446,28 @@ export default function GameScreen() {
       {scorePopups.map((sp) => <ScorePopup key={sp.id} text={sp.text} x={sp.x} y={sp.y} />)}
 
       <View style={st.header}>
-        <View style={st.coinBadge}>
-          <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#FFD700', borderWidth: 1.5, borderColor: '#DAA520', alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#8B6914' }}>₺</Text>
+        <View style={{ width: 80, alignItems: 'flex-start' }}>
+          <View style={st.coinBadge}>
+            <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#FFD700', borderWidth: 1.5, borderColor: '#DAA520', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#8B6914' }}>₺</Text>
+            </View>
+            <Text style={st.coinText}>{coins}</Text>
           </View>
-          <Text style={st.coinText}>{coins}</Text>
         </View>
         <View style={{ alignItems: 'center', flex: 1 }}>
           <Text style={st.headerTitle}>{isDaily ? '📅 ' + (dailyDate || 'GÜNLÜK') : t.level + ' ' + gs.levelId}</Text>
           {combo >= 2 && <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: fs(11), color: COLORS.coin }}>🔥 {combo}x Combo</Text>}
-          {/* Category progress bar */}
           <View style={{ flexDirection: 'row', gap: 3, marginTop: 4 }}>
             {gs.slots.filter(s => !s.locked).map((s, i) => (
               <View key={i} style={{ width: 20, height: 4, borderRadius: 2, backgroundColor: s.category && s.placedCards?.length >= (s.category?.totalWords || 99) ? COLORS.success : s.category ? COLORS.primary + '60' : 'rgba(255,255,255,0.1)' }} />
             ))}
           </View>
         </View>
-        <TouchableOpacity style={st.settingsBtn} onPress={() => setPaused(true)}>
-          <MaterialIcons name="settings" size={20} color={COLORS.onSurfaceVariant} />
-        </TouchableOpacity>
+        <View style={{ width: 80, alignItems: 'flex-end' }}>
+          <TouchableOpacity style={st.settingsBtn} onPress={() => setPaused(true)}>
+            <MaterialIcons name="settings" size={20} color={COLORS.onSurfaceVariant} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {!!feedback && <View style={st.feedbackBar}><Text style={st.feedbackText}>{feedback}</Text></View>}
