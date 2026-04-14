@@ -1594,12 +1594,19 @@ export default function GameScreen() {
             {gs.drawnCards.length === 0 ? (
               <View style={[st.emptyCard, { width: DCW, height: DCH }]} />
             ) : (
-              <View style={{ width: DCW + 40, height: DCH, justifyContent: 'center', alignItems: 'flex-end' }}>
-                {gs.drawnCards.slice(-3).map((card, i, arr) => (
-                  <View key={card.id} style={{ position: 'absolute', right: (arr.length - 1 - i) * 18, zIndex: i, opacity: i === arr.length - 1 ? 1 : 0.4 }}>
-                    <FaceUpCard card={card} selected={i === arr.length - 1 && selId === card.id} hinted={card.id === hintCard} isDragging={false} w={DCW} h={DCH} />
-                  </View>
-                ))}
+              <View style={{ width: DCW + 20, height: DCH, justifyContent: 'center', alignItems: 'flex-end' }}>
+                {gs.drawnCards.slice(-3).map((card, i, arr) => {
+                  const isTop = i === arr.length - 1;
+                  return (
+                    <View key={card.id} style={{ position: 'absolute', right: (arr.length - 1 - i) * 6, zIndex: i }}>
+                      {isTop ? (
+                        <FaceUpCard card={card} selected={selId === card.id} hinted={card.id === hintCard} isDragging={false} w={DCW} h={DCH} />
+                      ) : (
+                        <View style={{ width: DCW, height: DCH, borderRadius: 8, backgroundColor: '#e0d8f0', borderWidth: 1, borderColor: 'rgba(155,125,255,0.2)' }} />
+                      )}
+                    </View>
+                  );
+                })}
               </View>
             )}
           </View>
