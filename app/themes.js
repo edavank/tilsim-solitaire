@@ -78,7 +78,7 @@ export default function ThemesScreen() {
       await updateProgress({ activeTheme: theme.id, unlockedThemes: newUnlocked });
       setActiveTheme(theme.id);
       setUnlockedThemes(newUnlocked);
-      Alert.alert('✨ Tema Değiştirildi', `${theme.name} teması aktif!`);
+      setTimeout(() => Alert.alert('✨ Tema Değiştirildi', `${theme.name} teması aktif!`), 100);
       return;
     }
 

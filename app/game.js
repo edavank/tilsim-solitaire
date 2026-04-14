@@ -1,9 +1,10 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Dimensions,
   ScrollView, Vibration, Image, Animated, Easing,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { COLORS, FONTS, SIZES, CATEGORY_COLORS, getThemeGradient, getThemeColors } from '../src/constants/theme';
@@ -262,8 +263,37 @@ function FoundationSlot({ t, slot, slotIndex, onPress, onUnlock, hinted, themeCo
   );
 }
 
+// Sürüklenebilir kart — Gesture.Pan + Gesture.Tap
+function DraggableCard({ card, colIndex, isLast, onCardTap, onDragStart, onDragMove, onDragEnd, children }) {
+  const startPos = useRef({ x: 0, y: 0 });
+  
+  const tap = Gesture.Tap().onEnd(() => {
+    onCardTap(card, 'column', colIndex, isLast);
+  });
+  
+  const pan = Gesture.Pan()
+    .minDistance(5)
+    .onStart((e) => {
+      startPos.current = { x: e.absoluteX, y: e.absoluteY };
+      onDragStart?.(card, 'column', colIndex, isLast, e.absoluteX, e.absoluteY);
+    })
+    .onUpdate((e) => {
+      onDragMove?.(e.absoluteX, e.absoluteY);
+    })
+    .onEnd((e) => {
+      onDragEnd?.(e.absoluteX, e.absoluteY);
+    });
+  
+  const gesture = Gesture.Exclusive(pan, tap);
+  
+  return (
+    <GestureDetector gesture={gesture}>
+      <View>{children}</View>
+    </GestureDetector>
+  );
+}
+
 const TableauColumn = React.memo(function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedId, dragCardId, dragStackIds, onCardTap, onColumnTap, onUnlock, onDragStart, onDragMove, onDragEnd, themeColors }) {
-  const touchRef = useRef({ card: null, startX: 0, startY: 0, moved: false });
   if (column.locked) {
     return (
       <View style={[st.slotBox, st.slotDashed, { height: CARD_H }]}>
@@ -292,35 +322,9 @@ const TableauColumn = React.memo(function TableauColumn({ column, colIndex, sele
         return (
           <View key={card.id} style={{ marginTop: ci === 0 ? 0 : OVERLAP, zIndex: ci }}>
             {card.faceUp ? (
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => { if (!touchRef.current.moved) onCardTap(card, 'column', colIndex, isLast); }}
-                onPressIn={(e) => {
-                  touchRef.current = { card, colIndex, isLast, startX: e.nativeEvent.pageX, startY: e.nativeEvent.pageY, moved: false };
-                }}
-                onPressOut={() => {
-                  setTimeout(() => { touchRef.current = { card: null, startX: 0, startY: 0, moved: false }; }, 50);
-                }}
-                onResponderMove={(e) => {
-                  const info = touchRef.current;
-                  if (!info.card) return;
-                  const { pageX, pageY } = e.nativeEvent;
-                  const dx = pageX - info.startX;
-                  const dy = pageY - info.startY;
-                  if (!info.moved && Math.abs(dx) + Math.abs(dy) > 6) {
-                    info.moved = true;
-                    onDragStart?.(info.card, 'column', info.colIndex, info.isLast, info.startX, info.startY);
-                  }
-                  if (info.moved) onDragMove?.(pageX, pageY);
-                }}
-                onResponderRelease={(e) => {
-                  if (touchRef.current.moved) {
-                    onDragEnd?.(e.nativeEvent.pageX, e.nativeEvent.pageY);
-                  }
-                }}
-              >
+              <DraggableCard card={card} colIndex={colIndex} isLast={isLast} onCardTap={onCardTap} onDragStart={onDragStart} onDragMove={onDragMove} onDragEnd={onDragEnd}>
                 <FaceUpCard card={card} selected={selectedId === card.id || (selectedStackIds && selectedStackIds.has(card.id))} hinted={isHinted} isDragging={dragStackIds && dragStackIds.has(card.id)} themeColors={themeColors} />
-              </TouchableOpacity>
+              </DraggableCard>
             ) : (
               <FaceDownCard themeColors={themeColors} />
             )}
