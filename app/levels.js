@@ -42,7 +42,7 @@ export default function LevelsScreen() {
       <LinearGradient colors={getThemeGradient(activeTheme)} style={StyleSheet.absoluteFillObject} />
 
       <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
+        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace("/")} style={s.backBtn}>
           <MaterialIcons name="arrow-back" size={22} color={COLORS.onSurface} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>{t.levels}</Text>

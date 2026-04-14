@@ -1235,13 +1235,13 @@ export default function GameScreen() {
         }
       } catch (e) {}
       await markDailyChallengeCompleted(dailyDate);
-      router.back();
+      router.canGoBack() ? router.back() : router.replace("/");
       return;
     }
 
     const nextId = levelId + 1;
     const nextLevel = getLevel(nextId, gameLang);
-    if (!nextLevel) { router.back(); return; }
+    if (!nextLevel) { router.canGoBack() ? router.back() : router.replace("/"); return; }
     await updateProgress({
       currentLevel: nextId,
       coins: (prog.coins || 0) + Math.floor((30 + bonus) * eventMultiplier),
@@ -1374,7 +1374,7 @@ export default function GameScreen() {
 
   const handleHome = useCallback(async () => {
     await clearSavedGame();
-    router.back();
+    router.canGoBack() ? router.back() : router.replace("/");
   }, []);
 
   const selId = selected?.card?.id;
@@ -1722,7 +1722,7 @@ export default function GameScreen() {
               <Text style={ov.pauseSecText}>{t.settings}</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={ov.pauseSecBtn} onPress={() => router.back()} activeOpacity={0.7}>
+            <TouchableOpacity style={ov.pauseSecBtn} onPress={() => router.canGoBack() ? router.back() : router.replace("/")} activeOpacity={0.7}>
               <MaterialIcons name="home" size={20} color={COLORS.onSurfaceVariant} />
               <Text style={ov.pauseSecText}>{t.home}</Text>
             </TouchableOpacity>

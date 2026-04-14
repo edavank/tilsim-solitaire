@@ -109,7 +109,7 @@ export default function DailyScreen() {
       
       {/* Header */}
       <View style={st.header}>
-        <TouchableOpacity onPress={() => router.back()} style={st.backBtn}>
+        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace("/")} style={st.backBtn}>
           <MaterialIcons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={st.headerTitle}>Günlük Meydan Okuma</Text>

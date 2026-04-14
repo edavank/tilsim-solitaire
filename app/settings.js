@@ -94,7 +94,7 @@ export default function SettingsScreen() {
 
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
+        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace("/")} style={s.backBtn}>
           <MaterialIcons name="arrow-back" size={22} color={COLORS.onSurface} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>{t.settings}</Text>

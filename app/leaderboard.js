@@ -76,7 +76,7 @@ export default function LeaderboardScreen() {
       {/* Header */}
       <View style={s.header}>
         <View style={s.headerLeft}>
-          <TouchableOpacity onPress={() => router.back()}>
+          <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace("/")}>
             <MaterialIcons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
         </View>

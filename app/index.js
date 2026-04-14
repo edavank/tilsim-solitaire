@@ -8,7 +8,8 @@ import BottomNav from '../src/components/BottomNav';
 import { loadProgress } from '../src/utils/storage';
 import { useLang } from '../src/context/LanguageContext';
 import { isDailyChallengeCompleted } from '../src/utils/dailyChallenge';
-// seasonalEvents kaldırıldı
+import { checkDailyLogin, claimDailyReward, DAILY_REWARDS } from '../src/utils/dailyLogin';
+import { updateProgress } from '../src/utils/storage';
 
 const { width: SW } = Dimensions.get('window');
 const OWL_IMAGE = require('../assets/bilge-happy.png');
@@ -57,6 +58,7 @@ export default function HomeScreen() {
   const [dailyDone, setDailyDone] = useState(false);
   const [activeTheme, setActiveTheme] = useState('cosmic');
   const [unseenAch, setUnseenAch] = useState(0);
+  const [dailyLoginData, setDailyLoginData] = useState(null); // { streak, reward, allDays }
   const [bilgeMsg] = useState(() => {
     const msgs = t.bilgeMessages || [];
     return msgs[Math.floor(Math.random() * msgs.length)] || '';
@@ -67,6 +69,9 @@ export default function HomeScreen() {
     useCallback(() => {
       loadProgress().then((p) => { setCurrentLevel(p.currentLevel); setCoins(p.coins); setActiveTheme(p.activeTheme || 'cosmic'); setUnseenAch(p.unseenAch || 0); });
       isDailyChallengeCompleted().then(setDailyDone);
+      checkDailyLogin().then((result) => {
+        if (result.shouldShow) setDailyLoginData(result);
+      });
     }, [])
   );
   const owlBounce = useRef(new Animated.Value(0)).current;
@@ -197,6 +202,57 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
       </Animated.View>
+
+      {/* Günlük Giriş Ödülü Popup */}
+      {dailyLoginData && (
+        <View style={{ ...StyleSheet.absoluteFillObject, zIndex: 999, justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.7)' }} />
+          <View style={{ width: SW - 48, backgroundColor: COLORS.surfaceContainerHigh, borderRadius: 24, padding: 24, alignItems: 'center', borderWidth: 1, borderColor: COLORS.panelBorder, zIndex: 1000 }}>
+            <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 22, color: COLORS.coin, marginBottom: 4 }}>Günlük Giriş Ödülü</Text>
+            <Text style={{ fontFamily: FONTS.body, fontSize: 13, color: COLORS.onSurfaceVariant, marginBottom: 16 }}>
+              {dailyLoginData.streak} gün üst üste giriş!
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginBottom: 20 }}>
+              {DAILY_REWARDS.map((day, i) => {
+                const isToday = i === Math.min(dailyLoginData.streak, 7) - 1;
+                const isPast = i < Math.min(dailyLoginData.streak, 7) - 1;
+                return (
+                  <View key={day.day} style={{
+                    width: 70, height: 80, borderRadius: 14, alignItems: 'center', justifyContent: 'center',
+                    backgroundColor: isToday ? COLORS.coin : isPast ? 'rgba(255,215,0,0.15)' : 'rgba(255,255,255,0.05)',
+                    borderWidth: isToday ? 2 : 1, borderColor: isToday ? COLORS.coin : isPast ? 'rgba(255,215,0,0.3)' : 'rgba(255,255,255,0.1)',
+                  }}>
+                    <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 11, color: isToday ? '#000' : isPast ? COLORS.coin : COLORS.onSurfaceVariant }}>
+                      {day.day}. Gün
+                    </Text>
+                    <Text style={{ fontSize: 18, marginTop: 2 }}>{isPast ? '✅' : '💰'}</Text>
+                    <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 10, color: isToday ? '#000' : isPast ? COLORS.coin : COLORS.onSurfaceVariant }}>
+                      {day.coins}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+            <TouchableOpacity
+              style={{ backgroundColor: COLORS.coin, borderRadius: 16, paddingVertical: 14, paddingHorizontal: 40, width: '100%', alignItems: 'center' }}
+              onPress={async () => {
+                const reward = dailyLoginData.reward.coins;
+                await claimDailyReward(dailyLoginData.streak);
+                const p = await loadProgress();
+                const nc = (p.coins || 0) + reward;
+                setCoins(nc);
+                await updateProgress({ coins: nc });
+                setDailyLoginData(null);
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#000' }}>
+                💰 {dailyLoginData.reward.coins} Coin Topla
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       <BottomNav activeTab="home" achievementBadge={unseenAch} />
     </View>
