@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions, Image }
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
-import { COLORS, FONTS, SIZES, getThemeGradient } from '../src/constants/theme';
+import { COLORS, FONTS, SIZES } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { loadProgress } from '../src/utils/storage';
 import { useLang } from '../src/context/LanguageContext';
@@ -56,7 +56,6 @@ export default function HomeScreen() {
   const [currentLevel, setCurrentLevel] = useState(1);
   const [coins, setCoins] = useState(0);
   const [dailyDone, setDailyDone] = useState(false);
-  const [activeTheme, setActiveTheme] = useState('cosmic');
   const [unseenAch, setUnseenAch] = useState(0);
   const [dailyLoginData, setDailyLoginData] = useState(null); // { streak, reward, allDays }
   const [bilgeMsg] = useState(() => {
@@ -67,7 +66,7 @@ export default function HomeScreen() {
   // Refresh on screen focus (coming back from game)
   useFocusEffect(
     useCallback(() => {
-      loadProgress().then((p) => { setCurrentLevel(p.currentLevel); setCoins(p.coins); setActiveTheme(p.activeTheme || 'cosmic'); setUnseenAch(p.unseenAch || 0); });
+      loadProgress().then((p) => { setCurrentLevel(p.currentLevel); setCoins(p.coins); setUnseenAch(p.unseenAch || 0); });
       isDailyChallengeCompleted().then(setDailyDone);
       checkDailyLogin().then((result) => {
         if (result.shouldShow) setDailyLoginData(result);
@@ -98,7 +97,7 @@ export default function HomeScreen() {
 
   return (
     <View style={s.container}>
-      <LinearGradient colors={getThemeGradient(activeTheme)} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
       <FloatingParticles />
 
       {/* Header */}
@@ -194,13 +193,6 @@ export default function HomeScreen() {
           <MaterialIcons name="chevron-right" size={20} color={COLORS.onSurfaceVariant} />
         </TouchableOpacity>
 
-        {/* Theme shop */}
-        <TouchableOpacity style={s.levelSelectBtn} activeOpacity={0.7} onPress={() => router.push('/themes')}>
-          <MaterialIcons name="palette" size={20} color={COLORS.secondary} />
-          <Text style={s.levelSelectText}>{t.themeStore}</Text>
-          <MaterialIcons name="chevron-right" size={20} color={COLORS.onSurfaceVariant} />
-        </TouchableOpacity>
-
       </Animated.View>
 
       {/* Günlük Giriş Ödülü Popup */}
@@ -225,7 +217,7 @@ export default function HomeScreen() {
                     <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 11, color: isToday ? '#000' : isPast ? COLORS.coin : COLORS.onSurfaceVariant }}>
                       {day.day}. Gün
                     </Text>
-                    <Text style={{ fontSize: 18, marginTop: 2 }}>{isPast ? '✅' : '💰'}</Text>
+                    <Text style={{ fontSize: 18, marginTop: 2 }}>{isPast ? '✅' : '🪙'}</Text>
                     <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 10, color: isToday ? '#000' : isPast ? COLORS.coin : COLORS.onSurfaceVariant }}>
                       {day.coins}
                     </Text>
@@ -247,7 +239,7 @@ export default function HomeScreen() {
               activeOpacity={0.8}
             >
               <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#000' }}>
-                💰 {dailyLoginData.reward.coins} Coin Topla
+                🪙 {dailyLoginData.reward.coins} Coin Topla
               </Text>
             </TouchableOpacity>
           </View>

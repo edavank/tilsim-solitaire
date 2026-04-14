@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView, Image, Al
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { COLORS, FONTS, SIZES , getThemeGradient } from '../src/constants/theme';
+import { COLORS, FONTS, SIZES  } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { loadSettings, saveSettings, loadProgress, resetAll } from '../src/utils/storage';
 import { setVibrationEnabled, setSoundEnabled, setBgmEnabled, getBgmEnabled } from '../src/utils/sounds';
@@ -36,7 +36,6 @@ const LANG_OPTIONS = [
 export default function SettingsScreen() {
   const { lang, t, setLang } = useLang();
   const [sound, setSound] = useState(true);
-  const [activeTheme, setActiveTheme] = useState('cosmic');
   const [vibration, setVibration] = useState(true);
   const [bgm, setBgm] = useState(true);
   const [coins, setCoins] = useState(0);
@@ -90,7 +89,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={s.container}>
-      <LinearGradient colors={getThemeGradient(activeTheme)} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
 
       {/* Header */}
       <View style={s.header}>

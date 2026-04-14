@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Alert } fr
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { COLORS, FONTS, SIZES , getThemeGradient } from '../src/constants/theme';
+import { COLORS, FONTS, SIZES  } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { loadProgress, updateProgress } from '../src/utils/storage';
 import { useLang } from '../src/context/LanguageContext';
@@ -22,7 +22,6 @@ export default function StoreScreen() {
   const { lang } = useLang();
   const st = STORE_TEXT[lang] || STORE_TEXT.tr;
   const [coins, setCoins] = useState(0);
-  const [activeTheme, setActiveTheme] = useState('cosmic');
 
   useEffect(() => {
     loadProgress().then((p) => setCoins(p.coins));
@@ -52,7 +51,7 @@ export default function StoreScreen() {
 
   return (
     <View style={s.container}>
-      <LinearGradient colors={getThemeGradient(activeTheme)} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
 
       <View style={s.header}>
         <View style={s.headerLeft}>
