@@ -639,10 +639,14 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       if (!slot.category && card.type === 'word') return false;
       // Dolu slot + kategori kartı → zaten dolu, sütuna dene
       if (slot.category && card.type === 'category') return false;
-      // Dolu slot + kelime kartı → eşleşme kontrolü yap
+      // Dolu slot + kelime kartı → KATEGORİ EŞLEŞME kontrolü
       if (slot.category && card.type === 'word') {
-        placeCard(card, source, sourceIndex, idx);
-        return true;
+        if (card.categoryIndex === slot.category.categoryIndex || card.isJoker) {
+          placeCard(card, source, sourceIndex, idx);
+          return true;
+        }
+        // Eşleşmiyorsa → sütuna dene (slot'u titretme!)
+        return false;
       }
       return false;
     };
