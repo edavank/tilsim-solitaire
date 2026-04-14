@@ -52,7 +52,21 @@ let RewardedAdEventType = null;
 
 let adsReady = false;
 
+function isExpoGo() {
+  try {
+    const Constants = require('expo-constants').default;
+    return Constants?.appOwnership === 'expo';
+  } catch (e) {
+    return false;
+  }
+}
+
 function loadAdModules() {
+  // Expo Go'da native modül yok — yüklemeye çalışma
+  if (isExpoGo()) {
+    console.log('[Ads] Expo Go — AdMob atlanıyor');
+    return false;
+  }
   try {
     const gma = require('react-native-google-mobile-ads');
     MobileAds = gma.default;
@@ -64,7 +78,7 @@ function loadAdModules() {
     RewardedAdEventType = gma.RewardedAdEventType;
     return true;
   } catch (e) {
-    console.log('[Ads] react-native-google-mobile-ads yüklenmedi (Expo Go?)');
+    console.log('[Ads] react-native-google-mobile-ads yüklenmedi:', e.message);
     return false;
   }
 }
