@@ -176,18 +176,19 @@ function PopInView({ children, trigger }) {
 }
 
 /* ── Card Components ── */
-function FaceDownCard({ w, h, themeColors }) {
+const FaceDownCard = React.memo(function FaceDownCard({ w, h, themeColors }) {
   const cb = themeColors?.cardBack || COLORS.cardBackTop;
+  const accent = themeColors?.accent || '#9B7DFF';
   return (
     <LinearGradient colors={[cb, cb]}
       start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-      style={[st.faceDown, { width: w || '100%', height: h || CARD_H }]}>
-      <View style={st.innerFrame}><View style={st.innerFrameInner} /></View>
+      style={[st.faceDown, { width: w || '100%', height: h || CARD_H, borderWidth: 1, borderColor: accent + '40' }]}>
+      <View style={[st.innerFrame, { borderColor: accent + '30' }]}><View style={[st.innerFrameInner, { borderColor: accent + '20' }]} /></View>
     </LinearGradient>
   );
-}
+});
 
-function FaceUpCard({ card, selected, w, h, hinted, isDragging, themeColors }) {
+const FaceUpCard = React.memo(function FaceUpCard({ card, selected, w, h, hinted, isDragging, themeColors }) {
   const cw = w || '100%'; const ch = h || CARD_H;
   const isCat = card.type === 'category';
   const isJoker = card.isJoker;
@@ -195,12 +196,13 @@ function FaceUpCard({ card, selected, w, h, hinted, isDragging, themeColors }) {
   const bg = themeColors?.cardFace || '#FFFFFF';
   const txt = themeColors?.cardText || '#1e293b';
   const bdr = themeColors?.cardBorder || 'rgba(155,125,255,0.15)';
+  const accent = themeColors?.accent || '#9B7DFF';
   const catEmojiSize = 26;
   const wordEmojiSize = 22;
   const catTextSize = 10;
   const wordTextSize = 10;
   return (
-    <View style={[st.faceUp, { width: cw, height: ch, backgroundColor: bg, borderColor: bdr, borderBottomWidth: isCat ? 0 : 3, borderBottomColor: catColor }, selected && st.cardSelected, isCat && st.catCardBorder, isJoker && { borderColor: '#FFD166', borderWidth: 2, shadowColor: '#FFD166', shadowOpacity: 0.8, shadowRadius: 12, backgroundColor: '#FFFBF0' }, hinted && st.cardHinted, isDragging && { opacity: 0.3 }]}>
+    <View style={[st.faceUp, { width: cw, height: ch, backgroundColor: bg, borderColor: bdr, borderWidth: 1.5, borderBottomWidth: isCat ? 0 : 3, borderBottomColor: catColor, shadowColor: accent, shadowOpacity: 0.15, shadowRadius: 4 }, selected && st.cardSelected, isCat && st.catCardBorder, isJoker && { borderColor: '#FFD166', borderWidth: 2, shadowColor: '#FFD166', shadowOpacity: 0.8, shadowRadius: 12, backgroundColor: '#FFFBF0' }, hinted && st.cardHinted, isDragging && { opacity: 0.3 }]}>
       {isCat ? (
         <>
           <View style={st.catBadge}><Text style={st.catBadgeText}>0/{card.totalWords}</Text></View>
@@ -216,7 +218,7 @@ function FaceUpCard({ card, selected, w, h, hinted, isDragging, themeColors }) {
       )}
     </View>
   );
-}
+});
 
 function FoundationSlot({ t, slot, slotIndex, onPress, onUnlock, hinted, themeColors }) {
   const h = CARD_H * 0.72;
