@@ -262,7 +262,8 @@ function FoundationSlot({ t, slot, slotIndex, onPress, onUnlock, hinted }) {
   );
 }
 
-const TableauColumn = React.memo(function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedId, dragCardId, dragStackIds, onCardTap, onColumnTap, onUnlock, onCardLongPress, onScrollLock }) {
+const TableauColumn = React.memo(function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedId, dragCardId, dragStackIds, onCardTap, onColumnTap, onUnlock, onDragStart, onDragMove, onDragEnd, onScrollLock }) {
+  const touchRef = useRef({ card: null, startX: 0, startY: 0, moved: false });
   if (column.locked) {
     return (
       <View style={[st.slotBox, st.slotDashed, { height: CARD_H }]}>
@@ -291,9 +292,40 @@ const TableauColumn = React.memo(function TableauColumn({ column, colIndex, sele
         return (
           <View key={card.id} style={{ marginTop: ci === 0 ? 0 : OVERLAP, zIndex: ci }}>
             {card.faceUp ? (
-              <TouchableOpacity activeOpacity={0.7} onPress={() => onCardTap(card, 'column', colIndex, isLast)} onPressIn={() => onScrollLock?.(true)} onPressOut={() => onScrollLock?.(false)} onLongPress={(e) => onCardLongPress?.(card, 'column', colIndex, isLast, e)} delayLongPress={30}>
-                <FaceUpCard card={card} selected={selectedId === card.id || (selectedStackIds && selectedStackIds.has(card.id))} hinted={isHinted} isDragging={false} />
-              </TouchableOpacity>
+              <View
+                onStartShouldSetResponder={() => true}
+                onResponderGrant={(e) => {
+                  const { pageX, pageY } = e.nativeEvent;
+                  touchRef.current = { card, colIndex, isLast, startX: pageX, startY: pageY, moved: false };
+                  onScrollLock?.(true);
+                }}
+                onResponderMove={(e) => {
+                  const t = touchRef.current;
+                  if (!t.card) return;
+                  const { pageX, pageY } = e.nativeEvent;
+                  if (!t.moved && (Math.abs(pageX - t.startX) + Math.abs(pageY - t.startY)) > 5) {
+                    t.moved = true;
+                    onDragStart?.(t.card, 'column', t.colIndex, t.isLast, t.startX, t.startY);
+                  }
+                  if (t.moved) onDragMove?.(pageX, pageY);
+                }}
+                onResponderRelease={(e) => {
+                  if (touchRef.current.moved) {
+                    onDragEnd?.(e.nativeEvent.pageX, e.nativeEvent.pageY);
+                  } else {
+                    onCardTap(card, 'column', colIndex, isLast);
+                  }
+                  touchRef.current = { card: null, startX: 0, startY: 0, moved: false };
+                  onScrollLock?.(false);
+                }}
+                onResponderTerminate={() => {
+                  if (touchRef.current.moved) onDragEnd?.(0, 0);
+                  touchRef.current = { card: null, startX: 0, startY: 0, moved: false };
+                  onScrollLock?.(false);
+                }}
+              >
+                <FaceUpCard card={card} selected={selectedId === card.id || (selectedStackIds && selectedStackIds.has(card.id))} hinted={isHinted} isDragging={dragStackIds && dragStackIds.has(card.id)} />
+              </View>
             ) : (
               <FaceDownCard />
             )}
@@ -508,13 +540,11 @@ export default function GameScreen() {
     dragX.setValue(pageX - CARD_W / 2);
     dragY.setValue(pageY - CARD_H / 2);
     dragOpacity.setValue(1);
-    Animated.spring(dragScale, { toValue: 1.15, friction: 6, useNativeDriver: true }).start();
+    dragScale.setValue(1.1);
     playSound('tap');
     setSelected(null);
   }, [gs.columns]);
 
-  // Drag handlers — her kart kendi responder'ına sahip
-  const touchInfoRef = useRef({ card: null, source: null, sourceIndex: null, isLast: false, startX: 0, startY: 0, moved: false });
 
   const onDragStart = useCallback((card, source, sourceIndex, isLast, pageX, pageY) => {
     startDrag(card, source, sourceIndex, isLast, pageX, pageY);
@@ -938,12 +968,6 @@ export default function GameScreen() {
     });
     setSelected(null);
   }, []);
-
-  const handleCardLongPress = useCallback((card, source, sourceIndex, isLast, event) => {
-    if (!event?.nativeEvent) return;
-    const { pageX, pageY } = event.nativeEvent;
-    startDrag(card, source, sourceIndex, isLast, pageX, pageY);
-  }, [startDrag]);
 
   const handleColumnTap = useCallback((colIndex) => {
     if (!selected) return;
@@ -1422,21 +1446,7 @@ export default function GameScreen() {
   return (
     <View 
       style={st.container}
-      onStartShouldSetResponderCapture={() => !!dragRef.current.card || scrollLockedRef.current}
-      onMoveShouldSetResponderCapture={() => !!dragRef.current.card || scrollLockedRef.current}
-      onMoveShouldSetResponder={() => !!dragRef.current.card || scrollLockedRef.current}
-      onResponderTerminationRequest={() => !dragRef.current.card}
-      onResponderMove={(e) => {
-        if (!dragRef.current.card) return;
-        const { pageX, pageY } = e.nativeEvent;
-        dragX.setValue(pageX - CARD_W / 2);
-        dragY.setValue(pageY - CARD_H / 2);
-      }}
-      onResponderRelease={(e) => {
-        if (!dragRef.current.card) return;
-        handleDrop(dragRef.current, e.nativeEvent.pageX, e.nativeEvent.pageY);
-      }}
-      onResponderTerminate={() => cancelDrag()}
+
     >
       <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
 
@@ -1504,10 +1514,11 @@ export default function GameScreen() {
             onLongPress={(e) => {
               if (gs.drawnCards.length > 0) {
                 const card = gs.drawnCards[gs.drawnCards.length - 1];
-                handleCardLongPress(card, 'drawn', null, true, e);
+                const { pageX, pageY } = e.nativeEvent;
+                startDrag(card, 'drawn', null, true, pageX, pageY);
               }
             }}
-            delayLongPress={30}
+            delayLongPress={50}
             activeOpacity={0.7}
           >
             {gs.drawnCards.length === 0 ? (
@@ -1554,7 +1565,7 @@ export default function GameScreen() {
         <View style={st.tableauRow}>
           {gs.columns.map((col, i) => (
             <View key={i} style={{ flex: 1 }}>
-              <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard} dragCardId={dragCardRef.current?.card?.id} dragStackIds={dragStackIds} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onUnlock={handleUnlock} onCardLongPress={handleCardLongPress} onScrollLock={lockScroll} />
+              <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard} dragCardId={dragCardRef.current?.card?.id} dragStackIds={dragStackIds} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onUnlock={handleUnlock} onDragStart={onDragStart} onDragMove={onDragMove} onDragEnd={onDragEnd} onScrollLock={lockScroll} />
             </View>
           ))}
         </View>
