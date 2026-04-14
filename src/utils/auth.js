@@ -58,9 +58,15 @@ export async function signInWithGoogle() {
 
     const { makeRedirectUri } = require('expo-auth-session');
     const WebBrowser = require('expo-web-browser');
+    const Constants = require('expo-constants');
     WebBrowser.maybeCompleteAuthSession();
 
-    const redirectUrl = makeRedirectUri({ scheme: 'tilsim-solitaire' });
+    // Expo Go uses exp:// scheme, standalone uses tilsim-solitaire://
+    const isExpoGo = Constants.default?.appOwnership === 'expo';
+    const redirectUrl = makeRedirectUri({
+      scheme: isExpoGo ? undefined : 'tilsim-solitaire',
+    });
+    console.log('[Auth] redirectUrl:', redirectUrl);
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
