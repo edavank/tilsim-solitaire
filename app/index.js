@@ -7,6 +7,7 @@ import { COLORS, FONTS, SIZES } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { loadProgress } from '../src/utils/storage';
 import { useLang } from '../src/context/LanguageContext';
+import { useAuth } from '../src/context/AuthContext';
 import { isDailyChallengeCompleted } from '../src/utils/dailyChallenge';
 import { checkDailyLogin, claimDailyReward, DAILY_REWARDS } from '../src/utils/dailyLogin';
 import { updateProgress } from '../src/utils/storage';
@@ -53,6 +54,7 @@ const LANG_FLAGS = { tr: '🇹🇷 TÜRKÇE', en: '🇬🇧 ENGLISH', de: '🇩�
 
 export default function HomeScreen() {
   const { lang, t } = useLang();
+  const { shouldShowLogin, authReady } = useAuth();
   const [currentLevel, setCurrentLevel] = useState(1);
   const [coins, setCoins] = useState(0);
   const [dailyDone, setDailyDone] = useState(false);
@@ -62,6 +64,13 @@ export default function HomeScreen() {
     const msgs = t.bilgeMessages || [];
     return msgs[Math.floor(Math.random() * msgs.length)] || '';
   });
+
+  // Redirect to login if first launch
+  useEffect(() => {
+    if (authReady && shouldShowLogin) {
+      router.replace('/login');
+    }
+  }, [authReady, shouldShowLogin]);
 
   // Refresh on screen focus (coming back from game)
   useFocusEffect(

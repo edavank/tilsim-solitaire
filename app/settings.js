@@ -8,22 +8,7 @@ import BottomNav from '../src/components/BottomNav';
 import { loadSettings, saveSettings, loadProgress, resetAll } from '../src/utils/storage';
 import { setVibrationEnabled, setSoundEnabled, setBgmEnabled, getBgmEnabled } from '../src/utils/sounds';
 import { useLang } from '../src/context/LanguageContext';
-
-let signInWithGoogle, signOut, getUser, onAuthChange;
-try {
-  const auth = require('../src/utils/auth');
-  signInWithGoogle = auth.signInWithGoogle;
-  signOut = auth.signOut;
-  getUser = auth.getUser;
-  onAuthChange = auth.onAuthChange;
-} catch (e) {
-  getUser = () => null;
-  onAuthChange = () => () => {};
-  signInWithGoogle = async () => ({ error: 'Auth kullanılamıyor' });
-  signOut = async () => {};
-}
-
-
+import { useAuth } from '../src/context/AuthContext';
 const LANG_OPTIONS = [
   { code: 'tr', flag: '🇹🇷', name: 'Türkçe' },
   { code: 'en', flag: '🇬🇧', name: 'English' },
@@ -35,12 +20,12 @@ const LANG_OPTIONS = [
 
 export default function SettingsScreen() {
   const { lang, t, setLang } = useLang();
+  const { user, loading, handleGoogleLogin, handleAppleLogin, handleSignOut, isAppleAvailable, syncToCloud } = useAuth();
   const [sound, setSound] = useState(true);
   const [vibration, setVibration] = useState(true);
   const [bgm, setBgm] = useState(true);
   const [coins, setCoins] = useState(0);
-  const [user, setUser] = useState(getUser());
-  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [showLangPicker, setShowLangPicker] = useState(false);
 
   useEffect(() => {
@@ -50,8 +35,6 @@ export default function SettingsScreen() {
       setBgm(s.bgm !== false);
     });
     loadProgress().then((p) => setCoins(p.coins));
-    const unsub = onAuthChange((u) => setUser(u));
-    return unsub;
   }, []);
 
   const toggleSound = (v) => {
@@ -140,22 +123,43 @@ export default function SettingsScreen() {
                 <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 15, color: COLORS.onSurface }}>{user.name}</Text>
                 <Text style={{ fontFamily: FONTS.body, fontSize: 12, color: COLORS.onSurfaceVariant }}>{user.email}</Text>
               </View>
+              {user.provider === 'google' && <MaterialIcons name="mail-outline" size={18} color={COLORS.onSurfaceVariant} />}
+              {user.provider === 'apple' && <MaterialIcons name="apple" size={18} color={COLORS.onSurfaceVariant} />}
             </View>
             <View style={s.divider} />
-            <TouchableOpacity style={{ padding: 14, alignItems: 'center' }} onPress={async () => { await signOut(); Alert.alert('Çıkış yapıldı'); }}>
+            <TouchableOpacity style={{ padding: 14, alignItems: 'center' }} onPress={async () => { await handleSignOut(); Alert.alert(t.signedOut || 'Çıkış yapıldı'); }}>
               <Text style={{ fontFamily: FONTS.body, fontSize: 14, color: COLORS.primary }}>{t.signOut}</Text>
             </TouchableOpacity>
           </View>
         ) : (
-          <TouchableOpacity style={s.googleBtn} activeOpacity={0.8} onPress={async () => {
-            setLoading(true);
-            const result = await signInWithGoogle();
-            setLoading(false);
-            if (result.error) Alert.alert('Giriş Hatası', result.error);
-          }}>
-            <MaterialIcons name="public" size={20} color="#fff" />
-            <Text style={s.googleText}>{loading ? t.connecting : t.connectGoogle}</Text>
-          </TouchableOpacity>
+          <View style={{ gap: 10 }}>
+            <TouchableOpacity style={s.googleBtn} activeOpacity={0.8} disabled={busy || loading} onPress={async () => {
+              setBusy(true);
+              const result = await handleGoogleLogin();
+              setBusy(false);
+              if (result.error && result.error !== 'Giriş iptal edildi') Alert.alert(t.loginError || 'Giriş Hatası', result.error);
+              else if (!result.error) {
+                try { const local = await loadProgress(); await syncToCloud(local); } catch (e) {}
+              }
+            }}>
+              <MaterialIcons name="mail-outline" size={20} color="#fff" />
+              <Text style={s.googleText}>{busy || loading ? t.connecting : t.connectGoogle}</Text>
+            </TouchableOpacity>
+            {isAppleAvailable && (
+              <TouchableOpacity style={s.appleBtn} activeOpacity={0.8} disabled={busy || loading} onPress={async () => {
+                setBusy(true);
+                const result = await handleAppleLogin();
+                setBusy(false);
+                if (result.error && result.error !== 'Giriş iptal edildi') Alert.alert(t.loginError || 'Giriş Hatası', result.error);
+                else if (!result.error) {
+                  try { const local = await loadProgress(); await syncToCloud(local); } catch (e) {}
+                }
+              }}>
+                <MaterialIcons name="apple" size={20} color="#fff" />
+                <Text style={s.appleText}>{busy || loading ? t.connecting : (t.connectApple || 'Apple ile Bağla')}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         )}
 
         {/* Buttons */}
@@ -268,9 +272,14 @@ const s = StyleSheet.create({
 
   googleBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-    backgroundColor: COLORS.primary, paddingVertical: 16, borderRadius: 16, marginTop: 12,
+    backgroundColor: '#4285F4', paddingVertical: 16, borderRadius: 16,
   },
   googleText: { fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff' },
+  appleBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+    backgroundColor: '#000', paddingVertical: 16, borderRadius: 16,
+  },
+  appleText: { fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff' },
 
   resetBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,

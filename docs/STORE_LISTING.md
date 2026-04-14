@@ -81,18 +81,22 @@ Mor gradient arka plan + Bilge owl + "Tılsım Solitaire" logo + kartlar
 ## App Store Connect — Privacy Details
 
 ### Data Collected:
-1. **Identifiers** → Device ID (Advertising ID)
-   - Purpose: Third-Party Advertising
-   - Linked to User: No
-   - Tracking: Yes (AdMob)
+1. **Contact Info** → Email Address (optional sign-in)
+   - Purpose: App Functionality
+   - Linked to User: Yes (if signed in)
+   - Tracking: No
 
-2. **Usage Data** → Product Interaction
+2. **Identifiers** → User ID, Device ID
+   - Purpose: App Functionality, Third-Party Advertising
+   - Linked to User: Yes (User ID), No (Device ID)
+   - Tracking: Yes (Advertising ID via AdMob)
+
+3. **Usage Data** → Product Interaction
    - Purpose: Analytics, Third-Party Advertising
    - Linked to User: No
    - Tracking: Yes (AdMob)
 
 ### Data NOT Collected:
-- Contact Info
 - Health & Fitness
 - Financial Info
 - Location
@@ -110,12 +114,14 @@ Mor gradient arka plan + Bilge owl + "Tılsım Solitaire" logo + kartlar
 - Device or other IDs → Advertising (AdMob)
 
 ### Data collected:
+- Email address → App functionality (optional sign-in, cloud save)
 - App activity → App interactions (AdMob analytics)
 - Device or other IDs → Advertising ID (AdMob)
 
 ### Security practices:
 - Data is encrypted in transit
-- Data cannot be deleted (advertising IDs managed by Google)
+- You can request that data be deleted (sign out + reset progress)
+- Data cannot be deleted for advertising IDs (managed by Google)
 
 ### App targets:
 - Not specifically designed for children
