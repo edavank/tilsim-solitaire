@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, FONTS, SIZES } from '../src/constants/theme';
+import { COLORS, FONTS, SIZES, getThemeGradient } from '../src/constants/theme';
 import { loadProgress, updateProgress } from '../src/utils/storage';
 import { showRewarded } from '../src/utils/ads';
 import { useLang } from '../src/context/LanguageContext';
@@ -170,7 +170,7 @@ export default function ThemesScreen() {
 
   return (
     <View style={s.container}>
-      <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={getThemeGradient(activeTheme)} style={StyleSheet.absoluteFillObject} />
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
           <MaterialIcons name="arrow-back" size={24} color="#fff" />

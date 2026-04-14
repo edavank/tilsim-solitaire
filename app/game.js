@@ -292,11 +292,14 @@ const TableauColumn = React.memo(function TableauColumn({ column, colIndex, sele
         return (
           <View key={card.id} style={{ marginTop: ci === 0 ? 0 : OVERLAP, zIndex: ci }}>
             {card.faceUp ? (
-              <View
-                onStartShouldSetResponder={() => true}
-                onMoveShouldSetResponder={() => true}
-                onResponderGrant={(e) => {
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => { if (!touchRef.current.moved) onCardTap(card, 'column', colIndex, isLast); }}
+                onPressIn={(e) => {
                   touchRef.current = { card, colIndex, isLast, startX: e.nativeEvent.pageX, startY: e.nativeEvent.pageY, moved: false };
+                }}
+                onPressOut={() => {
+                  setTimeout(() => { touchRef.current = { card: null, startX: 0, startY: 0, moved: false }; }, 50);
                 }}
                 onResponderMove={(e) => {
                   const info = touchRef.current;
@@ -304,25 +307,20 @@ const TableauColumn = React.memo(function TableauColumn({ column, colIndex, sele
                   const { pageX, pageY } = e.nativeEvent;
                   const dx = pageX - info.startX;
                   const dy = pageY - info.startY;
-                  if (!info.moved && Math.abs(dx) + Math.abs(dy) > 8) {
+                  if (!info.moved && Math.abs(dx) + Math.abs(dy) > 6) {
                     info.moved = true;
                     onDragStart?.(info.card, 'column', info.colIndex, info.isLast, info.startX, info.startY);
                   }
                   if (info.moved) onDragMove?.(pageX, pageY);
                 }}
                 onResponderRelease={(e) => {
-                  const info = touchRef.current;
-                  if (info.moved) {
+                  if (touchRef.current.moved) {
                     onDragEnd?.(e.nativeEvent.pageX, e.nativeEvent.pageY);
-                  } else {
-                    onCardTap(card, 'column', colIndex, isLast);
                   }
-                  touchRef.current = { card: null, startX: 0, startY: 0, moved: false };
                 }}
-                onResponderTerminate={() => { onDragEnd?.(0, 0); touchRef.current = { card: null, startX: 0, startY: 0, moved: false }; }}
               >
                 <FaceUpCard card={card} selected={selectedId === card.id || (selectedStackIds && selectedStackIds.has(card.id))} hinted={isHinted} isDragging={dragStackIds && dragStackIds.has(card.id)} themeColors={themeColors} />
-              </View>
+              </TouchableOpacity>
             ) : (
               <FaceDownCard themeColors={themeColors} />
             )}
