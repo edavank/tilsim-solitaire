@@ -610,7 +610,24 @@ export default function GameScreen() {
 
     const trySlot = () => {
       const idx = findNearest(gs.slots.length, GAME_PAD, SW - GAME_PAD * 2);
-      if (idx >= 0) { placeCard(card, source, sourceIndex, idx); return true; }
+      if (idx < 0 || idx >= gs.slots.length) return false;
+      const slot = gs.slots[idx];
+      // Slot kilitliyse → geç
+      if (slot.locked) return false;
+      // Boş slot + kategori kartı → yerleştir
+      if (!slot.category && card.type === 'category') {
+        placeCard(card, source, sourceIndex, idx);
+        return true;
+      }
+      // Boş slot + kelime kartı → slot'a yerleşemez, sütuna dene
+      if (!slot.category && card.type === 'word') return false;
+      // Dolu slot + kategori kartı → zaten dolu, sütuna dene
+      if (slot.category && card.type === 'category') return false;
+      // Dolu slot + kelime kartı → eşleşme kontrolü yap
+      if (slot.category && card.type === 'word') {
+        placeCard(card, source, sourceIndex, idx);
+        return true;
+      }
       return false;
     };
 
