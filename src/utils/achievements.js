@@ -16,7 +16,7 @@ const ACHIEVEMENTS = [
   { id: 'level_100', icon: '✨', title: 'Galaktik', desc: 'Bölüm 100\'e ulaş', reward: 300, check: (s) => s.currentLevel >= 100 },
   { id: 'level_200', icon: '🌠', title: 'Kozmik', desc: 'Bölüm 200\'e ulaş', reward: 500, check: (s) => s.currentLevel >= 200 },
   // Coin
-  { id: 'coins_1k', icon: '🪙', title: 'Cep Harçlığı', desc: '1.000 coin biriktir', reward: 50, check: (s) => s.coins >= 1000 },
+  { id: 'coins_1k', icon: '💰', title: 'Cep Harçlığı', desc: '1.000 coin biriktir', reward: 50, check: (s) => s.coins >= 1000 },
   { id: 'coins_5k', icon: '💰', title: 'Hazine', desc: '5.000 coin biriktir', reward: 100, check: (s) => s.coins >= 5000 },
   { id: 'coins_10k', icon: '🏦', title: 'Banka', desc: '10.000 coin biriktir', reward: 200, check: (s) => s.coins >= 10000 },
   { id: 'coins_50k', icon: '💎', title: 'Milyoner', desc: '50.000 coin biriktir', reward: 500, check: (s) => s.coins >= 50000 },

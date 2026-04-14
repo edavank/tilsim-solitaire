@@ -58,7 +58,7 @@ export default function StoreScreen() {
           <TouchableOpacity onPress={() => router.back()}>
             <MaterialIcons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
-          <Text style={s.headerTitle}>{tx.coinPacks ? tx.premium : 'STORE'}</Text>
+          <Text style={s.headerTitle}>{st.premium || 'STORE'}</Text>
         </View>
         <View style={s.coinBadge}>
           <Text style={{ fontSize: 12 }}>🪙</Text>
