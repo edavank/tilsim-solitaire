@@ -517,6 +517,9 @@ export default function GameScreen() {
   const scrollRef = useRef(null);
   const saveTimerRef = useRef(null);
   const drawnTouchRef = useRef({ startX: 0, startY: 0, moved: false });
+  const slotsRowY = useRef({ top: 0, bottom: 0 });
+  const tableauRowY = useRef({ top: 0, bottom: 0 });
+  const scrollOffsetRef = useRef(0);
   const startDragRef = useRef(null);
   const cancelDragRef = useRef(null);
   const handleDropRef = useRef(null);
@@ -588,53 +591,59 @@ export default function GameScreen() {
     const { card, source, sourceIndex, stackCards } = dragInfo;
     const stack = stackCards || [card];
 
-    // ÖNCE drag'i temizle — kart anında kaybolsun
+    // ÖNCE drag'i temizle
     cancelDrag();
 
-    // Geçerli bırakma noktası bul
-    // Slotlar (foundation) — üst %35
-    if (dropY < SH * 0.35) {
-      // dropZones ref'ten slot pozisyonlarını al (daha hassas)
-      const slotZones = dropZones.current.filter(z => z.type === 'slot');
-      let bestSlot = -1;
-      let bestDist = 999;
-      for (const sz of slotZones) {
-        const cx = sz.x + sz.w / 2;
-        const cy = sz.y + sz.h / 2;
-        const dist = Math.abs(dropX - cx) + Math.abs(dropY - cy);
-        if (dist < bestDist && dist < sz.w) {
-          bestDist = dist;
-          bestSlot = sz.index;
-        }
-      }
-      if (bestSlot >= 0) {
-        placeCard(card, source, sourceIndex, bestSlot);
-        return;
-      }
-      // dropZones boşsa fallback hesaplama
-      const slotWidth = (SW - GAME_PAD * 2) / gs.slots.length;
+    // Scroll offset'i hesapla — layout Y değerleri content-relative, dropY screen-relative
+    // Header yüksekliği yaklaşık 70px (paddingTop:62 + içerik)
+    const headerH = 70;
+    const contentY = dropY - headerH + scrollOffsetRef.current;
+
+    // Slot satırının gerçek Y pozisyonunu kullan
+    const slotMid = (slotsRowY.current.top + slotsRowY.current.bottom) / 2;
+    const colTop = tableauRowY.current.top;
+    
+    // Bırakma noktası slot bölgesine mi, sütun bölgesine mi yakın?
+    const slotTolerance = CARD_H * 1.5; // Cömert tolerans
+    const isNearSlots = slotsRowY.current.bottom > 0 && Math.abs(contentY - slotMid) < slotTolerance;
+    const isNearColumns = tableauRowY.current.bottom > 0 && contentY > colTop - CARD_H;
+
+    // Slot kontrolü — X pozisyonuna göre slot index bul
+    if (isNearSlots) {
+      const slotCount = gs.slots.length;
+      const totalGap = COL_GAP * (slotCount - 1);
+      const totalWidth = SW - GAME_PAD * 2;
+      const slotWidth = totalWidth / slotCount;
       const slotIdx = Math.floor((dropX - GAME_PAD) / slotWidth);
-      if (slotIdx >= 0 && slotIdx < gs.slots.length) {
+      if (slotIdx >= 0 && slotIdx < slotCount) {
         placeCard(card, source, sourceIndex, slotIdx);
         return;
       }
     }
 
-    // Check columns — bottom area
-    const actualColCount = gs.columns.length;
-    const colWidth = (SW - GAME_PAD * 2) / actualColCount;
-    const colIdx = Math.floor((dropX - GAME_PAD) / colWidth);
-    if (colIdx >= 0 && colIdx < gs.columns.length) {
-      if (stack.length > 1) {
-        moveStackToColumn(stack, source, sourceIndex, colIdx);
-      } else {
-        moveToColumn(card, source, sourceIndex, colIdx);
+    // Sütun kontrolü
+    if (isNearColumns || !isNearSlots) {
+      const colCount = gs.columns.length;
+      const colWidth = (SW - GAME_PAD * 2) / colCount;
+      const colIdx = Math.floor((dropX - GAME_PAD) / colWidth);
+      if (colIdx >= 0 && colIdx < colCount) {
+        if (stack.length > 1) {
+          moveStackToColumn(stack, source, sourceIndex, colIdx);
+        } else {
+          moveToColumn(card, source, sourceIndex, colIdx);
+        }
+        return;
       }
-      return;
     }
 
-    // Geçersiz bölgeye bırakıldı
-    setFeedback(t.cantPlace);
+    // Hiçbir yere düşmediyse — en yakın X slot/sütununu dene
+    const colWidth = (SW - GAME_PAD * 2) / gs.columns.length;
+    const colIdx = Math.max(0, Math.min(gs.columns.length - 1, Math.floor((dropX - GAME_PAD) / colWidth)));
+    if (stack.length > 1) {
+      moveStackToColumn(stack, source, sourceIndex, colIdx);
+    } else {
+      moveToColumn(card, source, sourceIndex, colIdx);
+    }
   }, [gs.slots, gs.columns, placeCard, moveToColumn, moveStackToColumn, cancelDrag]);
   handleDropRef.current = handleDrop;
 
@@ -1514,7 +1523,7 @@ export default function GameScreen() {
 
       {!!feedback && <View style={st.feedbackBar}><Text style={st.feedbackText}>{feedback}</Text></View>}
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={st.scrollContent} showsVerticalScrollIndicator={false} scrollEnabled={!scrollLocked} bounces={false} overScrollMode="never" ref={scrollRef}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={st.scrollContent} showsVerticalScrollIndicator={false} scrollEnabled={!scrollLocked} bounces={false} overScrollMode="never" ref={scrollRef} onScroll={(e) => { scrollOffsetRef.current = e.nativeEvent.contentOffset.y; }} scrollEventThrottle={16}>
         <View style={{ height: 20 }} />
         <View style={st.deckRow}>
           {isTimed ? (
@@ -1615,7 +1624,7 @@ export default function GameScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={st.slotsRow}>
+        <View style={st.slotsRow} onLayout={(e) => { const { y, height } = e.nativeEvent.layout; slotsRowY.current = { top: y, bottom: y + height }; }}>
           {gs.slots.map((slot, i) => (
             <Animated.View key={i} style={{ flex: 1, transform: [{ translateX: shakeSlotIdx === i ? shakeAnim : 0 }] }}>
               <FoundationSlot t={t} slot={slot} slotIndex={i} onPress={() => handleSlotTap(i)} onUnlock={handleUnlock} hinted={hintSlot === i} />
@@ -1623,7 +1632,7 @@ export default function GameScreen() {
           ))}
         </View>
 
-        <View style={st.tableauRow}>
+        <View style={st.tableauRow} onLayout={(e) => { const { y, height } = e.nativeEvent.layout; tableauRowY.current = { top: y, bottom: y + height }; }}>
           {gs.columns.map((col, i) => (
             <View key={i} style={{ flex: 1 }}>
               <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard}  onCardTap={handleCardTap} onColumnTap={handleColumnTap} onUnlock={handleUnlock} onDragStart={onDragStart} onDragMove={onDragMove} onDragEnd={onDragEnd} onScrollLock={lockScroll} onCancelDrag={cancelDrag} />
