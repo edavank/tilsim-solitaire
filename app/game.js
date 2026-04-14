@@ -608,41 +608,46 @@ export default function GameScreen() {
     const isNearSlots = slotsRowY.current.bottom > 0 && Math.abs(contentY - slotMid) < slotTolerance;
     const isNearColumns = tableauRowY.current.bottom > 0 && contentY > colTop - CARD_H;
 
-    // Slot kontrolü — X pozisyonuna göre slot index bul
+    // En yakın slot/sütun merkezini bul (pixel-perfect değil, cömert)
+    const findNearest = (count, startX, totalW) => {
+      const w = totalW / count;
+      let best = -1, bestD = 9999;
+      for (let i = 0; i < count; i++) {
+        const center = startX + w * i + w / 2;
+        const d = Math.abs(dropX - center);
+        if (d < bestD) { bestD = d; best = i; }
+      }
+      return best;
+    };
+
+    // Slot kontrolü
     if (isNearSlots) {
-      const slotCount = gs.slots.length;
-      const totalGap = COL_GAP * (slotCount - 1);
-      const totalWidth = SW - GAME_PAD * 2;
-      const slotWidth = totalWidth / slotCount;
-      const slotIdx = Math.floor((dropX - GAME_PAD) / slotWidth);
-      if (slotIdx >= 0 && slotIdx < slotCount) {
-        placeCard(card, source, sourceIndex, slotIdx);
+      const idx = findNearest(gs.slots.length, GAME_PAD, SW - GAME_PAD * 2);
+      if (idx >= 0) {
+        placeCard(card, source, sourceIndex, idx);
         return;
       }
     }
 
     // Sütun kontrolü
     if (isNearColumns || !isNearSlots) {
-      const colCount = gs.columns.length;
-      const colWidth = (SW - GAME_PAD * 2) / colCount;
-      const colIdx = Math.floor((dropX - GAME_PAD) / colWidth);
-      if (colIdx >= 0 && colIdx < colCount) {
+      const idx = findNearest(gs.columns.length, GAME_PAD, SW - GAME_PAD * 2);
+      if (idx >= 0 && idx < gs.columns.length) {
         if (stack.length > 1) {
-          moveStackToColumn(stack, source, sourceIndex, colIdx);
+          moveStackToColumn(stack, source, sourceIndex, idx);
         } else {
-          moveToColumn(card, source, sourceIndex, colIdx);
+          moveToColumn(card, source, sourceIndex, idx);
         }
         return;
       }
     }
 
-    // Hiçbir yere düşmediyse — en yakın X slot/sütununu dene
-    const colWidth = (SW - GAME_PAD * 2) / gs.columns.length;
-    const colIdx = Math.max(0, Math.min(gs.columns.length - 1, Math.floor((dropX - GAME_PAD) / colWidth)));
+    // Fallback — en yakın sütun
+    const idx = findNearest(gs.columns.length, GAME_PAD, SW - GAME_PAD * 2);
     if (stack.length > 1) {
-      moveStackToColumn(stack, source, sourceIndex, colIdx);
+      moveStackToColumn(stack, source, sourceIndex, Math.max(0, idx));
     } else {
-      moveToColumn(card, source, sourceIndex, colIdx);
+      moveToColumn(card, source, sourceIndex, Math.max(0, idx));
     }
   }, [gs.slots, gs.columns, placeCard, moveToColumn, moveStackToColumn, cancelDrag]);
   handleDropRef.current = handleDrop;
