@@ -61,11 +61,12 @@ export async function signInWithGoogle() {
     const Constants = require('expo-constants');
     WebBrowser.maybeCompleteAuthSession();
 
-    // Expo Go uses exp:// scheme, standalone uses tilsim-solitaire://
+    // Expo Go: use exp://IP:PORT, Standalone: use tilsim-solitaire://
     const isExpoGo = Constants.default?.appOwnership === 'expo';
-    const redirectUrl = makeRedirectUri({
-      scheme: isExpoGo ? undefined : 'tilsim-solitaire',
-    });
+    const hostUri = Constants.default?.expoConfig?.hostUri;
+    const redirectUrl = isExpoGo && hostUri
+      ? `exp://${hostUri}`
+      : makeRedirectUri({ scheme: 'tilsim-solitaire' });
     console.log('[Auth] redirectUrl:', redirectUrl);
 
     const { data, error } = await supabase.auth.signInWithOAuth({
