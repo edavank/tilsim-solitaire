@@ -1189,7 +1189,7 @@ export default function GameScreen() {
 
   // ── Level Complete → save & advance ──
   const handleNextLevel = useCallback(async () => {
-    const bonus = Math.floor(8 * (gs.moves / level.moves));
+    const bonus = isTimed ? Math.min(levelId * 2, 50) : Math.floor(8 * (gs.moves / level.moves));
     const eventMultiplier = 1;
     const prog = await loadProgress();
 
@@ -1679,7 +1679,7 @@ export default function GameScreen() {
       {gs.isComplete && (
         <>
           <ConfettiEffect />
-          <LevelCompleteOverlay t={t} score={gs.score} coins={isDaily ? 100 : 30} movesLeft={gs.moves} maxMoves={level.moves} levelId={gs.levelId} combo={combo} isDaily={isDaily} elapsedTime={elapsedTime} onNext={handleNextLevel} onReplay={handleReplay} onHome={handleHome} />
+          <LevelCompleteOverlay t={t} score={gs.score} coins={isDaily ? 100 : 30} movesLeft={isTimed ? 0 : gs.moves} maxMoves={level.moves} levelId={gs.levelId} combo={combo} isDaily={isDaily} elapsedTime={elapsedTime} onNext={handleNextLevel} onReplay={handleReplay} onHome={handleHome} />
         </>
       )}
       {gs.isFailed && !gs.isComplete && (

@@ -387,7 +387,7 @@ export const EMOJI_MAP = {
   'Gül': '🌹', 'Rose': '🌹', 'وردة': '🌹', 'Rosa': '🌹',
   'Papatya': '🌼', 'Daisy': '🌼', 'Gänseblümchen': '🌼', 'Marguerite': '🌼', 'Margarita': '🌼', 'أقحوان': '🌼',
   'Lale': '🌷', 'Tulip': '🌷', 'Tulpe': '🌷', 'Tulipe': '🌷', 'Tulipán': '🌷', 'توليب': '🌷',
-  'Menekşe': '💜', 'Violet': '💜', 'Veilchen': '💜', 'Violette': '💜', 'Violeta': '💜', 'بنفسج': '💜',
+  'Menekşe': '🌸', 'Violet': '🌸', 'Veilchen': '🌸', 'Violette': '🌸', 'Violeta': '🌸', 'بنفسج': '🌸',
   'Orkide': '🌺', 'Orchid': '🌺', 'Orchidee': '🌺', 'Orchidée': '🌺', 'Orquídea': '🌺', 'أوركيد': '🌺',
   'Sümbül': '💐', 'Lily': '💐', 'Lilie': '💐', 'Lys': '💐', 'Lirio': '💐', 'زنبق': '💐',
   'Yunus': '🐬', 'Dolphin': '🐬', 'Delfin': '🐬', 'Dauphin': '🐬', 'Delfín': '🐬', 'دلفين': '🐬',
@@ -402,12 +402,12 @@ export const EMOJI_MAP = {
   'Aşçı': '👨‍🍳', 'Chef': '👨‍🍳', 'Koch': '👨‍🍳', 'Cuisinier': '👨‍🍳', 'Cocinero': '👨‍🍳', 'طاهي': '👨‍🍳',
   'Pilot': '👨‍✈️', 'طيار': '👨‍✈️',
   'Polis': '👮', 'Police': '👮', 'Polizist': '👮', 'Policier': '👮', 'Policía': '👮', 'شرطي': '👮',
-  'Masa': '🍽️', 'Table': '🍽️', 'Tisch': '🍽️', 'Mesa': '💺',
+  'Masa': '🔲', 'Table': '🔲', 'Tisch': '🔲', 'Mesa': '🔲',
   'Sandalye': '💺', 'Chair': '💺', 'Stuhl': '💺', 'Chaise': '💺', 'Silla': '💺',
   'Dolap': '🗄️', 'Closet': '🗄️', 'Schrank': '🗄️', 'Armoire': '🗄️', 'Armario': '🗄️',
   'Koltuk': '🛋️', 'Couch': '🛋️', 'Sofa': '🛋️', 'Canapé': '🛋️', 'Sofá': '🛋️',
   'Yatak': '🛏️', 'Bed': '🛏️', 'Bett': '🛏️', 'Lit': '🛏️', 'Cama': '🛏️',
-  'Ayna': '🔮', 'Mirror': '🔮', 'Spiegel': '🔮', 'Miroir': '🔮', 'Espejo': '🔮',
+  'Ayna': '🖼️', 'Mirror': '🖼️', 'Spiegel': '🖼️', 'Miroir': '🖼️', 'Espejo': '🖼️',
   'Göz': '👁️', 'Eye': '👁️', 'Auge': '👁️',
   'Burun': '👃', 'Nose': '👃', 'Nase': '👃',
   'Kulak': '👂', 'Ear': '👂', 'Ohr': '👂',
@@ -433,7 +433,7 @@ export const EMOJI_MAP = {
   'Brownie': '🍫', 'Cookie': '🍪', 'Pudding': '🍮', 'Muffin': '🍩', 'Donut': '🥜', 'Pie': '🥧',
   // Spices
   'Tuz': '🧂', 'Salt': '🧂', 'Kimyon': '🌿', 'Cumin': '🌿', 'Kekik': '🌱', 'Thyme': '🌱',
-  'Tarçın': '🌲', 'Cinnamon': '🌲', 'Safran': '🌾', 'Saffron': '🌾',
+  'Tarçın': '🍂', 'Cinnamon': '🍂', 'Safran': '🌾', 'Saffron': '🌾',
   // Technology
   'Telefon': '📞', 'Phone': '📞', 'Tablet': '📲', 'Laptop': '💻', 'Robot': '🤖', 'Drone': '🛸', 'Yazıcı': '🖨️', 'Printer': '🖨️',
   // Computer
