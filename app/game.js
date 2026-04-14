@@ -16,7 +16,6 @@ import { submitScore } from '../src/utils/leaderboardService';
 import { getDailyChallenge, markDailyChallengeCompleted } from '../src/utils/dailyChallenge';
 import { checkAchievements, ACHIEVEMENT_I18N } from '../src/utils/achievements';
 import { markCategoryCompleted } from '../src/utils/collection';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 // seasonalEvents kaldırıldı
 
 import { IS_TABLET, fs, getGameLayout } from '../src/utils/responsive';
@@ -254,7 +253,7 @@ function FoundationSlot({ t, slot, slotIndex, onPress, onUnlock, hinted }) {
   );
 }
 
-function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedId, dragCardId, dragStackIds, onCardTap, onColumnTap, onCardPressIn, onCardPressOut, onUnlock }) {
+function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedId, dragCardId, dragStackIds, onCardTap, onColumnTap, onUnlock }) {
   if (column.locked) {
     return (
       <View style={[st.slotBox, st.slotDashed, { height: CARD_H }]}>
@@ -286,8 +285,6 @@ function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedI
               <TouchableOpacity
                 activeOpacity={0.7}
                 onPress={() => onCardTap(card, 'column', colIndex, isLast)}
-                onPressIn={(e) => onCardPressIn?.(card, 'column', colIndex, isLast, e)}
-                onPressOut={() => onCardPressOut?.()}
               >
                 <FaceUpCard card={card} selected={selectedId === card.id || (selectedStackIds && selectedStackIds.has(card.id))} hinted={isHinted} isDragging={dragStackIds && dragStackIds.has(card.id)} />
               </TouchableOpacity>
@@ -506,33 +503,7 @@ export default function GameScreen() {
     setSelected(null);
   }, [gs.columns]);
 
-  // Drag gesture using react-native-gesture-handler
-  const dragGesture = Gesture.Pan()
-    .manualActivation(true)
-    .onTouchesMove((e, stateManager) => {
-      // Zaten sürükleme başladıysa devam
-      if (dragRef.current.card) { stateManager.activate(); return; }
-      // PressIn'den bekleyen kart varsa sürüklemeyi başlat
-      if (pendingDragRef.current) {
-        const p = pendingDragRef.current;
-        startDrag(p.card, p.source, p.sourceIndex, p.isLast, p.pageX, p.pageY);
-        pendingDragRef.current = null;
-        stateManager.activate();
-      }
-    })
-    .onUpdate((e) => {
-      if (!dragRef.current.card) return;
-      dragX.setValue(e.absoluteX - CARD_W / 2);
-      dragY.setValue(e.absoluteY - CARD_H / 2);
-    })
-    .onEnd((e) => {
-      if (!dragRef.current.card) return;
-      handleDrop(dragRef.current, e.absoluteX, e.absoluteY);
-    })
-    .onFinalize(() => {
-      pendingDragRef.current = null;
-      if (dragRef.current.card) cancelDrag();
-    });
+  // Drag: tap-to-select, tap-to-place (sürükleme devre dışı)
 
   const cancelDrag = useCallback(() => {
     Animated.timing(dragOpacity, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
@@ -948,20 +919,6 @@ export default function GameScreen() {
       moveToColumn(selected.card, selected.source, selected.sourceIndex, colIndex);
     }
   }, [selected, moveToColumn, moveStackToColumn]);
-
-  // Pending drag — onPressIn kaydeder, gesture hareket algılayınca başlatır
-  const pendingDragRef = useRef(null);
-
-  const handleCardPressIn = useCallback((card, source, sourceIndex, isLast, event) => {
-    if (!event?.nativeEvent) return;
-    const { pageX, pageY } = event.nativeEvent;
-    pendingDragRef.current = { card, source, sourceIndex, isLast, pageX, pageY };
-  }, []);
-
-  const handleCardPressOut = useCallback(() => {
-    // Sürükleme başlamadıysa temizle
-    if (!dragRef.current.card) pendingDragRef.current = null;
-  }, []);
 
   const handleSlotTap = useCallback((slotIndex) => {
     if (!selected) { setFeedback(t.selectCardFirst); return; }
@@ -1429,7 +1386,6 @@ export default function GameScreen() {
   }, []);
 
   return (
-    <GestureDetector gesture={dragGesture}>
     <View 
       style={st.container}
     >
@@ -1493,13 +1449,6 @@ export default function GameScreen() {
           <TouchableOpacity
             style={st.drawnArea}
             onPress={handleDrawnTap}
-            onPressIn={(e) => {
-              if (gs.drawnCards.length > 0) {
-                const card = gs.drawnCards[gs.drawnCards.length - 1];
-                handleCardPressIn(card, 'drawn', null, true, e);
-              }
-            }}
-            onPressOut={handleCardPressOut}
             activeOpacity={0.7}
           >
             {gs.drawnCards.length === 0 ? (
@@ -1546,7 +1495,7 @@ export default function GameScreen() {
         <View style={st.tableauRow}>
           {gs.columns.map((col, i) => (
             <View key={i} style={{ flex: 1 }}>
-              <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard} dragCardId={dragCard?.card?.id} dragStackIds={dragStackIds} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onCardPressIn={handleCardPressIn} onCardPressOut={handleCardPressOut} onUnlock={handleUnlock} />
+              <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard} dragCardId={dragCard?.card?.id} dragStackIds={dragStackIds} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onUnlock={handleUnlock} />
             </View>
           ))}
         </View>
@@ -1788,7 +1737,6 @@ export default function GameScreen() {
         </Animated.View>
       )}
     </View>
-    </GestureDetector>
   );
 }
 
