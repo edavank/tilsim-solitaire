@@ -295,6 +295,8 @@ const TableauColumn = React.memo(function TableauColumn({ column, colIndex, sele
               <View
                 onStartShouldSetResponder={() => true}
                 onResponderGrant={(e) => {
+                  // Önceki drag kalmışsa temizle
+                  if (touchRef.current.moved) onDragEnd?.(0, 0);
                   const { pageX, pageY } = e.nativeEvent;
                   touchRef.current = { card, colIndex, isLast, startX: pageX, startY: pageY, moved: false };
                   onScrollLock?.(true);
@@ -573,21 +575,40 @@ export default function GameScreen() {
   const cancelDrag = useCallback(() => {
     dragOpacity.setValue(0);
     dragScale.setValue(1);
+    dragCardRef.current = null;
     dragRef.current = { card: null, source: null, sourceIndex: null, isLast: false, startX: 0, startY: 0 };
     lockScroll(false);
-    // dragCardRef temizlenmez — floating card opacity:0 ile gizli
-    // Bu sayede re-render gerekmez, kart anında kaybolur
+    forceRender(v => v + 1);
   }, []);
 
   const handleDrop = useCallback((dragInfo, dropX, dropY) => {
     const { card, source, sourceIndex, stackCards } = dragInfo;
     const stack = stackCards || [card];
 
-    // Her durumda önce drag'i temizle
+    // ÖNCE drag'i temizle — kart anında kaybolsun
     cancelDrag();
 
-    // Check slots (foundation) — top area
-    if (dropY < SH * 0.4) {
+    // Geçerli bırakma noktası bul
+    // Slotlar (foundation) — üst %35
+    if (dropY < SH * 0.35) {
+      // dropZones ref'ten slot pozisyonlarını al (daha hassas)
+      const slotZones = dropZones.current.filter(z => z.type === 'slot');
+      let bestSlot = -1;
+      let bestDist = 999;
+      for (const sz of slotZones) {
+        const cx = sz.x + sz.w / 2;
+        const cy = sz.y + sz.h / 2;
+        const dist = Math.abs(dropX - cx) + Math.abs(dropY - cy);
+        if (dist < bestDist && dist < sz.w) {
+          bestDist = dist;
+          bestSlot = sz.index;
+        }
+      }
+      if (bestSlot >= 0) {
+        placeCard(card, source, sourceIndex, bestSlot);
+        return;
+      }
+      // dropZones boşsa fallback hesaplama
       const slotWidth = (SW - GAME_PAD * 2) / gs.slots.length;
       const slotIdx = Math.floor((dropX - GAME_PAD) / slotWidth);
       if (slotIdx >= 0 && slotIdx < gs.slots.length) {
