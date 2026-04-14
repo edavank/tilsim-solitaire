@@ -4,9 +4,17 @@
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
+    "start:clear": "expo start --clear",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "preflight": "node scripts/preflight.js",
+    "build:preview": "npx eas-cli build --platform android --profile preview",
+    "build:android": "npx eas-cli build --platform android --profile production",
+    "build:ios": "npx eas-cli build --platform ios --profile production",
+    "submit:android": "npx eas-cli submit --platform android --profile production",
+    "submit:ios": "npx eas-cli submit --platform ios --profile production",
+    "update:production": "npx eas-cli update --branch production --message"
   },
   "dependencies": {
     "@expo-google-fonts/be-vietnam-pro": "^0.4.1",

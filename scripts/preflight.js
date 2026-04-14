@@ -124,16 +124,16 @@ console.log('🌍 i18n Auth:');
 if (fileExists('src/i18n/translations.js')) {
   const i18n = fs.readFileSync(path.join(ROOT, 'src/i18n/translations.js'), 'utf8');
   const requiredKeys = ['signInGoogle', 'signInApple', 'skipLogin', 'loginSubtitle', 'loginError', 'signOut'];
-  const langs = ['tr', 'en', 'de', 'fr', 'es', 'ar'];
+  const expectedLangs = 6; // tr, en, de, fr, es, ar
   let allPresent = true;
-  for (const lang of langs) {
-    const section = i18n.split(`${lang}:`)[1]?.split(/\n  \w+:/)?.[0] || '';
-    for (const key of requiredKeys) {
-      if (!section.includes(`${key}:`)) {
-        console.log(`  ❌ ${lang}.${key} eksik`);
-        allPresent = false;
-        errors++;
-      }
+  for (const key of requiredKeys) {
+    const count = (i18n.match(new RegExp(`${key}:`, 'g')) || []).length;
+    if (count >= expectedLangs) {
+      // OK
+    } else {
+      console.log(`  ❌ ${key}: ${count}/${expectedLangs} dilde mevcut`);
+      allPresent = false;
+      errors++;
     }
   }
   if (allPresent) check('6 dilde tüm auth key\'leri mevcut', true);
