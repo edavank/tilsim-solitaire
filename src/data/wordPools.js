@@ -253,7 +253,7 @@ export const EMOJI_MAP = {
   'Üzüm': '🍇', 'Grape': '🍇', 'Traube': '🍇', 'Raisin': '🍇', 'Uva': '🍇', 'عنب': '🍇',
   'Şeftali': '🍑', 'Peach': '🍑', 'Pfirsich': '🍑', 'Pêche': '🍑', 'Melocotón': '🍑', 'خوخ': '🍑',
   'Ananas': '🍍', 'Pineapple': '🍍', 'أناناس': '🍍',
-  'Nar': '🍎', 'Pomegranate': '🔴', 'İncir': '🟤', 'Fig': '🍈',
+  'Nar': '🏵️', 'Pomegranate': '🔴', 'İncir': '🟤', 'Fig': '🍈',
   // Animals
   'Kedi': '🐱', 'Cat': '🐱', 'Katze': '🐱', 'Chat': '🐱', 'Gato': '🐱', 'قطة': '🐱',
   'Köpek': '🐶', 'Dog': '🐶', 'Hund': '🐶', 'Chien': '🐶', 'Perro': '🐶', 'كلب': '🐶',
@@ -425,7 +425,7 @@ export const EMOJI_MAP = {
   // English cities
   'London': '🏰', 'New York': '🗽', 'Tokyo': '🗼', 'Paris': '🥐', 'Sydney': '🌉', 'Dubai': '🏗️',
   // Jewelry
-  'Yüzük': '💍', 'Ring': '💍', 'Kolye': '📿', 'Necklace': '📿', 'Bilezik': '🔗', 'Bracelet': '⌚',
+  'Yüzük': '💍', 'Ring': '💍', 'Kolye': '📿', 'Necklace': '📿', 'Bilezik': '⭕', 'Bracelet': '⌚',
   'Küpe': '👂', 'Earring': '👂', 'Broş': '🌺', 'Brooch': '📌', 'Saat': '⌚', 'Watch': '⏱️',
   // Turkish desserts
   'Baklava': '🔶', 'Künefe': '🧁', 'Sütlaç': '🍮', 'Helva': '🍬', 'Lokum': '🍡', 'Kadayıf': '🥮',
@@ -453,7 +453,7 @@ export const EMOJI_MAP = {
   // Art
   'Resim': '🖼️', 'Painting': '🖼️', 'Heykel': '🗿', 'Sculpture': '🗿', 'Fırça': '🖌️', 'Brush': '🖌️', 'Tuval': '🧑‍🎨', 'Canvas': '📐', 'Boya': '🎨', 'Paint': '🖍️', 'Müze': '🏛️', 'Museum': '🏛️',
   // Tools
-  'Çekiç': '🔨', 'Hammer': '🔨', 'Tornavida': '🛠️', 'Screwdriver': '🛠️', 'Pense': '🔗', 'Pliers': '🔗', 'Testere': '🪚', 'Saw': '🪚', 'Matkap': '⛏️', 'Drill': '⛏️', 'Anahtar': '🔧', 'Wrench': '🔑',
+  'Çekiç': '🔨', 'Hammer': '🔨', 'Tornavida': '🛠️', 'Screwdriver': '🛠️', 'Pense': '🔩', 'Pliers': '🔩', 'Testere': '🪚', 'Saw': '🪚', 'Matkap': '⛏️', 'Drill': '⛏️', 'Anahtar': '🔧', 'Wrench': '🔑',
   // Stationery
   'Makas': '✂️', 'Yapıştırıcı': '🩹', 'Bant': '🖇️', 'Zımba': '📌', 'Dosya': '📁', 'Klasör': '📂',
   // Heroes
@@ -485,7 +485,7 @@ export const EMOJI_MAP = {
   // Oyunlar
   'Satranç': '👑', 'Dama': '⬛', 'Tavla': '🎲', 'Bilardo': '🎱', 'Dart': '🎯', 'Bowling': '🎳',
   // Gemi
-  'Kaptan': '🧑‍✈️', 'Dümen': '☸️', 'Çapa': '⚓', 'Güverte': '🛟', 'Pusula': '🧭', 'Yelken': '🪂',
+  'Kaptan': '🧑‍✈️', 'Dümen': '☸️', 'Çapa': '⚓', 'Güverte': '🛟', 'Pusula': '🧭', 'Yelken': '🏴',
   // Sabah
   'Alarm': '⏰', 'Duş': '🚿', 'Diş fırçası': '🦷', 'Gazete': '📰', 'Erken': '🌄',
   // Ağırlık Birimleri
@@ -507,7 +507,7 @@ export const EMOJI_MAP = {
   // Kamp
   'Çadır': '🏕️', 'Uyku tulumu': '🛌', 'Fener': '🔦', 'Balta': '⚒️',
   // Fotoğrafçılık
-  'Objektif': '🔍', 'Flaş': '📸', 'Poz': '🤳', 'Kadraj': '📐', 'Deklanşör': '⏺️', 'Tripod': '📷',
+  'Objektif': '🔍', 'Flaş': '📸', 'Poz': '🤳', 'Kadraj': '🔲', 'Deklanşör': '⏺️', 'Tripod': '📷',
   // Astroloji
   'Koç': '🐏', 'Boğa': '♉', 'İkizler': '♊', 'Yengeç': '🦀', 'Aslan burcu': '♌', 'Akrep': '♏',
   // Mitoloji
@@ -517,9 +517,9 @@ export const EMOJI_MAP = {
   // Düğün
   'Gelin': '👰', 'Damat': '🤵', 'Nikah': '💍', 'Düvak': '👗', 'Davetiye': '💌', 'Dans': '💃',
   // Bebek
-  'Emzik': '🤱', 'Biberon': '🍼', 'Bez': '🧷', 'Beşik': '🛏️', 'Mama': '🥣', 'Kundak': '👣',
+  'Emzik': '👄', 'Biberon': '🍼', 'Bez': '🧷', 'Beşik': '🛏️', 'Mama': '🥣', 'Kundak': '👣',
   // Bahçe
-  'Tohum': '🥜', 'Toprak': '🟤', 'Gübre': '♻️', 'Sulama': '💧', 'Kürek': '⛏️', 'Sera': '🌱',
+  'Tohum': '🥜', 'Toprak': '🟤', 'Gübre': '🌾', 'Sulama': '💧', 'Kürek': '⛏️', 'Sera': '🌱',
   // Enstrüman
   'Piyano': '🎹', 'Keman': '🎻', 'Davul': '🥁', 'Flüt': '🎼', 'Saz': '🪕',
   // Yazılım
