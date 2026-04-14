@@ -55,7 +55,7 @@ export default function StoreScreen() {
 
       <View style={s.header}>
         <View style={s.headerLeft}>
-          <TouchableOpacity onPress={() => router.back()}>
+          <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace("/")}>
             <MaterialIcons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
           <Text style={s.headerTitle}>{st.premium || 'STORE'}</Text>

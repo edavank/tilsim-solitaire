@@ -467,6 +467,7 @@ export default function GameScreen() {
   const [sparkle, setSparkle] = useState(null);
   const [coins, setCoins] = useState(500);
   const [combo, setCombo] = useState(0);
+  const comboRef = useRef(0);
   const [paused, setPaused] = useState(false);
   const [shakeSlotIdx, setShakeSlotIdx] = useState(-1);
   const [showTutorial, setShowTutorial] = useState(false);
@@ -511,6 +512,7 @@ export default function GameScreen() {
   const dropZones = useRef([]); // [{ type: 'slot'|'column', index, x, y, w, h }]
   const dragRef = useRef({ card: null, source: null, sourceIndex: null, isLast: false, startX: 0, startY: 0 });
   const scrollRef = useRef(null);
+  const saveTimerRef = useRef(null);
   const [scrollLocked, setScrollLocked] = useState(false);
   const scrollLockedRef = useRef(false);
   const lockScroll = useCallback((val) => { scrollLockedRef.current = val; setScrollLocked(val); }, []);
@@ -667,7 +669,10 @@ export default function GameScreen() {
   // Auto-save game state
   useEffect(() => {
     if (!gs.isComplete && !gs.isFailed && !isDaily) {
-      saveSavedGame({ ...gs, levelId });
+      // Debounced save — her hamlede değil, 2sn'de bir
+      if (!saveTimerRef.current) {
+        saveTimerRef.current = setTimeout(() => { saveSavedGame({ ...gs, levelId }); saveTimerRef.current = null; }, 2000);
+      }
     }
   }, [gs]);
 
@@ -710,8 +715,8 @@ export default function GameScreen() {
         setHistory((h) => [...h, prev]);
         
         setTimeout(() => playSound('flip'), 10);
-        setCombo((c) => c + 1);
-        const comboBonus = combo * 5;
+        setCombo((c) => { comboRef.current = c + 1; return c + 1; });
+        const comboBonus = comboRef.current * 5;
         showScorePopup('+' + (5 + comboBonus));
         return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + 5 + comboBonus, isFailed: prev.moves - 1 <= 0 };
       }
@@ -722,7 +727,7 @@ export default function GameScreen() {
           setTimeout(() => { Vibration.vibrate(100); playSound('wrong'); }, 10);
           triggerShake(slotIndex);
           setFeedback(t.wrongPlace);
-          setCombo(0);
+          setCombo(0); comboRef.current = 0;
           return { ...prev, moves: prev.moves - 1, isFailed: prev.moves - 1 <= 0 };
         }
 
@@ -825,7 +830,7 @@ export default function GameScreen() {
         }
         const catBonus = catCompleted ? 25 : 0;
         setCombo((c) => c + totalPlaced);
-        const comboBonus = combo * 5;
+        const comboBonus = comboRef.current * 5;
         showScorePopup('+' + ((totalPlaced * 10) + catBonus + comboBonus));
         if (combo >= 3) setFeedback('🔥 ' + combo + 'x Combo! +' + comboBonus);
         return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + (totalPlaced * 10) + catBonus + comboBonus, completedCats: newCompletedCats, isComplete, isFailed: prev.moves - 1 <= 0 && !isComplete };
@@ -1223,7 +1228,7 @@ export default function GameScreen() {
     const state = generateGameState(newLevel);
     if (isTimed) state.moves = 9999;
     setGs(state); setHistory([]); setSelected(null);
-    setHintCard(null); setHintSlot(null); setCombo(0); startTimeRef.current = Date.now(); setElapsedTime(0);
+    setHintCard(null); setHintSlot(null); setCombo(0); comboRef.current = 0; startTimeRef.current = Date.now(); setElapsedTime(0);
     if (isTimed) setTimeRemaining(getTimedSeconds(levelId));
   }, [levelId, isDaily, isTimed]);
 
@@ -1337,7 +1342,7 @@ export default function GameScreen() {
     if (isTimed) nextState.moves = 9999;
     setGs(nextState);
     setHistory([]); setSelected(null);
-    setHintCard(null); setHintSlot(null); setCombo(0); startTimeRef.current = Date.now(); setElapsedTime(0);
+    setHintCard(null); setHintSlot(null); setCombo(0); comboRef.current = 0; startTimeRef.current = Date.now(); setElapsedTime(0);
     if (isTimed) setTimeRemaining(getTimedSeconds(nextId));
     setCoins((prog.coins || 0) + 30 + bonus);
     // Araç tanıtım popup'ı
@@ -1479,7 +1484,7 @@ export default function GameScreen() {
 
       {!!feedback && <View style={st.feedbackBar}><Text style={st.feedbackText}>{feedback}</Text></View>}
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={st.scrollContent} showsVerticalScrollIndicator={false} scrollEnabled={!dragRef.current.card && !scrollLocked} bounces={false} overScrollMode="never" ref={scrollRef}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={st.scrollContent} showsVerticalScrollIndicator={false} scrollEnabled={!scrollLocked} bounces={false} overScrollMode="never" ref={scrollRef}>
         <View style={{ height: 20 }} />
         <View style={st.deckRow}>
           {isTimed ? (
