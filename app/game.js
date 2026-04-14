@@ -262,7 +262,7 @@ function FoundationSlot({ t, slot, slotIndex, onPress, onUnlock, hinted, themeCo
   );
 }
 
-function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedId, dragCardId, dragStackIds, onCardTap, onColumnTap, onUnlock, onDragStart, onDragMove, onDragEnd, themeColors }) {
+const TableauColumn = React.memo(function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedId, dragCardId, dragStackIds, onCardTap, onColumnTap, onUnlock, onDragStart, onDragMove, onDragEnd, themeColors }) {
   const touchRef = useRef({ card: null, startX: 0, startY: 0, moved: false });
   if (column.locked) {
     return (
@@ -331,7 +331,7 @@ function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedI
       })}
     </View>
   );
-}
+});
 
 /* ── Win Overlay ── */
 function LevelCompleteOverlay({ t, score, coins, movesLeft, maxMoves, levelId, combo, isDaily, elapsedTime, onNext, onReplay, onHome }) {

@@ -177,7 +177,9 @@ export function generateGameState(level) {
 }
 
 // Auto-generate levels 11+ for Turkish (default)
-const GENERATED_TR = generateLevels(11, 190, 'tr');
+// Level 10'un kategorileri — generator'a geç ki 11 tekrar etmesin
+const LEVEL10_CATS = ['Ağırlık Birimleri', 'Hayvanlar', 'Mutfak', 'Sporlar', 'Takılar'];
+const GENERATED_TR = generateLevels(11, 190, 'tr', LEVEL10_CATS);
 LEVELS.push(...GENERATED_TR);
 
 // Language-aware level cache
