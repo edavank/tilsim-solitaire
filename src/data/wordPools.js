@@ -425,8 +425,8 @@ export const EMOJI_MAP = {
   // English cities
   'London': '🏰', 'New York': '🗽', 'Tokyo': '🗼', 'Paris': '🥐', 'Sydney': '🌉', 'Dubai': '🏗️',
   // Jewelry
-  'Yüzük': '💎', 'Ring': '💎', 'Kolye': '📿', 'Necklace': '📿', 'Bilezik': '💫', 'Bracelet': '⌚',
-  'Küpe': '✨', 'Earring': '✨', 'Broş': '🌺', 'Brooch': '📌', 'Saat': '⌚', 'Watch': '⏱️',
+  'Yüzük': '💍', 'Ring': '💍', 'Kolye': '📿', 'Necklace': '📿', 'Bilezik': '🔗', 'Bracelet': '⌚',
+  'Küpe': '👂', 'Earring': '👂', 'Broş': '🌺', 'Brooch': '📌', 'Saat': '⌚', 'Watch': '⏱️',
   // Turkish desserts
   'Baklava': '🔶', 'Künefe': '🧁', 'Sütlaç': '🍮', 'Helva': '🍬', 'Lokum': '🍡', 'Kadayıf': '🥮',
   // English desserts
@@ -489,7 +489,7 @@ export const EMOJI_MAP = {
   // Sabah
   'Alarm': '⏰', 'Duş': '🚿', 'Diş fırçası': '🦷', 'Gazete': '📰', 'Erken': '🌄',
   // Ağırlık Birimleri
-  'Gram': '⚖️', 'Kilogram': '🔢', 'Ton': '🚛', 'Ons': '💰', 'Miligram': '🔬', 'Libre': '📏',
+  'Gram': '⚖️', 'Kilogram': '🔢', 'Ton': '🏋️', 'Ons': '🥄', 'Miligram': '🔬', 'Libre': '📏',
   // Partisyon / Müzik
   'Nota': '🎵', 'Akor': '🎸', 'Ritim': '🥁', 'Melodi': '🎶', 'Tempo': '⏱️', 'Armoni': '🎻',
   // Simya

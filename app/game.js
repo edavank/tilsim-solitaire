@@ -254,7 +254,7 @@ function FoundationSlot({ t, slot, slotIndex, onPress, onUnlock, hinted }) {
   );
 }
 
-function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedId, dragCardId, dragStackIds, onCardTap, onColumnTap, onCardLongPress, onUnlock }) {
+function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedId, dragCardId, dragStackIds, onCardTap, onColumnTap, onCardPressIn, onCardPressOut, onUnlock }) {
   if (column.locked) {
     return (
       <View style={[st.slotBox, st.slotDashed, { height: CARD_H }]}>
@@ -286,8 +286,8 @@ function TableauColumn({ column, colIndex, selectedId, selectedStackIds, hintedI
               <TouchableOpacity
                 activeOpacity={0.7}
                 onPress={() => onCardTap(card, 'column', colIndex, isLast)}
-                onLongPress={(e) => onCardLongPress?.(card, 'column', colIndex, isLast, e)}
-                delayLongPress={200}
+                onPressIn={(e) => onCardPressIn?.(card, 'column', colIndex, isLast, e)}
+                onPressOut={() => onCardPressOut?.()}
               >
                 <FaceUpCard card={card} selected={selectedId === card.id || (selectedStackIds && selectedStackIds.has(card.id))} hinted={isHinted} isDragging={dragStackIds && dragStackIds.has(card.id)} />
               </TouchableOpacity>
@@ -357,7 +357,7 @@ function LevelCompleteOverlay({ t, score, coins, movesLeft, maxMoves, levelId, c
 }
 
 /* ── Fail Overlay ── */
-function LevelFailedOverlay({ t, levelId, onAddMovesAd, onAddMovesCoin, onReplay, onHome }) {
+function LevelFailedOverlay({ t, levelId, onAddMovesAd, onAddMovesCoin, onShuffle, onReplay, onHome }) {
   return (
     <View style={ov.overlay}>
       <LinearGradient colors={['rgba(21,6,41,0.95)', 'rgba(61,53,96,0.95)']} style={StyleSheet.absoluteFillObject} />
@@ -375,8 +375,14 @@ function LevelFailedOverlay({ t, levelId, onAddMovesAd, onAddMovesCoin, onReplay
         </TouchableOpacity>
         <TouchableOpacity onPress={onAddMovesCoin} activeOpacity={0.85} style={{ marginTop: 8, width: '100%' }}>
           <View style={[ov.addMovesBtn, { backgroundColor: COLORS.panelBg, borderWidth: 1.5, borderColor: COLORS.coin, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 9999 }]}>
-            <Text style={{ fontSize: 16 }}>🪙</Text>
+            <Text style={{ fontSize: 16 }}>💰</Text>
             <Text style={[ov.addMovesText, { color: COLORS.coin }]}>500 Coin → +20</Text>
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={onShuffle} activeOpacity={0.85} style={{ marginTop: 8, width: '100%' }}>
+          <View style={[ov.addMovesBtn, { backgroundColor: COLORS.panelBg, borderWidth: 1.5, borderColor: COLORS.secondary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 9999 }]}>
+            <MaterialIcons name="shuffle" size={18} color={COLORS.secondary} />
+            <Text style={[ov.addMovesText, { color: COLORS.secondary }]}>{t.shuffle || 'Karıştır'}</Text>
           </View>
         </TouchableOpacity>
         <View style={ov.bottomRow}>
@@ -504,7 +510,15 @@ export default function GameScreen() {
   const dragGesture = Gesture.Pan()
     .manualActivation(true)
     .onTouchesMove((e, stateManager) => {
-      if (dragRef.current.card) stateManager.activate();
+      // Zaten sürükleme başladıysa devam
+      if (dragRef.current.card) { stateManager.activate(); return; }
+      // PressIn'den bekleyen kart varsa sürüklemeyi başlat
+      if (pendingDragRef.current) {
+        const p = pendingDragRef.current;
+        startDrag(p.card, p.source, p.sourceIndex, p.isLast, p.pageX, p.pageY);
+        pendingDragRef.current = null;
+        stateManager.activate();
+      }
     })
     .onUpdate((e) => {
       if (!dragRef.current.card) return;
@@ -516,6 +530,7 @@ export default function GameScreen() {
       handleDrop(dragRef.current, e.absoluteX, e.absoluteY);
     })
     .onFinalize(() => {
+      pendingDragRef.current = null;
       if (dragRef.current.card) cancelDrag();
     });
 
@@ -934,11 +949,19 @@ export default function GameScreen() {
     }
   }, [selected, moveToColumn, moveStackToColumn]);
 
-  const handleCardLongPress = useCallback((card, source, sourceIndex, isLast, event) => {
+  // Pending drag — onPressIn kaydeder, gesture hareket algılayınca başlatır
+  const pendingDragRef = useRef(null);
+
+  const handleCardPressIn = useCallback((card, source, sourceIndex, isLast, event) => {
     if (!event?.nativeEvent) return;
     const { pageX, pageY } = event.nativeEvent;
-    startDrag(card, source, sourceIndex, isLast, pageX, pageY);
-  }, [startDrag]);
+    pendingDragRef.current = { card, source, sourceIndex, isLast, pageX, pageY };
+  }, []);
+
+  const handleCardPressOut = useCallback(() => {
+    // Sürükleme başlamadıysa temizle
+    if (!dragRef.current.card) pendingDragRef.current = null;
+  }, []);
 
   const handleSlotTap = useCallback((slotIndex) => {
     if (!selected) { setFeedback(t.selectCardFirst); return; }
@@ -1064,38 +1087,49 @@ export default function GameScreen() {
   // ── Shuffle (Karıştır) ──
   const useShuffle = useCallback(async () => {
     if (!isToolUnlocked('shuffle')) return;
-    const hasFaceDown = gs.columns.some(col => !col.locked && col.cards.some(c => !c.faceUp));
-    if (!hasFaceDown) { setFeedback(t.shuffleNoCards); return; }
+    const hasCards = gs.columns.some(col => !col.locked && col.cards.length > 0) || gs.drawnCards.length > 0;
+    if (!hasCards) { setFeedback(t.shuffleNoCards); return; }
     if (toolCredits.shuffle > 0) {
       const newCredits = { ...toolCredits, shuffle: toolCredits.shuffle - 1 };
       setToolCredits(newCredits);
       await updateProgress({ toolCredits: newCredits });
       setGs((prev) => {
-        const faceDownCards = [];
+        // Tüm kartları topla (sütunlar + çekilen kartlar)
+        const allCards = [];
+        const colSizes = [];
         prev.columns.forEach(col => {
-          if (!col.locked) col.cards.forEach(c => { if (!c.faceUp) faceDownCards.push({ ...c }); });
+          if (col.locked) { colSizes.push(-1); return; }
+          colSizes.push(col.cards.length);
+          col.cards.forEach(c => allCards.push({ ...c }));
         });
-        for (let i = faceDownCards.length - 1; i > 0; i--) {
+        prev.drawnCards.forEach(c => allCards.push({ ...c }));
+        // Karıştır
+        for (let i = allCards.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
-          [faceDownCards[i], faceDownCards[j]] = [faceDownCards[j], faceDownCards[i]];
+          [allCards[i], allCards[j]] = [allCards[j], allCards[i]];
         }
+        // Sütunlara geri dağıt
         let idx = 0;
-        const newColumns = prev.columns.map(col => {
+        const newColumns = prev.columns.map((col, ci) => {
           if (col.locked) return col;
-          const newCards = col.cards.map(c => {
-            if (!c.faceUp) return { ...faceDownCards[idx++], faceUp: false };
-            return c;
-          });
+          const size = colSizes[ci];
+          const newCards = allCards.slice(idx, idx + size).map((c, cardIdx) => ({
+            ...c, faceUp: cardIdx === size - 1 // sadece en üstteki açık
+          }));
+          idx += size;
           return { ...col, cards: newCards };
         });
+        // Kalanlar çekilen kartlar
+        const newDrawn = allCards.slice(idx).map(c => ({ ...c, faceUp: true }));
         setHistory((h) => [...h, prev]);
-        return { ...prev, columns: newColumns };
+        return { ...prev, columns: newColumns, drawnCards: newDrawn };
       });
       setFeedback(t.shuffleDone);
+      playSound('flip');
       return;
     }
     setToolModal('shuffle');
-  }, [gs.columns, toolCredits, isToolUnlocked]);
+  }, [gs.columns, gs.drawnCards, toolCredits, isToolUnlocked]);
 
   const executeShuffle = useCallback(async (method) => {
     if (method === 'coin') {
@@ -1307,6 +1341,49 @@ export default function GameScreen() {
     }
   }, [levelId, gs, level, coins]);
 
+  // Hamle bitti → Karıştır (shuffle + 5 hamle ekle)
+  const handleFailedShuffle = useCallback(async () => {
+    if (toolCredits.shuffle > 0) {
+      // Kredi varsa kullan
+      const newCredits = { ...toolCredits, shuffle: toolCredits.shuffle - 1 };
+      setToolCredits(newCredits);
+      await updateProgress({ toolCredits: newCredits });
+      setGs((prev) => {
+        const allCards = [];
+        const colSizes = [];
+        prev.columns.forEach(col => {
+          if (col.locked) { colSizes.push(-1); return; }
+          colSizes.push(col.cards.length);
+          col.cards.forEach(c => allCards.push({ ...c }));
+        });
+        prev.drawnCards.forEach(c => allCards.push({ ...c }));
+        for (let i = allCards.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [allCards[i], allCards[j]] = [allCards[j], allCards[i]];
+        }
+        let idx = 0;
+        const newColumns = prev.columns.map((col, ci) => {
+          if (col.locked) return col;
+          const size = colSizes[ci];
+          const newCards = allCards.slice(idx, idx + size).map((c, cardIdx) => ({
+            ...c, faceUp: cardIdx === size - 1
+          }));
+          idx += size;
+          return { ...col, cards: newCards };
+        });
+        const newDrawn = allCards.slice(idx).map(c => ({ ...c, faceUp: true }));
+        return { ...prev, columns: newColumns, drawnCards: newDrawn, moves: 5, isFailed: false };
+      });
+      playSound('flip');
+      setFeedback(t.shuffleDone);
+    } else {
+      // Kredi yoksa satın alma modal
+      setToolModal('shuffle');
+      // Failed state'i kaldır ki modal açılsın
+      setGs(prev => ({ ...prev, isFailed: false, moves: 0 }));
+    }
+  }, [toolCredits]);
+
   const handleReplay = useCallback(async () => {
     const prog = await loadProgress();
     await updateProgress({ totalGames: (prog.totalGames || 0) + 1 });
@@ -1416,13 +1493,13 @@ export default function GameScreen() {
           <TouchableOpacity
             style={st.drawnArea}
             onPress={handleDrawnTap}
-            onLongPress={(e) => {
+            onPressIn={(e) => {
               if (gs.drawnCards.length > 0) {
                 const card = gs.drawnCards[gs.drawnCards.length - 1];
-                handleCardLongPress(card, 'drawn', null, true, e);
+                handleCardPressIn(card, 'drawn', null, true, e);
               }
             }}
-            delayLongPress={200}
+            onPressOut={handleCardPressOut}
             activeOpacity={0.7}
           >
             {gs.drawnCards.length === 0 ? (
@@ -1469,7 +1546,7 @@ export default function GameScreen() {
         <View style={st.tableauRow}>
           {gs.columns.map((col, i) => (
             <View key={i} style={{ flex: 1 }}>
-              <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard} dragCardId={dragCard?.card?.id} dragStackIds={dragStackIds} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onCardLongPress={handleCardLongPress} onUnlock={handleUnlock} />
+              <TableauColumn column={col} colIndex={i} selectedId={selId} selectedStackIds={selectedStackIds} hintedId={hintCard} dragCardId={dragCard?.card?.id} dragStackIds={dragStackIds} onCardTap={handleCardTap} onColumnTap={handleColumnTap} onCardPressIn={handleCardPressIn} onCardPressOut={handleCardPressOut} onUnlock={handleUnlock} />
             </View>
           ))}
         </View>
@@ -1688,7 +1765,7 @@ export default function GameScreen() {
         </>
       )}
       {gs.isFailed && !gs.isComplete && (
-        <LevelFailedOverlay t={t} levelId={gs.levelId} onAddMovesAd={addMovesAd} onAddMovesCoin={addMovesCoin} onReplay={handleReplay} onHome={handleHome} />
+        <LevelFailedOverlay t={t} levelId={gs.levelId} onAddMovesAd={addMovesAd} onAddMovesCoin={addMovesCoin} onShuffle={handleFailedShuffle} onReplay={handleReplay} onHome={handleHome} />
       )}
 
       {/* Floating drag card */}
