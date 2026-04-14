@@ -551,8 +551,6 @@ export default function GameScreen() {
     dragY.setValue(pageY - CARD_H / 2);
     dragOpacity.setValue(1);
     dragScale.setValue(1.1);
-    // Güvenlik: 3sn sonra hala drag aktifse temizle
-    setTimeout(() => { if (dragRef.current.card) cancelDrag(); }, 3000);
     playSound('tap');
     setSelected(null);
   }, [gs.columns]);
@@ -572,7 +570,8 @@ export default function GameScreen() {
   const onDragEnd = useCallback((pageX, pageY) => {
     if (!dragRef.current.card) { cancelDragRef.current?.(); return; }
     if (pageX === 0 && pageY === 0) { cancelDragRef.current?.(); return; }
-    handleDropRef.current?.(dragRef.current, pageX, pageY);
+    const info = { ...dragRef.current }; // kopya al — cancelDrag ref'i temizleyebilir
+    handleDropRef.current?.(info, pageX, pageY);
   }, []);
 
   const cancelDrag = useCallback(() => {
@@ -1578,9 +1577,12 @@ export default function GameScreen() {
               }
             }}
             onResponderRelease={(e) => {
-              if (drawnTouchRef.current.moved) {
-                if (dragRef.current.card) handleDropRef.current?.(dragRef.current, e.nativeEvent.pageX, e.nativeEvent.pageY);
-                else cancelDragRef.current?.();
+              if (drawnTouchRef.current.moved && dragRef.current.card) {
+                // dragInfo kopyasını al (cancelDrag ref'i temizlemeden)
+                const info = { ...dragRef.current };
+                handleDropRef.current?.(info, e.nativeEvent.pageX, e.nativeEvent.pageY);
+              } else if (drawnTouchRef.current.moved) {
+                cancelDragRef.current?.();
               } else {
                 handleDrawnTap();
               }
