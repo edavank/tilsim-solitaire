@@ -22,6 +22,7 @@ export function generateLevels(startId, count, language = 'tr') {
   const pools = WORD_POOLS[language] || WORD_POOLS.tr;
   const levels = [];
   let lastUsedCats = new Set(); // Önceki bölümün kategorileri — tekrar engeli
+  let prevPrevCats = new Set(); // 2 önceki bölüm — daha güçlü çeşitlilik
   
   // Benzer kategoriler — aynı bölümde ASLA bir arada olamaz
   const CONFLICT_GROUPS = [
@@ -79,8 +80,8 @@ export function generateLevels(startId, count, language = 'tr') {
     // Hints: azalan (boss: 0)
     const hints = isBoss ? 0 : Math.max(3 - Math.floor(tier / 3), 0);
 
-    // Kategori seçimi — ÖNCEKİ BÖLÜM + ÇAKIŞAN KATEGORİLER ENGELLENİR
-    const blocked = new Set(lastUsedCats);
+    // Kategori seçimi — ÖNCEKİ 2 BÖLÜM + ÇAKIŞAN KATEGORİLER ENGELLENİR
+    const blocked = new Set([...lastUsedCats, ...prevPrevCats]);
     const allEligible = pools.filter((p) => p.words.length >= wordsPerCat);
     const shuffled = seededShuffle(allEligible, rand);
     
@@ -105,6 +106,7 @@ export function generateLevels(startId, count, language = 'tr') {
     }
     
     // Bu bölümün kategorilerini kaydet (sonraki bölüm için)
+    prevPrevCats = new Set(lastUsedCats);
     lastUsedCats = new Set(picked.map(p => p.name));
 
     const categories = picked.map((p) => ({

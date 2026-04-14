@@ -34,8 +34,8 @@ export default function StoreScreen() {
   ];
 
   const BOOSTERS = [
-    { name: st.hint, desc: st.hintDesc, icon: 'lightbulb', coinCost: 50, color: COLORS.secondary, key: 'hints' },
-    { name: st.undo, desc: st.undoDesc, icon: 'undo', coinCost: 30, color: COLORS.secondary, key: 'undos' },
+    { name: st.hint, desc: st.hintDesc, icon: 'lightbulb', coinCost: 500, color: COLORS.secondary, key: 'hints' },
+    { name: st.undo, desc: st.undoDesc, icon: 'undo', coinCost: 450, color: COLORS.secondary, key: 'undos' },
   ];
 
   const buyBooster = async (booster) => {

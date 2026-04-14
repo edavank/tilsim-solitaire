@@ -16,6 +16,7 @@ import { submitScore } from '../src/utils/leaderboardService';
 import { getDailyChallenge, markDailyChallengeCompleted } from '../src/utils/dailyChallenge';
 import { checkAchievements, ACHIEVEMENT_I18N } from '../src/utils/achievements';
 import { markCategoryCompleted } from '../src/utils/collection';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 // seasonalEvents kaldırıldı
 
 import { IS_TABLET, fs, getGameLayout } from '../src/utils/responsive';
@@ -499,19 +500,24 @@ export default function GameScreen() {
     setSelected(null);
   }, [gs.columns]);
 
-  // Drag responder handlers on main container
-  const handleResponderMove = useCallback((e) => {
-    if (!dragRef.current.card) return;
-    const { pageX, pageY } = e.nativeEvent;
-    dragX.setValue(pageX - CARD_W / 2);
-    dragY.setValue(pageY - CARD_H / 2);
-  }, []);
-
-  const handleResponderRelease = useCallback((e) => {
-    if (!dragRef.current.card) return;
-    const { pageX, pageY } = e.nativeEvent;
-    handleDrop(dragRef.current, pageX, pageY);
-  }, []);
+  // Drag gesture using react-native-gesture-handler
+  const dragGesture = Gesture.Pan()
+    .manualActivation(true)
+    .onTouchesMove((e, stateManager) => {
+      if (dragRef.current.card) stateManager.activate();
+    })
+    .onUpdate((e) => {
+      if (!dragRef.current.card) return;
+      dragX.setValue(e.absoluteX - CARD_W / 2);
+      dragY.setValue(e.absoluteY - CARD_H / 2);
+    })
+    .onEnd((e) => {
+      if (!dragRef.current.card) return;
+      handleDrop(dragRef.current, e.absoluteX, e.absoluteY);
+    })
+    .onFinalize(() => {
+      if (dragRef.current.card) cancelDrag();
+    });
 
   const cancelDrag = useCallback(() => {
     Animated.timing(dragOpacity, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
@@ -982,8 +988,8 @@ export default function GameScreen() {
 
   const executeUndo = useCallback(async (method) => {
     if (method === 'coin') {
-      if (coins < 500) { setFeedback(t.coinNeeded500); setToolModal(null); return; }
-      setCoins(coins - 500); await updateProgress({ coins: coins - 500 });
+      if (coins < 450) { setFeedback(t.coinNeeded500); setToolModal(null); return; }
+      setCoins(coins - 450); await updateProgress({ coins: coins - 450 });
     }
     if (method === 'ad') await showRewarded();
     const newCredits = { ...toolCredits, undo: toolCredits.undo + 1 };
@@ -1209,14 +1215,8 @@ export default function GameScreen() {
         const newAch = await checkAchievements(achStats);
         if (newAch.length > 0) {
           const totalReward = newAch.reduce((sum, a) => sum + (a.reward || 0), 0);
-          if (totalReward > 0) {
-            const rc = (prog.coins || 0) + totalReward;
-            setCoins(rc);
-            await updateProgress({ coins: rc });
-          }
-          setAchievementPopup({ ...newAch[0], reward: newAch[0].reward || 0 });
+          setAchievementPopup({ ...newAch[0], reward: newAch[0].reward || 0, pendingCoins: totalReward });
           await updateProgress({ unseenAch: (prog.unseenAch || 0) + newAch.length });
-          setTimeout(() => setAchievementPopup(null), 3000);
         }
       } catch (e) {}
       await markDailyChallengeCompleted(dailyDate);
@@ -1257,14 +1257,8 @@ export default function GameScreen() {
       const newAch = await checkAchievements(achStats);
       if (newAch.length > 0) {
         const totalReward = newAch.reduce((sum, a) => sum + (a.reward || 0), 0);
-        if (totalReward > 0) {
-          const rc = (prog.coins || 0) + 30 + bonus + totalReward;
-          setCoins(rc);
-          await updateProgress({ coins: rc });
-        }
-        setAchievementPopup({ ...newAch[0], reward: newAch[0].reward || 0 });
+        setAchievementPopup({ ...newAch[0], reward: newAch[0].reward || 0, pendingCoins: totalReward });
         await updateProgress({ unseenAch: (prog.unseenAch || 0) + newAch.length });
-        setTimeout(() => setAchievementPopup(null), 3000);
       }
     } catch (e) {}
     // Show interstitial ad every 3 levels
@@ -1358,13 +1352,9 @@ export default function GameScreen() {
   }, []);
 
   return (
+    <GestureDetector gesture={dragGesture}>
     <View 
       style={st.container}
-      onStartShouldSetResponderCapture={() => !!dragRef.current.card}
-      onMoveShouldSetResponderCapture={() => !!dragRef.current.card}
-      onResponderMove={handleResponderMove}
-      onResponderRelease={handleResponderRelease}
-      onResponderTerminate={() => cancelDrag()}
     >
       <LinearGradient colors={getThemeGradient(activeTheme)} style={StyleSheet.absoluteFillObject} />
 
@@ -1501,18 +1491,33 @@ export default function GameScreen() {
 
       {/* Achievement Popup */}
       {achievementPopup && (
-        <TouchableOpacity style={st.achievPopup} activeOpacity={0.9} onPress={() => setAchievementPopup(null)}>
+        <View style={st.achievPopup}>
           <Text style={{ fontSize: 28 }}>{achievementPopup.icon}</Text>
           <View style={{ flex: 1 }}>
             <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 14, color: '#FFD166' }}>{(ACHIEVEMENT_I18N[gameLang] || ACHIEVEMENT_I18N.tr).earned}</Text>
             <Text style={{ fontFamily: FONTS.body, fontSize: 12, color: '#fff' }}>{(ACHIEVEMENT_I18N[gameLang] || ACHIEVEMENT_I18N.tr)[achievementPopup.id]?.[0] || achievementPopup.title}</Text>
           </View>
-          {achievementPopup.reward > 0 && (
-            <View style={{ backgroundColor: '#FFD700', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4 }}>
-              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 12, color: '#000' }}>+{achievementPopup.reward} 🪙</Text>
-            </View>
+          {achievementPopup.pendingCoins > 0 ? (
+            <TouchableOpacity 
+              style={{ backgroundColor: '#FFD700', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6 }}
+              onPress={async () => {
+                const p = await loadProgress();
+                const nc = (p.coins || 0) + achievementPopup.pendingCoins;
+                setCoins(nc);
+                await updateProgress({ coins: nc });
+                playSound('coin');
+                setAchievementPopup(null);
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 13, color: '#000' }}>+{achievementPopup.pendingCoins} 💰 Topla</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity onPress={() => setAchievementPopup(null)}>
+              <MaterialIcons name="close" size={20} color="#fff" />
+            </TouchableOpacity>
           )}
-        </TouchableOpacity>
+        </View>
       )}
 
       {/* Tool Purchase Modal */}
@@ -1536,7 +1541,7 @@ export default function GameScreen() {
               onPress={() => { const fn = toolModal === 'hint' ? executeHint : toolModal === 'undo' ? executeUndo : toolModal === 'joker' ? executeJoker : toolModal === 'shuffle' ? executeShuffle : executeDelete; fn('coin'); }}
               activeOpacity={0.8}
             >
-              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#000' }}>🪙 {toolModal === 'joker' ? '750' : '500'}</Text>
+              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#000' }}>🪙 {toolModal === 'joker' ? '750' : toolModal === 'undo' ? '450' : '500'}</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={{ backgroundColor: COLORS.success, borderRadius: 14, paddingVertical: 14, alignItems: 'center', width: '100%' }} 
@@ -1706,6 +1711,7 @@ export default function GameScreen() {
         </Animated.View>
       )}
     </View>
+    </GestureDetector>
   );
 }
 
