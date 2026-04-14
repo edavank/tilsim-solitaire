@@ -1097,7 +1097,10 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       if (coins < 450) { setFeedback(t.coinNeeded500); setToolModal(null); return; }
       setCoins(coins - 450); await updateProgress({ coins: coins - 450 });
     }
-    if (method === 'ad') await showRewarded();
+    if (method === 'ad') {
+      const result = await showRewarded();
+      if (!result.success) { setToolModal(null); return; }
+    }
     const newCredits = { ...toolCredits, undo: toolCredits.undo + 1 };
     setToolCredits(newCredits);
     await updateProgress({ toolCredits: newCredits });
@@ -1125,7 +1128,10 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       if (coins < 500) { setFeedback(t.coinNeeded500); setToolModal(null); return; }
       setCoins(coins - 500); await updateProgress({ coins: coins - 500 });
     }
-    if (method === 'ad') await showRewarded();
+    if (method === 'ad') {
+      const result = await showRewarded();
+      if (!result.success) { setToolModal(null); return; }
+    }
     const newCredits = { ...toolCredits, delete: toolCredits.delete + 1 };
     setToolCredits(newCredits);
     await updateProgress({ toolCredits: newCredits });
@@ -1159,7 +1165,10 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       if (coins < 750) { setFeedback(t.coinNeeded750); setToolModal(null); return; }
       setCoins(coins - 750); await updateProgress({ coins: coins - 750 });
     }
-    if (method === 'ad') await showRewarded();
+    if (method === 'ad') {
+      const result = await showRewarded();
+      if (!result.success) { setToolModal(null); return; }
+    }
     const newCredits = { ...toolCredits, joker: toolCredits.joker + 1 };
     setToolCredits(newCredits);
     await updateProgress({ toolCredits: newCredits });
@@ -1219,7 +1228,10 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       if (coins < 500) { setFeedback(t.coinNeeded500); setToolModal(null); return; }
       setCoins(coins - 500); await updateProgress({ coins: coins - 500 });
     }
-    if (method === 'ad') await showRewarded();
+    if (method === 'ad') {
+      const result = await showRewarded();
+      if (!result.success) { setToolModal(null); return; }
+    }
     const newCredits = { ...toolCredits, shuffle: toolCredits.shuffle + 1 };
     setToolCredits(newCredits);
     await updateProgress({ toolCredits: newCredits });
@@ -1246,7 +1258,11 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       setCoins(coins - 500); await updateProgress({ coins: coins - 500 });
       setFeedback(t.hintBought);
     }
-    if (method === 'ad') { await showRewarded(); setFeedback(t.hintEarned); }
+    if (method === 'ad') {
+      const result = await showRewarded();
+      if (!result.success) { setToolModal(null); return; }
+      setFeedback(t.hintEarned);
+    }
     setToolModal(null);
     setTimeout(() => runHintLogic(), 100);
   }, [coins]);
@@ -1297,6 +1313,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
 
   const addMovesAd = useCallback(async () => {
     const result = await showRewarded();
+    if (!result.success) return;
     setGs((p) => ({ ...p, moves: p.moves + 20, isFailed: false }));
     setFeedback(t.movesAdded);
   }, []);
@@ -1493,7 +1510,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   // Unlock slot or column (via ad or free)
   const handleUnlock = useCallback(async (type, index) => {
     const result = await showRewarded();
-    // Always unlock (rewarded returns success:true in stub)
+    // Reklam tamamlandıysa kilidi aç
     if (result.success) {
       setGs((prev) => {
         if (type === 'slot') {

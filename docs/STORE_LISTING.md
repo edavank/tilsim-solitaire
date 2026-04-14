@@ -130,3 +130,61 @@ Mor gradient arka plan + Bilge owl + "Tılsım Solitaire" logo + kartlar
 ### App targets:
 - Not specifically designed for children
 - General audience
+
+---
+
+## English Store Listing
+
+### App Name
+Tılsım Solitaire - Word Card Game
+
+### Short Description (80 chars)
+200 levels of word solitaire! 90+ categories, 6 languages. Match cards, learn words!
+
+### Full Description
+
+Welcome to Tılsım Solitaire — where classic solitaire meets word puzzles!
+
+🦉 MEET BILGE, YOUR OWL COMPANION
+Bilge the wise owl guides you through a magical world of word cards. Discover new words, solve categories, and place cards in the right order!
+
+🃏 HOW TO PLAY
+• Flip hidden cards in columns
+• Find category cards and place them in foundation slots
+• Match word cards to their correct categories
+• Stack same-category cards in columns for strategy
+• Clear all cards before running out of moves!
+
+🌟 FEATURES
+• 200 unique levels with increasing difficulty
+• 90+ word categories: Fruits, Animals, Planets, Emotions, Music, Space and more
+• 6 languages: Turkish, English, German, French, Spanish, Arabic
+• Daily challenge — a fresh puzzle every day
+• Weekly tournament — compete on the leaderboard
+• Collection album — track every word you discover
+• Achievement system — complete goals, earn rewards
+• Store — power-ups and coin packs
+• Sign in with Google or Apple to save progress to the cloud
+
+🎮 STRATEGIC DEPTH
+This is no random card game! You need strategy — which category to unlock first, how to group cards, and how to spend your moves wisely.
+
+📱 FREE TO PLAY
+Tılsım Solitaire is completely free! Watch ads to earn coins and extra moves.
+
+Download now and start your adventure with Bilge! 🦉✨
+
+### Keywords (Apple — 100 chars max)
+solitaire,word,puzzle,card,game,category,daily,tournament,strategy,brain
+
+### German Short Description
+200 Level Wort-Solitaire! 90+ Kategorien, 6 Sprachen. Karten zuordnen, Wörter entdecken!
+
+### French Short Description
+200 niveaux de solitaire ! 90+ catégories, 6 langues. Associez les cartes, découvrez les mots !
+
+### Spanish Short Description
+¡200 niveles de solitario! 90+ categorías, 6 idiomas. ¡Empareja cartas y descubre palabras!
+
+### Arabic Short Description
+200 مستوى سوليتير كلمات! 90+ فئة، 6 لغات. طابق البطاقات واكتشف الكلمات!

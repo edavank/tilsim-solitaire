@@ -1,26 +1,210 @@
-// AdMob stub — Expo Go ve şu anki build için
-// Firebase + AdMob kurulduktan sonra gerçek entegrasyon yapılacak
-// Rehber: docs/FIREBASE_SETUP.md
+// AdMob entegrasyonu — react-native-google-mobile-ads
+// Expo Go'da güvenli: modül yoksa stub olarak çalışır
+// Kurulum: npm install react-native-google-mobile-ads --legacy-peer-deps
+// + app.json plugins'e AdMob config ekle (docs/LAUNCH_TODO.md)
 
+import { Platform } from 'react-native';
+
+// ─── Ad Unit ID'leri ────────────────────────────────────
+// ⚠️ YAYINDAN ÖNCE: production ID'leri gerçek AdMob ID'lerinle değiştir
+const AD_IDS = {
+  test: {
+    banner: Platform.select({
+      ios: 'ca-app-pub-3940256099942544/2934735716',
+      android: 'ca-app-pub-3940256099942544/6300978111',
+    }),
+    interstitial: Platform.select({
+      ios: 'ca-app-pub-3940256099942544/4411468910',
+      android: 'ca-app-pub-3940256099942544/1033173712',
+    }),
+    rewarded: Platform.select({
+      ios: 'ca-app-pub-3940256099942544/1712485313',
+      android: 'ca-app-pub-3940256099942544/5224354917',
+    }),
+  },
+  production: {
+    banner: Platform.select({
+      ios: 'ca-app-pub-XXXX/BANNER_IOS',      // ← Gerçek ID
+      android: 'ca-app-pub-XXXX/BANNER_AND',   // ← Gerçek ID
+    }),
+    interstitial: Platform.select({
+      ios: 'ca-app-pub-XXXX/INTER_IOS',        // ← Gerçek ID
+      android: 'ca-app-pub-XXXX/INTER_AND',    // ← Gerçek ID
+    }),
+    rewarded: Platform.select({
+      ios: 'ca-app-pub-XXXX/REWARD_IOS',       // ← Gerçek ID
+      android: 'ca-app-pub-XXXX/REWARD_AND',   // ← Gerçek ID
+    }),
+  },
+};
+
+// __DEV__ = Expo dev mode, production build'de false olur
+const ids = __DEV__ ? AD_IDS.test : AD_IDS.production;
+
+// ─── Lazy imports (Expo Go güvenli) ─────────────────────
+let MobileAds = null;
+let InterstitialAd = null;
+let RewardedAd = null;
+let BannerAd = null;
+let BannerAdSize = null;
+let AdEventType = null;
+let RewardedAdEventType = null;
+
+let adsReady = false;
+
+function loadAdModules() {
+  try {
+    const gma = require('react-native-google-mobile-ads');
+    MobileAds = gma.default;
+    InterstitialAd = gma.InterstitialAd;
+    RewardedAd = gma.RewardedAd;
+    BannerAd = gma.BannerAd;
+    BannerAdSize = gma.BannerAdSize;
+    AdEventType = gma.AdEventType;
+    RewardedAdEventType = gma.RewardedAdEventType;
+    return true;
+  } catch (e) {
+    console.log('[Ads] react-native-google-mobile-ads yüklenmedi (Expo Go?)');
+    return false;
+  }
+}
+
+// ─── Tracking Transparency (iOS ATT) ───────────────────
+async function requestTrackingPermission() {
+  if (Platform.OS !== 'ios') return true;
+  try {
+    const { requestTrackingPermissionsAsync } = require('expo-tracking-transparency');
+    const { status } = await requestTrackingPermissionsAsync();
+    return status === 'granted';
+  } catch (e) {
+    console.log('[Ads] tracking-transparency yüklenmedi');
+    return false;
+  }
+}
+
+// ─── Init ───────────────────────────────────────────────
 export async function initAds() {
-  // No-op
+  if (!loadAdModules()) return;
+  try {
+    await requestTrackingPermission();
+    await MobileAds().initialize();
+    adsReady = true;
+    console.log('[Ads] AdMob hazır');
+    preloadInterstitial();
+  } catch (e) {
+    console.log('[Ads] init hatası:', e.message);
+  }
+}
+
+// ─── Interstitial ───────────────────────────────────────
+let interstitialAd = null;
+let interstitialLoaded = false;
+
+function preloadInterstitial() {
+  if (!adsReady || !InterstitialAd) return;
+  try {
+    interstitialAd = InterstitialAd.createForAdRequest(ids.interstitial, {
+      requestNonPersonalizedAdsOnly: false,
+    });
+
+    interstitialAd.addAdEventListener(AdEventType.LOADED, () => {
+      interstitialLoaded = true;
+    });
+
+    interstitialAd.addAdEventListener(AdEventType.CLOSED, () => {
+      interstitialLoaded = false;
+      setTimeout(preloadInterstitial, 1000);
+    });
+
+    interstitialAd.addAdEventListener(AdEventType.ERROR, (error) => {
+      console.log('[Ads] interstitial yükleme hatası:', error.message);
+      interstitialLoaded = false;
+      setTimeout(preloadInterstitial, 30000);
+    });
+
+    interstitialAd.load();
+  } catch (e) {
+    console.log('[Ads] preloadInterstitial hatası:', e.message);
+  }
 }
 
 export async function showInterstitial() {
-  return false;
+  if (!adsReady || !interstitialLoaded || !interstitialAd) return false;
+  try {
+    await interstitialAd.show();
+    return true;
+  } catch (e) {
+    console.log('[Ads] interstitial gösterme hatası:', e.message);
+    return false;
+  }
 }
 
-export async function showRewarded() {
-  // Test modunda her zaman ödül ver
-  return { success: true, reward: { amount: 1 } };
+// ─── Rewarded ───────────────────────────────────────────
+export function showRewarded() {
+  return new Promise((resolve) => {
+    if (!adsReady || !RewardedAd) {
+      // AdMob yoksa yine ödül ver (geliştirme modu)
+      resolve({ success: true, reward: { amount: 1 } });
+      return;
+    }
+
+    try {
+      const rewarded = RewardedAd.createForAdRequest(ids.rewarded, {
+        requestNonPersonalizedAdsOnly: false,
+      });
+
+      let earned = false;
+      let rewardData = { amount: 1 };
+
+      const loadUnsub = rewarded.addAdEventListener(AdEventType.LOADED, () => {
+        rewarded.show();
+      });
+
+      const earnUnsub = rewarded.addAdEventListener(
+        RewardedAdEventType.EARNED_REWARD,
+        (reward) => {
+          earned = true;
+          rewardData = { amount: reward.amount || 1 };
+        }
+      );
+
+      const closeUnsub = rewarded.addAdEventListener(AdEventType.CLOSED, () => {
+        cleanup();
+        resolve({ success: earned, reward: earned ? rewardData : null });
+      });
+
+      const errorUnsub = rewarded.addAdEventListener(AdEventType.ERROR, (error) => {
+        console.log('[Ads] rewarded hatası:', error.message);
+        cleanup();
+        resolve({ success: false, reward: null });
+      });
+
+      function cleanup() {
+        loadUnsub();
+        earnUnsub();
+        closeUnsub();
+        errorUnsub();
+      }
+
+      rewarded.load();
+    } catch (e) {
+      console.log('[Ads] showRewarded hatası:', e.message);
+      resolve({ success: false, reward: null });
+    }
+  });
 }
 
-export function isAdsAvailable() {
-  return false;
-}
-
+// ─── Banner ─────────────────────────────────────────────
 export function getBannerComponent() {
-  return null;
+  if (!adsReady || !BannerAd || !BannerAdSize) return null;
+  return { BannerAd, BannerAdSize, unitId: ids.banner };
 }
 
-export function resetAdFrequency() {}
+// ─── Helpers ────────────────────────────────────────────
+export function isAdsAvailable() {
+  return adsReady;
+}
+
+export function resetAdFrequency() {
+  // Frekans kontrolü game.js'de (her 3 bölümde bir)
+}
