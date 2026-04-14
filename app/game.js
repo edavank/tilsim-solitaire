@@ -610,10 +610,12 @@ export default function GameScreen() {
 
     // En yakın slot/sütun merkezini bul (pixel-perfect değil, cömert)
     const findNearest = (count, startX, totalW) => {
-      const w = totalW / count;
+      // gap'i hesaba kat — flex:1 + gap layout
+      const totalGap = COL_GAP * (count - 1);
+      const itemW = (totalW - totalGap) / count;
       let best = -1, bestD = 9999;
       for (let i = 0; i < count; i++) {
-        const center = startX + w * i + w / 2;
+        const center = startX + i * (itemW + COL_GAP) + itemW / 2;
         const d = Math.abs(dropX - center);
         if (d < bestD) { bestD = d; best = i; }
       }
@@ -1880,7 +1882,16 @@ export default function GameScreen() {
           transform: [{ translateX: dragX }, { translateY: dragY }, { scale: dragScale }],
         }}
       >
-        {dragCardRef.current && <FaceUpCard card={dragCardRef.current.card} selected={true} w={CARD_W} h={CARD_H} />}
+        {dragCardRef.current && (
+          <>
+            <FaceUpCard card={dragCardRef.current.card} selected={true} w={CARD_W} h={CARD_H} />
+            {dragCardRef.current.stackCards && dragCardRef.current.stackCards.length > 1 && (
+              <View style={{ position: 'absolute', top: -8, right: -8, backgroundColor: COLORS.primary, width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' }}>
+                <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 11, color: '#fff' }}>{dragCardRef.current.stackCards.length}</Text>
+              </View>
+            )}
+          </>
+        )}
       </Animated.View>
     </View>
   );
