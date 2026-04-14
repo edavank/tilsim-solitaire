@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Dimensions,
-  ScrollView, Vibration, Image, Animated, Easing, PanResponder,
+  ScrollView, Vibration, Image, Animated, Easing,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -498,40 +498,24 @@ export default function GameScreen() {
     setSelected(null);
   }, [gs.columns]);
 
-  const panResponder = useRef(PanResponder.create({
-    onStartShouldSetPanResponder: () => !!dragRef.current.card,
-    onStartShouldSetPanResponderCapture: () => !!dragRef.current.card,
-    onMoveShouldSetPanResponder: (_, gs) => !!dragRef.current.card && (Math.abs(gs.dx) > 2 || Math.abs(gs.dy) > 2),
-    onMoveShouldSetPanResponderCapture: (_, gs) => !!dragRef.current.card && (Math.abs(gs.dx) > 2 || Math.abs(gs.dy) > 2),
-    onPanResponderGrant: () => true,
-    onPanResponderMove: (_, gestureState) => {
-      if (!dragRef.current.card) return;
-      dragX.setValue(dragRef.current.startX + gestureState.dx - CARD_W / 2);
-      dragY.setValue(dragRef.current.startY + gestureState.dy - CARD_H / 2);
-    },
-    onPanResponderRelease: (_, gestureState) => {
-      if (!dragRef.current.card) return;
-      const dropX = dragRef.current.startX + gestureState.dx;
-      const dropY = dragRef.current.startY + gestureState.dy;
-      handleDrop(dragRef.current, dropX, dropY);
-    },
-    onPanResponderTerminate: () => {
-      cancelDrag();
-    },
-  })).current;
-
-  // Direct touch handlers for New Architecture compatibility
-  const handleTouchMove = useCallback((e) => {
+  // Drag overlay touch handlers — full screen transparent view captures all touches
+  const handleDragTouchMove = useCallback((e) => {
     if (!dragRef.current.card) return;
     const touch = e.nativeEvent.touches?.[0] || e.nativeEvent;
-    dragX.setValue(touch.pageX - CARD_W / 2);
-    dragY.setValue(touch.pageY - CARD_H / 2);
+    if (touch.pageX !== undefined) {
+      dragX.setValue(touch.pageX - CARD_W / 2);
+      dragY.setValue(touch.pageY - CARD_H / 2);
+    }
   }, []);
 
-  const handleTouchEnd = useCallback((e) => {
+  const handleDragTouchEnd = useCallback((e) => {
     if (!dragRef.current.card) return;
     const touch = e.nativeEvent.changedTouches?.[0] || e.nativeEvent;
-    handleDrop(dragRef.current, touch.pageX, touch.pageY);
+    if (touch.pageX !== undefined) {
+      handleDrop(dragRef.current, touch.pageX, touch.pageY);
+    } else {
+      cancelDrag();
+    }
   }, []);
 
   const cancelDrag = useCallback(() => {
@@ -1362,7 +1346,7 @@ export default function GameScreen() {
   }, []);
 
   return (
-    <View style={st.container} {...panResponder.panHandlers} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+    <View style={st.container}>
       <LinearGradient colors={getThemeGradient(activeTheme)} style={StyleSheet.absoluteFillObject} />
 
       {/* Sparkle */}
@@ -1653,6 +1637,16 @@ export default function GameScreen() {
       )}
       {gs.isFailed && !gs.isComplete && (
         <LevelFailedOverlay t={t} levelId={gs.levelId} onAddMovesAd={addMovesAd} onAddMovesCoin={addMovesCoin} onReplay={handleReplay} onHome={handleHome} />
+      )}
+
+      {/* Drag touch overlay — captures all touch events during drag */}
+      {dragCard && (
+        <View 
+          style={{ ...StyleSheet.absoluteFillObject, zIndex: 99998, backgroundColor: 'transparent' }}
+          onTouchMove={handleDragTouchMove}
+          onTouchEnd={handleDragTouchEnd}
+          onTouchCancel={() => cancelDrag()}
+        />
       )}
 
       {/* Floating drag card */}
