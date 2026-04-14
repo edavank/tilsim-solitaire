@@ -51,48 +51,53 @@ export async function initAuth() {
   return currentUser;
 }
 
-// ─── Google Sign-In (ID Token flow — bypasses redirect issues) ────
+// ─── Google Sign-In (Supabase OAuth) ────────
 export async function signInWithGoogle() {
   try {
     if (!supabase) return { error: 'Supabase bağlantısı yok' };
 
     const { makeRedirectUri } = require('expo-auth-session');
     const WebBrowser = require('expo-web-browser');
+    const Constants = require('expo-constants');
     WebBrowser.maybeCompleteAuthSession();
 
-    const GOOGLE_CLIENT_ID = '1018253953395-r7ltflc82uchh219dk45tc14qe77tnv8.apps.googleusercontent.com';
+    // Build redirect URL
+    const isExpoGo = Constants.default?.appOwnership === 'expo';
+    const hostUri = Constants.default?.expoConfig?.hostUri;
+    const redirectUrl = isExpoGo && hostUri
+      ? `exp://${hostUri}/--/`
+      : makeRedirectUri({ scheme: 'tilsim-solitaire' });
 
-    // makeRedirectUri() returns http://localhost in Expo Go — Google allows this
-    const redirectUri = makeRedirectUri();
-    const nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    console.log('[Auth] redirectUrl:', redirectUrl);
 
-    console.log('[Auth] Google redirectUri:', redirectUri);
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: redirectUrl, skipBrowserRedirect: true },
+    });
 
-    // Go directly to Google (not through Supabase OAuth)
-    const authUrl =
-      'https://accounts.google.com/o/oauth2/v2/auth' +
-      '?client_id=' + GOOGLE_CLIENT_ID +
-      '&redirect_uri=' + encodeURIComponent(redirectUri) +
-      '&response_type=id_token' +
-      '&scope=openid%20email%20profile' +
-      '&nonce=' + nonce;
+    if (error) return { error: error.message };
+    if (!data?.url) return { error: 'OAuth URL alınamadı' };
 
-    const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
+    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+    console.log('[Auth] result type:', result.type);
 
     if (result.type === 'success' && result.url) {
-      // Token is in the hash fragment: #id_token=...
-      const hashParams = new URLSearchParams(result.url.split('#')[1] || '');
-      const idToken = hashParams.get('id_token');
+      console.log('[Auth] result url:', result.url.substring(0, 80));
+      // Tokens come in hash fragment: #access_token=...&refresh_token=...
+      const hashPart = result.url.split('#')[1];
+      if (hashPart) {
+        const params = new URLSearchParams(hashPart);
+        const access_token = params.get('access_token');
+        const refresh_token = params.get('refresh_token');
 
-      if (idToken) {
-        // Pass ID token directly to Supabase
-        const { data, error: signInError } = await supabase.auth.signInWithIdToken({
-          provider: 'google',
-          token: idToken,
-          nonce: nonce,
-        });
-        if (signInError) return { error: signInError.message };
-        return { user: currentUser };
+        if (access_token) {
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token,
+            refresh_token,
+          });
+          if (sessionError) return { error: sessionError.message };
+          return { user: currentUser };
+        }
       }
       return { error: 'Token alınamadı' };
     }
