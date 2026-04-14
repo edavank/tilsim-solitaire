@@ -291,7 +291,7 @@ const TableauColumn = React.memo(function TableauColumn({ column, colIndex, sele
         return (
           <View key={card.id} style={{ marginTop: ci === 0 ? 0 : OVERLAP, zIndex: ci }}>
             {card.faceUp ? (
-              <TouchableOpacity activeOpacity={0.7} onPress={() => onCardTap(card, 'column', colIndex, isLast)} onLongPress={(e) => onCardLongPress?.(card, 'column', colIndex, isLast, e)} delayLongPress={100}>
+              <TouchableOpacity activeOpacity={0.7} onPress={() => onCardTap(card, 'column', colIndex, isLast)} onLongPress={(e) => onCardLongPress?.(card, 'column', colIndex, isLast, e)} delayLongPress={30}>
                 <FaceUpCard card={card} selected={selectedId === card.id || (selectedStackIds && selectedStackIds.has(card.id))} hinted={isHinted} isDragging={false} themeColors={themeColors} />
               </TouchableOpacity>
             ) : (
@@ -1497,7 +1497,7 @@ export default function GameScreen() {
                 handleCardLongPress(card, 'drawn', null, true, e);
               }
             }}
-            delayLongPress={100}
+            delayLongPress={30}
             activeOpacity={0.7}
           >
             {gs.drawnCards.length === 0 ? (
