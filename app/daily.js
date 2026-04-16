@@ -118,7 +118,6 @@ export default function DailyScreen() {
     const isDone = completionMap[key];
     const targetDate = new Date(viewYear, viewMonth, d);
     const isFuture = targetDate > today;
-    const isPast = targetDate < new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
     cells.push(
       <TouchableOpacity

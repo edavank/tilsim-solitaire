@@ -461,6 +461,11 @@ export default function GameScreen() {
   // Zamanlı mod: bölüme göre süre (saniye) — bölüm arttıkça azalır
   const getTimedSeconds = (lvl) => Math.max(60, 180 - (lvl - 1) * 3);
   const [timeRemaining, setTimeRemaining] = useState(() => getTimedSeconds(parseInt(params.level) || 1));
+  // Wall-clock tabanlı bitiş timestamp'i — background'da JS timer pause olunca
+  // eski kod 'prev - 1' ile sayıyordu, bu "background'a at, timer durur" exploit
+  // yaratıyordu. Şimdi Date.now() > timedEndRef ile gerçek zaman kontrol edilir.
+  const timedEndRef = useRef(null);
+  const pauseRemainRef = useRef(null); // paused anında kalan saniyeyi sakla
 
   // Sync game language with context
   useEffect(() => { setGameLang(lang); }, [lang]);
@@ -685,18 +690,34 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
 
   // Timer
   useEffect(() => {
-    if (gs.isComplete || gs.isFailed || paused) return;
+    if (gs.isComplete || gs.isFailed) return;
+    // Paused: timedEnd'i sakla, resume'da geri yükle (wall-clock shift)
+    if (paused) {
+      if (isTimed && timedEndRef.current != null) {
+        pauseRemainRef.current = Math.max(0, timedEndRef.current - Date.now());
+      }
+      return;
+    }
+    if (isTimed) {
+      if (pauseRemainRef.current != null) {
+        // Resume: kalan süreyi Date.now()'dan itibaren yeniden başlat
+        timedEndRef.current = Date.now() + pauseRemainRef.current;
+        pauseRemainRef.current = null;
+      } else if (timedEndRef.current == null) {
+        timedEndRef.current = Date.now() + timeRemaining * 1000;
+      }
+    }
     const timer = setInterval(() => {
       setElapsedTime(Math.floor((Date.now() - startTimeRef.current) / 1000));
-      if (isTimed) {
-        setTimeRemaining((prev) => {
-          if (prev <= 1) {
-            // Süre doldu — oyun bitti
-            setGs((g) => ({ ...g, isFailed: true }));
-            return 0;
-          }
-          return prev - 1;
-        });
+      if (isTimed && timedEndRef.current != null) {
+        const remaining = Math.max(0, Math.ceil((timedEndRef.current - Date.now()) / 1000));
+        if (remaining <= 0) {
+          // Süre doldu — background exploit korumalı: gerçek geçen zaman esas
+          setGs((g) => ({ ...g, isFailed: true }));
+          setTimeRemaining(0);
+        } else {
+          setTimeRemaining(remaining);
+        }
       }
     }, 1000);
     return () => clearInterval(timer);
@@ -713,7 +734,11 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
     loadProgress().then(async (p) => {
       setCoins(p.coins || 0);
             if (!params.level) setLevelId(p.currentLevel || 1);
-      if ((p.currentLevel || 1) === 1 && !isDaily) setShowTutorial(true);
+      if ((p.currentLevel || 1) === 1 && !isDaily && !p.tutorialShown) {
+        setShowTutorial(true);
+        // Tekrar gösterilmesin — kullanıcı 1. bölümü tekrar oynasa bile
+        updateProgress({ tutorialShown: true }).catch(() => {});
+      }
       // Araç durumlarını yükle
       setUnlockedTools(p.unlockedTools || []);
       setToolCredits(p.toolCredits || { hint: 0, joker: 0, shuffle: 0, undo: 0, delete: 0 });
@@ -721,8 +746,23 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         try {
           const { loadSavedGame } = require('../src/utils/storage');
           const saved = await loadSavedGame();
-          if (saved && saved.levelId === (parseInt(params.level) || p.currentLevel) && !saved.isComplete && !saved.isFailed) {
+          // Şekil doğrulaması: bozuk/eski save crash'e yol açmasın.
+          // Gerekli alanlar: slots, columns, drawnCards (arrays), deck, moves (number).
+          const validSave = saved
+            && typeof saved === 'object'
+            && Array.isArray(saved.slots)
+            && Array.isArray(saved.columns)
+            && Array.isArray(saved.drawnCards)
+            && Array.isArray(saved.deck)
+            && typeof saved.moves === 'number'
+            && !saved.isComplete
+            && !saved.isFailed
+            && saved.levelId === (parseInt(params.level) || p.currentLevel);
+          if (validSave) {
             setGs(saved);
+          } else if (saved) {
+            // Şekli bozuk ya da farklı bölüm — temizle ki bir daha yüklenmesin
+            try { const { clearSavedGame: _clr } = require('../src/utils/storage'); _clr(); } catch (e) {}
           }
         } catch (e) {}
       }
@@ -751,6 +791,14 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       }
     }
   }, [gs]);
+
+  // Unmount'ta auto-save timer'ı temizle — timer ateşlenip saveSavedGame çağırsa
+  // o sırada async bir pipeline'a kayıt takılmasın
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
+    };
+  }, []);
 
   useEffect(() => { if (feedback) { const tmr = setTimeout(() => setFeedback(''), 2500); return () => clearTimeout(tmr); } }, [feedback]);
 
@@ -1323,7 +1371,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
     setGs(state); setHistory([]); setSelected(null);
     setHintCard(null); setHintSlot(null); setCombo(0); comboRef.current = 0; startTimeRef.current = Date.now(); setElapsedTime(0);
     wrongMovesRef.current = 0;
-    if (isTimed) setTimeRemaining(getTimedSeconds(levelId));
+    if (isTimed) { setTimeRemaining(getTimedSeconds(levelId)); timedEndRef.current = null; pauseRemainRef.current = null; }
   }, [levelId, isDaily, isTimed, gameLang]);
 
   const addMovesAd = useCallback(async () => {
@@ -1485,7 +1533,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
     setHistory([]); setSelected(null);
     setHintCard(null); setHintSlot(null); setCombo(0); comboRef.current = 0; startTimeRef.current = Date.now(); setElapsedTime(0);
     wrongMovesRef.current = 0;
-    if (isTimed) setTimeRemaining(getTimedSeconds(nextId));
+    if (isTimed) { setTimeRemaining(getTimedSeconds(nextId)); timedEndRef.current = null; pauseRemainRef.current = null; }
     // Araç tanıtım popup'ı
     // BUG FIX: Önceki kod `setCoins((prog.coins||0) + 30 + bonus)` yaparak
     // achievement bonus'unu UI'dan siliyordu. Şimdi en güncel değeri disk'ten
