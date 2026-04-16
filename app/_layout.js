@@ -40,6 +40,8 @@ const LANGUAGES = [
 
 function LanguageSelector({ onSelect }) {
   const [selected, setSelected] = useState(null);
+  const timeoutRef = useRef(null);
+  useEffect(() => () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); }, []);
   return (
     <View style={lang.overlay}>
       <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
@@ -51,7 +53,13 @@ function LanguageSelector({ onSelect }) {
           <TouchableOpacity
             key={l.code}
             style={[lang.item, selected === l.code && { borderColor: COLORS.primary, borderWidth: 2 }]}
-            onPress={() => { setSelected(l.code); setTimeout(() => onSelect(l.code), 300); }}
+            onPress={() => {
+              setSelected(l.code);
+              // Stale-closure fix: önceki timer'ı iptal et ki hızlı çift tıklamada
+              // yanlış (eski) dil seçilmesin.
+              if (timeoutRef.current) clearTimeout(timeoutRef.current);
+              timeoutRef.current = setTimeout(() => onSelect(l.code), 300);
+            }}
             activeOpacity={0.7}
           >
             <Text style={lang.flag}>{l.flag}</Text>

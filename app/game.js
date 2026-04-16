@@ -1109,7 +1109,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   const executeUndo = useCallback(async (method) => {
     if (method === 'coin') {
       if (coins < 450) { setFeedback(t.coinNeeded500); setToolModal(null); return; }
-      setCoins(coins - 450); await updateProgress({ coins: coins - 450 });
+      const _aft450 = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 450 })); setCoins(_aft450.coins);
     }
     if (method === 'ad') {
       const result = await showRewarded();
@@ -1140,7 +1140,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   const executeDelete = useCallback(async (method) => {
     if (method === 'coin') {
       if (coins < 500) { setFeedback(t.coinNeeded500); setToolModal(null); return; }
-      setCoins(coins - 500); await updateProgress({ coins: coins - 500 });
+      const _aftDel = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 500 })); setCoins(_aftDel.coins);
     }
     if (method === 'ad') {
       const result = await showRewarded();
@@ -1177,7 +1177,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   const executeJoker = useCallback(async (method) => {
     if (method === 'coin') {
       if (coins < 750) { setFeedback(t.coinNeeded750); setToolModal(null); return; }
-      setCoins(coins - 750); await updateProgress({ coins: coins - 750 });
+      const _aft750 = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 750 })); setCoins(_aft750.coins);
     }
     if (method === 'ad') {
       const result = await showRewarded();
@@ -1240,7 +1240,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   const executeShuffle = useCallback(async (method) => {
     if (method === 'coin') {
       if (coins < 500) { setFeedback(t.coinNeeded500); setToolModal(null); return; }
-      setCoins(coins - 500); await updateProgress({ coins: coins - 500 });
+      const _aftShuf = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 500 })); setCoins(_aftShuf.coins);
     }
     if (method === 'ad') {
       const result = await showRewarded();
@@ -1269,7 +1269,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   const executeHint = useCallback(async (method) => {
     if (method === 'coin') {
       if (coins < 500) { setFeedback(t.coinNeeded500); setToolModal(null); return; }
-      setCoins(coins - 500); await updateProgress({ coins: coins - 500 });
+      const _aftHint = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 500 })); setCoins(_aftHint.coins);
       setFeedback(t.hintBought);
     }
     if (method === 'ad') {
@@ -1335,9 +1335,8 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
 
   const addMovesCoin = useCallback(async () => {
     if (coins < 500) { setFeedback(t.coinNeeded500); return; }
-    const newCoins = coins - 500;
-    setCoins(newCoins);
-    await updateProgress({ coins: newCoins });
+    const _aftMv = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 500 }));
+    setCoins(_aftMv.coins);
     setGs((p) => ({ ...p, moves: p.moves + 20, isFailed: false }));
     setFeedback(t.movesAdded);
   }, [coins]);

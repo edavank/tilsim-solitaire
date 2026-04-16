@@ -1,10 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import { COLORS, FONTS, SIZES } from '../constants/theme';
 
-export function CoinBadge({ coins = 226, showAdd = true }) {
+export function CoinBadge({ coins = 0, showAdd = true }) {
   return (
     <View style={styles.coinContainer}>
       <MaterialIcons name="monetization-on" size={20} color={COLORS.tertiaryFixed} />
@@ -16,7 +15,7 @@ export function CoinBadge({ coins = 226, showAdd = true }) {
   );
 }
 
-export default function Header({ title, coins = 226, onSettings, leftContent, showCoin = true }) {
+export default function Header({ title, coins = 0, onSettings, leftContent, showCoin = true }) {
   return (
     <View style={styles.header}>
       {leftContent || (showCoin && <CoinBadge coins={coins} />)}
@@ -39,7 +38,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingTop: 56, // safe area
+    paddingTop: 56, // safe area (FIXME: tüm app'te hardcoded, SafeAreaProvider refactor'u ayrı PR)
     paddingBottom: 12,
     backgroundColor: COLORS.headerBg,
   },

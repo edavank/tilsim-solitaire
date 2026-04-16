@@ -13,7 +13,7 @@ import { useLang } from '../src/context/LanguageContext';
 export default function LevelsScreen() {
   const { lang, t } = useLang();
   const [currentLevel, setCurrentLevel] = useState(1);
-  const [totalLevels, setTotalLevels] = useState(200);
+  const [totalLevels, setTotalLevels] = useState(() => getTotalLevels('tr'));
   const [starMap, setStarMap] = useState({});
   const [xpData, setXpData] = useState({ xp: 0, level: 1 });
   const chapters = t.chapters || [];

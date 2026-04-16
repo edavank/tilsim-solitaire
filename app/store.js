@@ -29,19 +29,38 @@ export default function StoreScreen() {
   }, []);
 
   const BOOSTERS = [
-    { name: st.hint, desc: st.hintDesc, icon: 'lightbulb', coinCost: 500, color: COLORS.secondary, key: 'hints' },
-    { name: st.undo, desc: st.undoDesc, icon: 'undo', coinCost: 450, color: COLORS.secondary, key: 'undos' },
+    { name: st.hint, desc: st.hintDesc, icon: 'lightbulb', coinCost: 500, color: COLORS.secondary, toolKey: 'hint' },
+    { name: st.undo, desc: st.undoDesc, icon: 'undo', coinCost: 450, color: COLORS.secondary, toolKey: 'undo' },
   ];
 
   const buyBooster = async (booster) => {
-    if (coins < booster.coinCost) {
-      Alert.alert(st.notEnough, `${booster.coinCost} coin`);
-      return;
+    // CRITICAL FIX: Önceden sadece coin düşürülüyor, envantere booster
+    // eklenmiyordu — kullanıcı coin harcayıp hiçbir şey almıyordu.
+    // Artık progress.toolCredits[toolKey]++ ile game.js'nin okuduğu
+    // yere yazılır. Ayrıca atomik: callback pattern ile concurrent
+    // coin değişikliklerinde kayıp önlenir.
+    let insufficient = false;
+    try {
+      const next = await updateProgress((cur) => {
+        if ((cur.coins || 0) < booster.coinCost) {
+          insufficient = true;
+          return {}; // no-op patch
+        }
+        const prevCredits = cur.toolCredits || { hint: 0, joker: 0, shuffle: 0, undo: 0, delete: 0 };
+        return {
+          coins: (cur.coins || 0) - booster.coinCost,
+          toolCredits: { ...prevCredits, [booster.toolKey]: (prevCredits[booster.toolKey] || 0) + 1 },
+        };
+      });
+      if (insufficient) {
+        Alert.alert(st.notEnough, `${booster.coinCost} coin`);
+        return;
+      }
+      setCoins(next.coins);
+      Alert.alert(st.bought, booster.name + st.boughtMsg);
+    } catch (e) {
+      Alert.alert(st.adFail);
     }
-    const newCoins = coins - booster.coinCost;
-    setCoins(newCoins);
-    await updateProgress({ coins: newCoins });
-    Alert.alert(st.bought, booster.name + st.boughtMsg);
   };
 
   const watchAdForCoins = async () => {
@@ -50,9 +69,9 @@ export default function StoreScreen() {
     try {
       const result = await showRewarded();
       if (result && result.success) {
-        const newCoins = coins + 50;
-        setCoins(newCoins);
-        await updateProgress({ coins: newCoins });
+        // Atomik: concurrent coin yazımını koru
+        const next = await updateProgress((cur) => ({ coins: (cur.coins || 0) + 50 }));
+        setCoins(next.coins);
         Alert.alert(st.earned, st.earnedMsg);
       } else {
         Alert.alert(st.adFail);

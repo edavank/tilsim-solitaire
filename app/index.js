@@ -27,12 +27,17 @@ function FloatingParticles() {
   }))).current;
 
   useEffect(() => {
-    particles.forEach((p) => {
-      Animated.loop(Animated.sequence([
+    // Animation leak fix: loop'ları referans olarak tut ki cleanup'ta durdurabilelim.
+    // Önceden unmount'ta loop'lar sürüyor, CPU/battery'yi sessiz tüketiyordu.
+    const loops = particles.map((p) => {
+      const loop = Animated.loop(Animated.sequence([
         Animated.timing(p.anim, { toValue: 1, duration: p.duration, useNativeDriver: true }),
         Animated.timing(p.anim, { toValue: 0, duration: p.duration, useNativeDriver: true }),
-      ])).start();
+      ]));
+      loop.start();
+      return loop;
     });
+    return () => { loops.forEach((l) => l.stop()); };
   }, []);
 
   return (
@@ -102,18 +107,22 @@ export default function HomeScreen() {
   const slideAnim = useRef(new Animated.Value(12)).current;
 
   useEffect(() => {
-    Animated.parallel([
+    const fadeAnim2 = Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
       Animated.timing(slideAnim, { toValue: 0, duration: 800, useNativeDriver: true }),
-    ]).start();
-    Animated.loop(Animated.sequence([
+    ]);
+    fadeAnim2.start();
+    const owlLoop = Animated.loop(Animated.sequence([
       Animated.timing(owlBounce, { toValue: -15, duration: 2000, useNativeDriver: true }),
       Animated.timing(owlBounce, { toValue: 0, duration: 2000, useNativeDriver: true }),
-    ])).start();
-    Animated.loop(Animated.sequence([
+    ]));
+    const glowLoop = Animated.loop(Animated.sequence([
       Animated.timing(glowPulse, { toValue: 1, duration: 1000, useNativeDriver: true }),
       Animated.timing(glowPulse, { toValue: 0, duration: 1000, useNativeDriver: true }),
-    ])).start();
+    ]));
+    owlLoop.start();
+    glowLoop.start();
+    return () => { fadeAnim2.stop(); owlLoop.stop(); glowLoop.stop(); };
   }, []);
 
   const glowOpacity = glowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
