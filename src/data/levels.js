@@ -179,7 +179,8 @@ export function generateGameState(level) {
 // Auto-generate levels 11+ for Turkish (default)
 // Level 10'un kategorileri — generator'a geç ki 11 tekrar etmesin
 const LEVEL10_CATS = ['Ağırlık Birimleri', 'Hayvanlar', 'Mutfak', 'Sporlar', 'Takılar'];
-const GENERATED_TR = generateLevels(11, 190, 'tr', LEVEL10_CATS);
+// v1.0.1: 190 → 210 (toplam 220 seviye, 22 bölüm)
+const GENERATED_TR = generateLevels(11, 210, 'tr', LEVEL10_CATS);
 LEVELS.push(...GENERATED_TR);
 
 // Language-aware level cache
@@ -189,7 +190,7 @@ export function getLevel(id, language = 'tr') {
   if (language === 'tr') return LEVELS.find((l) => l.id === id) || generateLevels(id, 1, 'tr')[0];
   const key = language;
   if (!langCache[key]) {
-    langCache[key] = generateLevels(1, 200, language);
+    langCache[key] = generateLevels(1, 220, language);
   }
   return langCache[key].find((l) => l.id === id) || generateLevels(id, 1, language)[0];
 }

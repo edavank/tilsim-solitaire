@@ -11,10 +11,11 @@ import { generateGameState, getLevel } from '../src/data/levels';
 import { loadProgress, updateProgress, clearSavedGame, saveSavedGame, saveLevelStars, addXP } from '../src/utils/storage';
 import { playSound } from '../src/utils/sounds';
 import { showRewarded, showInterstitial } from '../src/utils/ads';
+import AdBanner from '../src/components/AdBanner';
 import { useLang } from '../src/context/LanguageContext';
 import { useAuth } from '../src/context/AuthContext';
 import { submitScore } from '../src/utils/leaderboardService';
-import { getDailyChallenge, markDailyChallengeCompleted } from '../src/utils/dailyChallenge';
+import { getDailyChallenge, markDailyChallengeCompleted, getDailyCompletionMap } from '../src/utils/dailyChallenge';
 import { checkAchievements, ACHIEVEMENT_I18N } from '../src/utils/achievements';
 import { markCategoryCompleted } from '../src/utils/collection';
 // seasonalEvents kaldırıldı
@@ -484,6 +485,7 @@ export default function GameScreen() {
   const [timedIntro, setTimedIntro] = useState(false);
   const [scorePopups, setScorePopups] = useState([]); // [{id, text, x, y}]
   const [achievementPopup, setAchievementPopup] = useState(null); // { icon, title }
+  const wrongMovesRef = useRef(0); // Perfect başarımı için yanlış hamle sayacı
   
   // Araç açılma sırası
   const TOOL_UNLOCK = { hint: 2, undo: 3, joker: 5, shuffle: 7, delete: 10 };
@@ -789,10 +791,11 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       if (target.category && card.type === 'category') { setFeedback(t.alreadyFull); return prev; }
       if (target.category && card.type === 'word') {
         if (card.categoryIndex !== target.category.categoryIndex && !card.isJoker) {
-          setTimeout(() => { Vibration.vibrate(100); playSound('wrong'); }, 10);
+          setTimeout(() => { playSound('wrong'); }, 10);
           triggerShake(slotIndex);
           setFeedback(t.wrongPlace);
           setCombo(0); comboRef.current = 0;
+          wrongMovesRef.current += 1;
           return { ...prev, moves: prev.moves - 1, isFailed: prev.moves - 1 <= 0 };
         }
 
@@ -1310,8 +1313,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
     if (isTimed) state.moves = 9999;
     setGs(state); setHistory([]); setSelected(null);
     setHintCard(null); setHintSlot(null); setCombo(0); comboRef.current = 0; startTimeRef.current = Date.now(); setElapsedTime(0);
-    if (isTimed) setTimeRemaining(getTimedSeconds(levelId));
-  }, [levelId, isDaily, isTimed]);
+    wrongMovesRef.current = 0;
 
   const addMovesAd = useCallback(async () => {
     const result = await showRewarded();
@@ -1347,12 +1349,22 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       setCoins(newCoins);
       // Başarım kontrolü
       try {
-        const achStats = { ...prog, coins: newCoins, totalWins: (prog.totalWins || 0) + 1, dailyCount: 1, noHintWin: gs.hints === level.hints, speedWin: gs.moves > level.moves / 2, maxCombo: combo };
+        const dailyMap = await getDailyCompletionMap();
+        const realDailyCount = Object.keys(dailyMap).length + 1;
+        const achStats = { ...prog, coins: newCoins, totalWins: (prog.totalWins || 0) + 1, dailyCount: realDailyCount, noHintWin: gs.hints === level.hints, speedWin: gs.moves > level.moves / 2, perfectWin: wrongMovesRef.current === 0, maxCombo: combo };
         const newAch = await checkAchievements(achStats);
         if (newAch.length > 0) {
           const totalReward = newAch.reduce((sum, a) => sum + (a.reward || 0), 0);
+          // Başarım coin'ini HEMEN ekle — popup sadece gösterim
+          if (totalReward > 0) {
+            const coinsAfterAch = newCoins + totalReward;
+            await updateProgress({ coins: coinsAfterAch, unseenAch: (prog.unseenAch || 0) + newAch.length });
+            setCoins(coinsAfterAch);
+            playSound('coin');
+          } else {
+            await updateProgress({ unseenAch: (prog.unseenAch || 0) + newAch.length });
+          }
           setAchievementPopup({ ...newAch[0], reward: newAch[0].reward || 0, pendingCoins: totalReward });
-          await updateProgress({ unseenAch: (prog.unseenAch || 0) + newAch.length });
         }
       } catch (e) {}
       await markDailyChallengeCompleted(dailyDate);
@@ -1401,12 +1413,23 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
     } catch (e) {}
     // Başarım kontrolü
     try {
-      const achStats = { currentLevel: nextId, coins: (prog.coins || 0) + 30 + bonus, totalWins: (prog.totalWins || 0) + 1, bestScore: Math.max(prog.bestScore || 0, gs.score), streak: (prog.streak || 0) + 1, noHintWin: gs.hints === level.hints, speedWin: gs.moves > level.moves / 2, perfectWin: true, maxCombo: combo };
+      const dailyMap = await getDailyCompletionMap();
+      const realDailyCount = Object.keys(dailyMap).length;
+      const currentCoinsNow = (prog.coins || 0) + 30 + bonus;
+      const achStats = { currentLevel: nextId, coins: currentCoinsNow, totalWins: (prog.totalWins || 0) + 1, bestScore: Math.max(prog.bestScore || 0, gs.score), streak: (prog.streak || 0) + 1, dailyCount: realDailyCount, noHintWin: gs.hints === level.hints, speedWin: gs.moves > level.moves / 2, perfectWin: wrongMovesRef.current === 0, maxCombo: combo };
       const newAch = await checkAchievements(achStats);
       if (newAch.length > 0) {
         const totalReward = newAch.reduce((sum, a) => sum + (a.reward || 0), 0);
+        // Başarım coin'ini HEMEN ekle
+        if (totalReward > 0) {
+          const coinsAfterAch = currentCoinsNow + totalReward;
+          await updateProgress({ coins: coinsAfterAch, unseenAch: (prog.unseenAch || 0) + newAch.length });
+          setCoins(coinsAfterAch);
+          playSound('coin');
+        } else {
+          await updateProgress({ unseenAch: (prog.unseenAch || 0) + newAch.length });
+        }
         setAchievementPopup({ ...newAch[0], reward: newAch[0].reward || 0, pendingCoins: totalReward });
-        await updateProgress({ unseenAch: (prog.unseenAch || 0) + newAch.length });
       }
     } catch (e) {}
     // Show interstitial ad every 3 levels
@@ -1451,6 +1474,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
     setGs(nextState);
     setHistory([]); setSelected(null);
     setHintCard(null); setHintSlot(null); setCombo(0); comboRef.current = 0; startTimeRef.current = Date.now(); setElapsedTime(0);
+    wrongMovesRef.current = 0;
     if (isTimed) setTimeRemaining(getTimedSeconds(nextId));
     setCoins((prog.coins || 0) + 30 + bonus);
     // Araç tanıtım popup'ı
@@ -1514,15 +1538,27 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
 
   const handleReplay = useCallback(async () => {
     const prog = await loadProgress();
-    await updateProgress({ totalGames: (prog.totalGames || 0) + 1 });
+    // Kaybedildiyse streak sıfırla
+    const updates = { totalGames: (prog.totalGames || 0) + 1 };
+    if (gs && gs.isFailed) {
+      updates.streak = 0;
+    }
+    await updateProgress(updates);
     await clearSavedGame();
     resetGame();
   }, [resetGame]);
 
   const handleHome = useCallback(async () => {
+    // Kaybedilmiş oyundan çıkılırsa streak sıfırla
+    if (gs && gs.isFailed && !gs.isComplete) {
+      const prog = await loadProgress();
+      if ((prog.streak || 0) > 0) {
+        await updateProgress({ streak: 0 });
+      }
+    }
     await clearSavedGame();
     router.canGoBack() ? router.back() : router.replace("/");
-  }, []);
+  }, [gs]);
 
   const selId = selected?.card?.id;
   const selectedStackIds = selected?.stackCards ? new Set(selected.stackCards.map((c) => c.id)) : null;
@@ -1731,37 +1767,25 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         <ToolBtn icon="auto-fix-normal" label={t.delete} badge={toolCredits.delete > 0 ? toolCredits.delete : '🪙'} badgeColor={toolCredits.delete > 0 ? COLORS.success : COLORS.coin} onPress={useDelete} locked={!isToolUnlocked('delete')} unlockLevel={TOOL_UNLOCK.delete} />
       </View>
 
-      {/* Ad Banner Space */}
-      <View style={st.adBannerSpace} />
+      {/* Ad Banner */}
+      <View style={st.adBannerSpace}>
+        <AdBanner />
+      </View>
 
-      {/* Achievement Popup */}
+      {/* Achievement Popup — başarım coin'i GARANTİLİ verilir */}
       {achievementPopup && (
         <View style={st.achievPopup}>
           <Text style={{ fontSize: 28 }}>{achievementPopup.icon}</Text>
           <View style={{ flex: 1 }}>
             <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 14, color: '#FFD166' }}>{(ACHIEVEMENT_I18N[gameLang] || ACHIEVEMENT_I18N.tr).earned}</Text>
             <Text style={{ fontFamily: FONTS.body, fontSize: 12, color: '#fff' }}>{(ACHIEVEMENT_I18N[gameLang] || ACHIEVEMENT_I18N.tr)[achievementPopup.id]?.[0] || achievementPopup.title}</Text>
+            {achievementPopup.pendingCoins > 0 && (
+              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 12, color: '#FFD700', marginTop: 2 }}>+{achievementPopup.pendingCoins} 🪙</Text>
+            )}
           </View>
-          {achievementPopup.pendingCoins > 0 ? (
-            <TouchableOpacity 
-              style={{ backgroundColor: '#FFD700', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6 }}
-              onPress={async () => {
-                const p = await loadProgress();
-                const nc = (p.coins || 0) + achievementPopup.pendingCoins;
-                setCoins(nc);
-                await updateProgress({ coins: nc });
-                playSound('coin');
-                setAchievementPopup(null);
-              }}
-              activeOpacity={0.7}
-            >
-              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 13, color: '#000' }}>+{achievementPopup.pendingCoins} 🪙 Topla</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity onPress={() => setAchievementPopup(null)}>
-              <MaterialIcons name="close" size={20} color="#fff" />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity onPress={() => setAchievementPopup(null)}>
+            <MaterialIcons name="close" size={20} color="#fff" />
+          </TouchableOpacity>
         </View>
       )}
 
@@ -2106,6 +2130,6 @@ const st = StyleSheet.create({
   toolBdg: { position: 'absolute', top: -6, right: -6, minWidth: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff', paddingHorizontal: 4 },
   toolBdgText: { fontFamily: FONTS.headlineBlack, fontSize: 8, color: '#fff' },
   toolLabel: { fontFamily: FONTS.headlineBlack, fontSize: 8, color: COLORS.onSurfaceVariant, letterSpacing: 1 },
-  adBannerSpace: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 60, backgroundColor: 'rgba(0,0,0,0.15)', zIndex: 99 },
+  adBannerSpace: { position: 'absolute', bottom: 0, left: 0, right: 0, minHeight: 50, alignItems: 'center', justifyContent: 'center', zIndex: 99 },
   achievPopup: { position: 'absolute', top: 100, left: 20, right: 20, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(30,10,50,0.95)', borderRadius: 16, padding: 14, borderWidth: 1.5, borderColor: '#FFD166', shadowColor: '#FFD166', shadowOpacity: 0.5, shadowRadius: 12, elevation: 10, zIndex: 200 },
 });

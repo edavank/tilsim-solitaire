@@ -96,6 +96,17 @@ export const WORD_POOLS = {
     { name: 'İstanbul', words: ['Beyoğlu', 'Galata', 'Sultanahmet', 'Kadıköy', 'Üsküdar', 'Taksim'] },
     { name: 'Atıştırmalık', words: ['Cips', 'Patlak mısır', 'Bisküvi', 'Kuruyemiş', 'Gofret', 'Kraker'] },
     { name: 'Meşrubat', words: ['Kola', 'Soda', 'Şalgam', 'Boza', 'Komposto', 'Gazoz'] },
+    // === 10 YENİ KATEGORİ (v1.0.1) ===
+    { name: 'Sirk', words: ['Palyaço', 'Cambaz', 'Akrobat', 'Sihirbaz', 'Trapez', 'Çadır'] },
+    { name: 'Oyun Konsolu', words: ['PlayStation', 'Xbox', 'Switch', 'Kumanda', 'Gamepad', 'Joystick'] },
+    { name: 'Dans Türleri', words: ['Salsa', 'Tango', 'Vals', 'Hiphop', 'Bale', 'Zeybek'] },
+    { name: 'Yarış Araçları', words: ['Formula', 'Rally', 'Kart', 'Motokros', 'Drift', 'Nascar'] },
+    { name: 'Sosyal Medya', words: ['Paylaşım', 'Beğeni', 'Yorum', 'Takipçi', 'Etiket', 'Hikaye'] },
+    { name: 'Bayramlar', words: ['Ramazan', 'Kurban', 'Yılbaşı', 'Cumhuriyet', 'Zafer', 'Çocuk'] },
+    { name: 'Tiyatro', words: ['Sahne', 'Perde', 'Oyuncu', 'Replik', 'Prömiyer', 'Alkış'] },
+    { name: 'Çizgi Filmler', words: ['Pepee', 'Rafadan', 'Heidi', 'Pokemon', 'Niloya', 'Keloğlan'] },
+    { name: 'Bitkiler', words: ['Kaktüs', 'Sukulent', 'Eğrelti', 'Yosun', 'Sarmaşık', 'Bambu'] },
+    { name: 'Hobiler', words: ['Koleksiyon', 'Örgü', 'Model', 'Origami', 'Puzzle', 'Kaligrafi'] },
   ],
 
   en: [
@@ -592,6 +603,27 @@ export const EMOJI_MAP = {
   'Japón': '🇯🇵', 'Brasil': '🇧🇷',
   'Ingeniero': '👷', 'Piloto': '🧑‍✈️',
   'سموذي': '🥛',
+  // === YENİ KELİMELER (v1.0.1) ===
+  // Sirk
+  'Palyaço': '🤡', 'Cambaz': '🤹', 'Akrobat': '🤸', 'Sihirbaz': '🎩', 'Trapez': '🎪', 'Çadır': '🏕️',
+  // Oyun Konsolu
+  'PlayStation': '🎮', 'Xbox': '🕹️', 'Switch': '🎮', 'Kumanda': '🎮', 'Gamepad': '🕹️', 'Joystick': '🕹️',
+  // Dans Türleri
+  'Salsa': '💃', 'Tango': '🕺', 'Vals': '💃', 'Hiphop': '🕺', 'Bale': '🩰', 'Zeybek': '🎶',
+  // Yarış Araçları
+  'Formula': '🏎️', 'Rally': '🚙', 'Kart': '🏁', 'Motokros': '🏍️', 'Drift': '💨', 'Nascar': '🏁',
+  // Sosyal Medya
+  'Paylaşım': '📤', 'Beğeni': '❤️', 'Yorum': '💬', 'Takipçi': '👥', 'Etiket': '🏷️', 'Hikaye': '📖',
+  // Bayramlar
+  'Ramazan': '🌙', 'Kurban': '🐏', 'Yılbaşı': '🎉', 'Cumhuriyet': '🇹🇷', 'Zafer': '🏆', 'Çocuk': '🧒',
+  // Tiyatro
+  'Replik': '💬', 'Prömiyer': '🎬', 'Alkış': '👏',
+  // Çizgi Filmler
+  'Pepee': '👶', 'Rafadan': '🎨', 'Heidi': '🏔️', 'Pokemon': '⚡', 'Niloya': '🌸', 'Keloğlan': '🧑',
+  // Bitkiler
+  'Kaktüs': '🌵', 'Sukulent': '🪴', 'Eğrelti': '🌿', 'Yosun': '🍃', 'Sarmaşık': '🌿', 'Bambu': '🎋',
+  // Hobiler
+  'Koleksiyon': '📦', 'Örgü': '🧶', 'Model': '🏗️', 'Origami': '🪷', 'Kaligrafi': '✒️',
 };
 
 // Category emoji mapping
@@ -620,6 +652,10 @@ export const CATEGORY_EMOJIS = {
   'Hukuk': '⚖️', 'Film Türleri': '🎞️', 'Kozmetik': '💄', 'Balık': '🐟',
   'Ekmek': '🍞', 'Tabiat Olayları': '🌪️', 'Renk Tonları': '🌈',
   'İstanbul': '🕌', 'Atıştırmalık': '🍿', 'Meşrubat': '🧊',
+  // Yeni kategoriler (v1.0.1)
+  'Sirk': '🎪', 'Oyun Konsolu': '🎮', 'Dans Türleri': '🪩', 'Yarış Araçları': '🏎️',
+  'Sosyal Medya': '📱', 'Bayramlar': '🎉', 'Tiyatro': '🎭', 'Çizgi Filmler': '📺',
+  'Bitkiler': '🌿', 'Hobiler': '🎯',
   // EN
   'Fruits': '🍎', 'Animals': '🐾', 'Colors': '🎨', 'Sports': '🏆',
   'Drinks': '🥤', 'Trees': '🌳', 'Music': '🎵', 'Vegetables': '🥬',

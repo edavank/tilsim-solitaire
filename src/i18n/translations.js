@@ -191,7 +191,7 @@ const translations = {
     ],
     
     // Chapters
-    chapters: ['Başlangıç', 'Keşif', 'Uyanış', 'Yolculuk', 'Gökyüzü', 'Fırtına', 'Denge', 'Gizem', 'Takımyıldız', 'Efsane', 'Yıldız', 'Bulut', 'Rüzgâr', 'Dalga', 'Ateş', 'Toprak', 'Kristal', 'Şafak', 'Gölge', 'Işık'],
+    chapters: ['Başlangıç', 'Keşif', 'Uyanış', 'Yolculuk', 'Gökyüzü', 'Fırtına', 'Denge', 'Gizem', 'Takımyıldız', 'Efsane', 'Yıldız', 'Bulut', 'Rüzgâr', 'Dalga', 'Ateş', 'Toprak', 'Kristal', 'Şafak', 'Gölge', 'Işık', 'Kıvılcım', 'Ufuk'],
   },
 
   en: {
@@ -340,7 +340,7 @@ const translations = {
       'Solve the cards, open your mind!',
       'How many levels will you pass today?',
     ],
-    chapters: ['Beginning', 'Discovery', 'Awakening', 'Journey', 'Sky', 'Storm', 'Balance', 'Mystery', 'Constellation', 'Legend', 'Star', 'Cloud', 'Wind', 'Wave', 'Fire', 'Earth', 'Crystal', 'Dawn', 'Shadow', 'Light'],
+    chapters: ['Beginning', 'Discovery', 'Awakening', 'Journey', 'Sky', 'Storm', 'Balance', 'Mystery', 'Constellation', 'Legend', 'Star', 'Cloud', 'Wind', 'Wave', 'Fire', 'Earth', 'Crystal', 'Dawn', 'Shadow', 'Light', 'Spark', 'Horizon'],
   },
 
   de: {
@@ -479,7 +479,7 @@ const translations = {
     levels: 'Levels',
     progress: 'FORTSCHRITT',
     bilgeMessages: ['Willkommen! Heute ist ein toller Tag.', 'Bereit für die Magie der Wörter?', 'Jedes Level ist ein neues Abenteuer!'],
-    chapters: ['Anfang', 'Entdeckung', 'Erwachen', 'Reise', 'Himmel', 'Sturm', 'Balance', 'Geheimnis', 'Sternbild', 'Legende', 'Stern', 'Wolke', 'Wind', 'Welle', 'Feuer', 'Erde', 'Kristall', 'Morgenröte', 'Schatten', 'Licht'],
+    chapters: ['Anfang', 'Entdeckung', 'Erwachen', 'Reise', 'Himmel', 'Sturm', 'Balance', 'Geheimnis', 'Sternbild', 'Legende', 'Stern', 'Wolke', 'Wind', 'Welle', 'Feuer', 'Erde', 'Kristall', 'Morgenröte', 'Schatten', 'Licht', 'Funke', 'Horizont'],
   },
 
   fr: {
@@ -603,7 +603,7 @@ const translations = {
     levels: 'Niveaux',
     progress: 'PROGRÈS',
     bilgeMessages: ['Bienvenue! Quelle belle journée.', 'Prêt pour la magie des mots?', 'Chaque niveau est une aventure!'],
-    chapters: ['Début', 'Découverte', 'Éveil', 'Voyage', 'Ciel', 'Tempête', 'Équilibre', 'Mystère', 'Constellation', 'Légende', 'Étoile', 'Nuage', 'Vent', 'Vague', 'Feu', 'Terre', 'Cristal', 'Aube', 'Ombre', 'Lumière'],
+    chapters: ['Début', 'Découverte', 'Éveil', 'Voyage', 'Ciel', 'Tempête', 'Équilibre', 'Mystère', 'Constellation', 'Légende', 'Étoile', 'Nuage', 'Vent', 'Vague', 'Feu', 'Terre', 'Cristal', 'Aube', 'Ombre', 'Lumière', 'Étincelle', 'Horizon'],
   },
 
   es: {
@@ -703,7 +703,7 @@ const translations = {
     levels: 'Niveles',
     progress: 'PROGRESO',
     bilgeMessages: ['¡Bienvenido! Hoy es un gran día.', '¿Listo para la magia de las palabras?', '¡Cada nivel es una nueva aventura!'],
-    chapters: ['Inicio', 'Descubrimiento', 'Despertar', 'Viaje', 'Cielo', 'Tormenta', 'Equilibrio', 'Misterio', 'Constelación', 'Leyenda', 'Estrella', 'Nube', 'Viento', 'Ola', 'Fuego', 'Tierra', 'Cristal', 'Amanecer', 'Sombra', 'Luz'],
+    chapters: ['Inicio', 'Descubrimiento', 'Despertar', 'Viaje', 'Cielo', 'Tormenta', 'Equilibrio', 'Misterio', 'Constelación', 'Leyenda', 'Estrella', 'Nube', 'Viento', 'Ola', 'Fuego', 'Tierra', 'Cristal', 'Amanecer', 'Sombra', 'Luz', 'Chispa', 'Horizonte'],
   },
 
   ar: {
@@ -803,7 +803,7 @@ const translations = {
     levels: 'المستويات',
     progress: 'التقدم',
     bilgeMessages: ['مرحباً! اليوم يوم رائع.', 'هل أنت مستعد لسحر الكلمات؟', 'كل مستوى مغامرة جديدة!'],
-    chapters: ['البداية', 'الاكتشاف', 'الصحوة', 'الرحلة', 'السماء', 'العاصفة', 'التوازن', 'الغموض', 'الكوكبة', 'الأسطورة', 'النجم', 'السحاب', 'الريح', 'الموجة', 'النار', 'الأرض', 'البلور', 'الفجر', 'الظل', 'النور'],
+    chapters: ['البداية', 'الاكتشاف', 'الصحوة', 'الرحلة', 'السماء', 'العاصفة', 'التوازن', 'الغموض', 'الكوكبة', 'الأسطورة', 'النجم', 'السحاب', 'الريح', 'الموجة', 'النار', 'الأرض', 'البلور', 'الفجر', 'الظل', 'النور', 'الشرارة', 'الأفق'],
   },
 };
 

@@ -37,18 +37,20 @@ export async function setBgmEnabled(v) {
   }
 }
 
-// Haptic patterns
+// Haptic patterns — minimize edildi
+// Sık tetiklenen olaylar (tap, flip, draw, correct, coin) artık titreşim yapmıyor
+// Sadece kritik olaylar titreşir: wrong, complete, win, lose, unlock
 const HAPTIC = {
-  tap: [0, 10],
-  correct: [0, 30, 50, 30],
-  wrong: [0, 50, 30, 50, 30, 50],
-  flip: [0, 15],
-  complete: [0, 50, 80, 50, 80, 50, 80, 100],
-  draw: [0, 12],
-  win: [0, 80, 100, 80, 100, 80],
-  lose: [0, 100, 50, 100],
-  unlock: [0, 30, 40, 30],
-  coin: [0, 20, 30, 20],
+  tap: null,
+  correct: null,
+  wrong: [0, 40],
+  flip: null,
+  complete: [0, 60, 60, 60],
+  draw: null,
+  win: [0, 80, 60, 80],
+  lose: [0, 100],
+  unlock: [0, 40],
+  coin: null,
 };
 
 // Sound file mapping
@@ -109,7 +111,8 @@ export async function stopBgm() {
 
 export function playHaptic(event) {
   if (!vibrationEnabled) return;
-  const pattern = HAPTIC[event] || HAPTIC.tap;
+  const pattern = HAPTIC[event];
+  if (!pattern) return; // null ise titreşim yok
   Vibration.vibrate(pattern);
 }
 

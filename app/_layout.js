@@ -19,7 +19,7 @@ import {
 } from '@expo-google-fonts/fondamento';
 import { COLORS, FONTS } from '../src/constants/theme';
 import { initAds } from '../src/utils/ads';
-import ConsentDialog from '../src/components/ConsentDialog';
+// ConsentDialog kaldırıldı — Apple'ın ATT sistemi zaten izin alıyor
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { setVibrationEnabled, setSoundEnabled, setBgmEnabled, loadSounds, startBgm, initSoundSettings } from '../src/utils/sounds';
 import { loadSettings, saveSettings } from '../src/utils/storage';
@@ -159,7 +159,7 @@ export default function RootLayout() {
           <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLORS.surface }, animation: 'fade' }} />
           {!splashDone && <AnimatedSplash onFinish={() => setSplashDone(true)} />}
           {splashDone && showLangPicker && <LanguageSelector onSelect={handleLanguageSelect} />}
-          <ConsentDialog />
+          {/* ConsentDialog kaldırıldı — ATT yeterli */}
         </GestureHandlerRootView>
       </AuthProvider>
     </LanguageProvider>
