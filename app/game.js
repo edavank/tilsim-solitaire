@@ -1314,6 +1314,8 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
     setGs(state); setHistory([]); setSelected(null);
     setHintCard(null); setHintSlot(null); setCombo(0); comboRef.current = 0; startTimeRef.current = Date.now(); setElapsedTime(0);
     wrongMovesRef.current = 0;
+    if (isTimed) setTimeRemaining(getTimedSeconds(levelId));
+  }, [levelId, isDaily, isTimed, gameLang]);
 
   const addMovesAd = useCallback(async () => {
     const result = await showRewarded();
