@@ -91,11 +91,17 @@ export async function signInWithGoogle() {
         const refresh_token = params.get('refresh_token');
 
         if (access_token) {
-          const { error: sessionError } = await supabase.auth.setSession({
+          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
             access_token,
             refresh_token,
           });
           if (sessionError) return { error: sessionError.message };
+          // Listener'ın currentUser'ı güncellemesini bekle (race fix)
+          const sessionUser = userFromSession(sessionData?.session);
+          if (sessionUser) {
+            currentUser = sessionUser;
+            notifyListeners();
+          }
           return { user: currentUser };
         }
       }
@@ -149,6 +155,13 @@ export async function signInWithApple() {
       if (fullName) {
         await supabase.auth.updateUser({ data: { full_name: fullName } });
       }
+    }
+
+    // Race fix: listener'dan önce currentUser'ı set et
+    const sessionUser = userFromSession(data?.session);
+    if (sessionUser) {
+      currentUser = sessionUser;
+      notifyListeners();
     }
 
     return { user: currentUser };

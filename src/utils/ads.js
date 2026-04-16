@@ -162,6 +162,19 @@ export function showRewarded() {
       return;
     }
 
+    let resolved = false;
+    const safeResolve = (result) => {
+      if (resolved) return;
+      resolved = true;
+      resolve(result);
+    };
+
+    // 30 saniye timeout — reklam hiç yüklenmezse sonsuza kadar beklemesin
+    const timeoutId = setTimeout(() => {
+      console.log('[Ads] rewarded timeout — 30s boyunca yanıt gelmedi');
+      safeResolve({ success: false, reward: null });
+    }, 30000);
+
     try {
       const rewarded = RewardedAd.createForAdRequest(ids.rewarded, {
         requestNonPersonalizedAdsOnly: false,
@@ -183,14 +196,16 @@ export function showRewarded() {
       );
 
       const closeUnsub = rewarded.addAdEventListener(AdEventType.CLOSED, () => {
+        clearTimeout(timeoutId);
         cleanup();
-        resolve({ success: earned, reward: earned ? rewardData : null });
+        safeResolve({ success: earned, reward: earned ? rewardData : null });
       });
 
       const errorUnsub = rewarded.addAdEventListener(AdEventType.ERROR, (error) => {
         console.log('[Ads] rewarded hatası:', error.message);
+        clearTimeout(timeoutId);
         cleanup();
-        resolve({ success: false, reward: null });
+        safeResolve({ success: false, reward: null });
       });
 
       function cleanup() {
@@ -203,7 +218,8 @@ export function showRewarded() {
       rewarded.load();
     } catch (e) {
       console.log('[Ads] showRewarded hatası:', e.message);
-      resolve({ success: false, reward: null });
+      clearTimeout(timeoutId);
+      safeResolve({ success: false, reward: null });
     }
   });
 }

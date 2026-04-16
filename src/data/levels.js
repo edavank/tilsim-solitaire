@@ -197,5 +197,5 @@ export function getLevel(id, language = 'tr') {
 
 export function getTotalLevels(language = 'tr') {
   if (language === 'tr') return LEVELS.length;
-  return 200;
+  return 220;
 }

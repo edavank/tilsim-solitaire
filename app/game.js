@@ -115,14 +115,21 @@ function ConfettiEffect() {
   }))).current;
 
   useEffect(() => {
+    const loops = [];
     pieces.forEach((p) => {
-      Animated.loop(
+      const loop = Animated.loop(
         Animated.sequence([
           Animated.delay(p.delay),
           Animated.timing(p.anim, { toValue: 1, duration: 2000 + Math.random() * 1000, useNativeDriver: true }),
         ])
-      ).start();
+      );
+      loops.push(loop);
+      loop.start();
     });
+    return () => {
+      // Component unmount olduğunda animation loop'larını durdur — memory leak fix
+      loops.forEach((l) => l.stop?.());
+    };
   }, []);
 
   return (
@@ -359,7 +366,7 @@ function LevelCompleteOverlay({ t, score, coins, movesLeft, maxMoves, levelId, c
         </View>
         <Image source={OWL_HAPPY} style={ov.owl} />
         <Text style={ov.title}>{t.congrats}</Text>
-        <Text style={ov.subtitle}>{isDaily ? '📅 GÜNLÜK GÖREV' : t.level + ' ' + levelId} {t.levelComplete}</Text>
+        <Text style={ov.subtitle}>{isDaily ? '📅 ' + (t.dailyChallenge || 'DAILY').toUpperCase() : t.level + ' ' + levelId} {t.levelComplete}</Text>
         {combo > 0 && <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 12, color: COLORS.tertiary, marginBottom: 4 }}>🔥 Max Combo: {combo}x</Text>}
         <Text style={{ fontFamily: FONTS.body, fontSize: 11, color: COLORS.onSurfaceVariant, marginBottom: 8 }}>⏱ {Math.floor(elapsedTime / 60)}:{String(elapsedTime % 60).padStart(2, '0')}{speedBonus > 0 ? ' ⚡ Hız Bonusu!' : ''}</Text>
         <View style={ov.statsRow}>
@@ -422,7 +429,7 @@ function LevelFailedOverlay({ t, levelId, onAddMovesAd, onAddMovesCoin, onShuffl
         <TouchableOpacity onPress={onShuffle} activeOpacity={0.85} style={{ marginTop: 8, width: '100%' }}>
           <View style={[ov.addMovesBtn, { backgroundColor: COLORS.panelBg, borderWidth: 1.5, borderColor: COLORS.secondary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 9999 }]}>
             <MaterialIcons name="shuffle" size={18} color={COLORS.secondary} />
-            <Text style={[ov.addMovesText, { color: COLORS.secondary }]}>{t.shuffle || 'Karıştır'}</Text>
+            <Text style={[ov.addMovesText, { color: COLORS.secondary }]}>{t.shuffle}</Text>
           </View>
         </TouchableOpacity>
         <View style={ov.bottomRow}>
@@ -1612,7 +1619,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
           </View>
         </View>
         <View style={{ alignItems: 'center', flex: 1 }}>
-          <Text style={st.headerTitle}>{isDaily ? '📅 ' + (dailyDate || 'GÜNLÜK') : t.level + ' ' + gs.levelId}</Text>
+          <Text style={st.headerTitle}>{isDaily ? '📅 ' + (dailyDate || t.dailyUpper) : t.level + ' ' + gs.levelId}</Text>
           {combo >= 2 && <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: fs(11), color: COLORS.coin }}>🔥 {combo}x Combo</Text>}
           <View style={{ flexDirection: 'row', gap: 3, marginTop: 4 }}>
             {gs.slots.filter(s => !s.locked).map((s, i) => (
@@ -1797,14 +1804,14 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
           <View style={[ov.card, { paddingTop: 20, paddingBottom: 20 }]}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginBottom: 12 }}>
               <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 20, color: COLORS.onSurface }}>
-                {toolModal === 'hint' ? t.hint : toolModal === 'undo' ? t.undo : toolModal === 'joker' ? 'Joker' : toolModal === 'shuffle' ? 'Karıştır' : t.delete}
+                {toolModal === 'hint' ? t.hint : toolModal === 'undo' ? t.undo : toolModal === 'joker' ? t.joker : toolModal === 'shuffle' ? t.shuffle : t.delete}
               </Text>
               <TouchableOpacity onPress={() => setToolModal(null)}><Text style={{ fontSize: 22, color: COLORS.fail }}>✕</Text></TouchableOpacity>
             </View>
             <View style={{ backgroundColor: COLORS.panelBg, borderRadius: 16, padding: 20, alignItems: 'center', width: '100%', marginBottom: 16 }}>
               <MaterialIcons name={toolModal === 'hint' ? 'lightbulb' : toolModal === 'undo' ? 'undo' : toolModal === 'joker' ? 'style' : toolModal === 'shuffle' ? 'shuffle' : 'auto-fix-normal'} size={48} color={COLORS.secondary} />
               <Text style={{ fontFamily: FONTS.body, fontSize: 13, color: COLORS.onSurfaceVariant, marginTop: 8, textAlign: 'center' }}>
-                {toolModal === 'hint' ? (t.hintDesc || 'Doğru hamleyi göster') : toolModal === 'undo' ? (t.undoDesc || 'Önceki adımı geri al') : toolModal === 'joker' ? 'Üstteki kartı joker yap — herhangi bir kategoriye uyar' : toolModal === 'shuffle' ? 'Sütunlardaki kapalı kartları karıştır' : (t.deleteDesc || 'Bir kartı sil')}
+                {toolModal === 'hint' ? t.hintDesc : toolModal === 'undo' ? t.undoDesc : toolModal === 'joker' ? t.jokerDesc : toolModal === 'shuffle' ? t.shuffleDesc : t.deleteDesc}
               </Text>
             </View>
             <TouchableOpacity 

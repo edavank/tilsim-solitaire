@@ -39,7 +39,7 @@ export async function submitScore({ score, level, totalWins, displayName, langua
       .from('leaderboard')
       .select('id, score, avatar_emoji')
       .eq('device_id', deviceId)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       // Update only if score improved
@@ -115,7 +115,7 @@ export async function getUserRank() {
       .from('leaderboard')
       .select('id, display_name, avatar_emoji, score, level')
       .eq('device_id', deviceId)
-      .single();
+      .maybeSingle();
 
     if (!entry) return { rank: null, entry: null };
 

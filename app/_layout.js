@@ -23,7 +23,7 @@ import { initAds } from '../src/utils/ads';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { setVibrationEnabled, setSoundEnabled, setBgmEnabled, loadSounds, startBgm, initSoundSettings } from '../src/utils/sounds';
 import { loadSettings, saveSettings } from '../src/utils/storage';
-import { LanguageProvider } from '../src/context/LanguageContext';
+import { LanguageProvider, useLang } from '../src/context/LanguageContext';
 import { AuthProvider } from '../src/context/AuthContext';
 
 const OWL = require('../assets/bilge-happy.png');
@@ -137,11 +137,6 @@ export default function RootLayout() {
     });
   }, []);
 
-  const handleLanguageSelect = async (code) => {
-    await saveSettings({ language: code, languageSelected: true });
-    setShowLangPicker(false);
-  };
-
   if (!fontsLoaded) {
     return (
       <View style={styles.loading}>
@@ -158,12 +153,25 @@ export default function RootLayout() {
           <StatusBar style="light" />
           <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLORS.surface }, animation: 'fade' }} />
           {!splashDone && <AnimatedSplash onFinish={() => setSplashDone(true)} />}
-          {splashDone && showLangPicker && <LanguageSelector onSelect={handleLanguageSelect} />}
+          {splashDone && showLangPicker && (
+            <LanguageSelectorWithContext onDone={() => setShowLangPicker(false)} />
+          )}
           {/* ConsentDialog kaldırıldı — ATT yeterli */}
         </GestureHandlerRootView>
       </AuthProvider>
     </LanguageProvider>
   );
+}
+
+// LanguageContext'i kullanabilen dil seçici — Provider içinde render edildiği için erişebilir.
+// Bu sayede dil seçildiğinde context gerçek zamanlı güncellenir, uygulama yeniden başlatılmaz.
+function LanguageSelectorWithContext({ onDone }) {
+  const { setLang } = useLang();
+  const handleSelect = async (code) => {
+    await setLang(code); // hem context güncellenir hem AsyncStorage'a yazılır
+    onDone();
+  };
+  return <LanguageSelector onSelect={handleSelect} />;
 }
 
 const styles = StyleSheet.create({
