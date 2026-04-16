@@ -4,13 +4,13 @@ const KEY = 'tilsim_daily_login';
 
 // Günlük ödüller (1-7 gün)
 const DAILY_REWARDS = [
-  { day: 1, coins: 10, label: '10 Coin' },
-  { day: 2, coins: 20, label: '20 Coin' },
-  { day: 3, coins: 30, label: '30 Coin' },
-  { day: 4, coins: 40, label: '40 Coin' },
-  { day: 5, coins: 50, label: '50 Coin' },
-  { day: 6, coins: 75, label: '75 Coin' },
-  { day: 7, coins: 100, label: '100 Coin' },
+  { day: 1, coins: 10 },
+  { day: 2, coins: 20 },
+  { day: 3, coins: 30 },
+  { day: 4, coins: 40 },
+  { day: 5, coins: 50 },
+  { day: 6, coins: 75 },
+  { day: 7, coins: 100 },
 ];
 
 function getToday() {

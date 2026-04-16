@@ -500,6 +500,7 @@ export default function GameScreen() {
   const [scorePopups, setScorePopups] = useState([]); // [{id, text, x, y}]
   const [achievementPopup, setAchievementPopup] = useState(null); // { icon, title }
   const wrongMovesRef = useRef(0); // Perfect başarımı için yanlış hamle sayacı
+  const _pendingFailedShuffleRef = useRef(false); // handleFailedShuffle → modal → purchase sonrası auto-apply
   
   // Araç açılma sırası
   const TOOL_UNLOCK = { hint: 2, undo: 3, joker: 5, shuffle: 7, delete: 10 };
@@ -1297,9 +1298,22 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
     const newCredits = { ...toolCredits, shuffle: toolCredits.shuffle + 1 };
     setToolCredits(newCredits);
     await updateProgress({ toolCredits: newCredits });
-    setFeedback(t.shuffleAdded);
     setToolModal(null);
-  }, [coins, toolCredits]);
+    // BUG FIX: Fail ekranından "Karıştır" butonuyla modal açılıp satın alınca,
+    // eski kod sadece kredi ekliyor ama uygulamıyordu. Kullanıcı moves=0 +
+    // isFailed=false stuck durumuna düşüyordu. Artık pendingFailedShuffle flag'i
+    // ile purchase sonrası otomatik uygulanır.
+    if (_pendingFailedShuffleRef.current) {
+      _pendingFailedShuffleRef.current = false;
+      // Yeni kredinin 1'ini hemen kullan
+      const usedCredits = { ...newCredits, shuffle: newCredits.shuffle - 1 };
+      setToolCredits(usedCredits);
+      await updateProgress({ toolCredits: usedCredits });
+      applyFailedShuffle();
+    } else {
+      setFeedback(t.shuffleAdded);
+    }
+  }, [coins, toolCredits, applyFailedShuffle]);
 
   // ── Smart Hint ──
   const useHint = useCallback(async () => {
@@ -1560,47 +1574,52 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   }, [levelId, gs, level, coins, user, syncToCloud]);
 
   // Hamle bitti → Karıştır (shuffle + 5 hamle ekle)
+  const applyFailedShuffle = useCallback(() => {
+    // Kartları karıştır + 5 hamle ver + isFailed kaldır
+    setGs((prev) => {
+      const allCards = [];
+      const colSizes = [];
+      prev.columns.forEach(col => {
+        if (col.locked) { colSizes.push(-1); return; }
+        colSizes.push(col.cards.length);
+        col.cards.forEach(c => allCards.push({ ...c }));
+      });
+      prev.drawnCards.forEach(c => allCards.push({ ...c }));
+      for (let i = allCards.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [allCards[i], allCards[j]] = [allCards[j], allCards[i]];
+      }
+      let idx = 0;
+      const newColumns = prev.columns.map((col, ci) => {
+        if (col.locked) return col;
+        const size = colSizes[ci];
+        const newCards = allCards.slice(idx, idx + size).map((c, cardIdx) => ({
+          ...c, faceUp: cardIdx === size - 1
+        }));
+        idx += size;
+        return { ...col, cards: newCards };
+      });
+      const newDrawn = allCards.slice(idx).map(c => ({ ...c, faceUp: true }));
+      return { ...prev, columns: newColumns, drawnCards: newDrawn, moves: 5, isFailed: false };
+    });
+    playSound('flip');
+    setFeedback(t.shuffleDone);
+  }, []);
+
   const handleFailedShuffle = useCallback(async () => {
     if (toolCredits.shuffle > 0) {
       // Kredi varsa kullan
       const newCredits = { ...toolCredits, shuffle: toolCredits.shuffle - 1 };
       setToolCredits(newCredits);
       await updateProgress({ toolCredits: newCredits });
-      setGs((prev) => {
-        const allCards = [];
-        const colSizes = [];
-        prev.columns.forEach(col => {
-          if (col.locked) { colSizes.push(-1); return; }
-          colSizes.push(col.cards.length);
-          col.cards.forEach(c => allCards.push({ ...c }));
-        });
-        prev.drawnCards.forEach(c => allCards.push({ ...c }));
-        for (let i = allCards.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [allCards[i], allCards[j]] = [allCards[j], allCards[i]];
-        }
-        let idx = 0;
-        const newColumns = prev.columns.map((col, ci) => {
-          if (col.locked) return col;
-          const size = colSizes[ci];
-          const newCards = allCards.slice(idx, idx + size).map((c, cardIdx) => ({
-            ...c, faceUp: cardIdx === size - 1
-          }));
-          idx += size;
-          return { ...col, cards: newCards };
-        });
-        const newDrawn = allCards.slice(idx).map(c => ({ ...c, faceUp: true }));
-        return { ...prev, columns: newColumns, drawnCards: newDrawn, moves: 5, isFailed: false };
-      });
-      playSound('flip');
-      setFeedback(t.shuffleDone);
+      applyFailedShuffle();
     } else {
-      // Kredi yoksa satın alma modal
+      // Kredi yoksa satın alma modal — satın alınca applyFailedShuffle tetiklenecek
+      _pendingFailedShuffleRef.current = true;
       setToolModal('shuffle');
-      // Failed state'i kaldır ki modal açılsın
       setGs(prev => ({ ...prev, isFailed: false, moves: 0 }));
     }
-  }, [toolCredits]);
+  }, [toolCredits, applyFailedShuffle]);
 
   const handleReplay = useCallback(async () => {
     const prog = await loadProgress();
@@ -1863,7 +1882,14 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
               <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 20, color: COLORS.onSurface }}>
                 {toolModal === 'hint' ? t.hint : toolModal === 'undo' ? t.undo : toolModal === 'joker' ? t.joker : toolModal === 'shuffle' ? t.shuffle : t.delete}
               </Text>
-              <TouchableOpacity onPress={() => setToolModal(null)}><Text style={{ fontSize: 22, color: COLORS.fail }}>✕</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => {
+                // Fail-shuffle modalı kapatılırsa oyunu fail state'e geri döndür
+                if (_pendingFailedShuffleRef.current) {
+                  _pendingFailedShuffleRef.current = false;
+                  setGs(prev => ({ ...prev, isFailed: true }));
+                }
+                setToolModal(null);
+              }}><Text style={{ fontSize: 22, color: COLORS.fail }}>✕</Text></TouchableOpacity>
             </View>
             <View style={{ backgroundColor: COLORS.panelBg, borderRadius: 16, padding: 20, alignItems: 'center', width: '100%', marginBottom: 16 }}>
               <MaterialIcons name={toolModal === 'hint' ? 'lightbulb' : toolModal === 'undo' ? 'undo' : toolModal === 'joker' ? 'style' : toolModal === 'shuffle' ? 'shuffle' : 'auto-fix-normal'} size={48} color={COLORS.secondary} />
@@ -1883,7 +1909,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
               onPress={() => { const fn = toolModal === 'hint' ? executeHint : toolModal === 'undo' ? executeUndo : toolModal === 'joker' ? executeJoker : toolModal === 'shuffle' ? executeShuffle : executeDelete; fn('ad'); }}
               activeOpacity={0.8}
             >
-              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff' }}>▶ AD Kullan</Text>
+              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff' }}>▶ {t.watchAd || 'Watch Ad'}</Text>
             </TouchableOpacity>
           </View>
         </View>
