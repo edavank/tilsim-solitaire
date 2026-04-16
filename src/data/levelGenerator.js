@@ -20,13 +20,19 @@ function seededShuffle(arr, rand) {
 
 export function generateLevels(startId, count, language = 'tr', initialBlockedCats = []) {
   const pools = WORD_POOLS[language] || WORD_POOLS.tr;
+  const trPools = WORD_POOLS.tr;
+  // Canonical TR index lookup — used to translate TR-named conflict groups and
+  // TR-named initialBlockedCats into canonical indices.
+  const trIdxByName = new Map(trPools.map((p, i) => [p.name, i]));
   const levels = [];
-  let lastUsedCats = new Set(initialBlockedCats); // Önceki bölümün kategorileri
-  let prevPrevCats = new Set(); // 2 önceki bölüm
-  let prevPrevPrevCats = new Set(); // 3 önceki bölüm
-  
-  // Benzer kategoriler — aynı bölümde ASLA bir arada olamaz
-  const CONFLICT_GROUPS = [
+  let lastUsedIdx = new Set(initialBlockedCats.map((n) => trIdxByName.get(n)).filter((x) => x !== undefined));
+  let prevPrevIdx = new Set();
+  let prevPrevPrevIdx = new Set();
+
+  // Conflict groups by canonical TR index — works across all 6 languages because
+  // WORD_POOLS entries share index positions for the first ~20 common categories.
+  // Previously this was TR-name-based and silently no-op'd in EN/DE/FR/ES/AR.
+  const CONFLICT_GROUPS_TR = [
     ['Doğa', 'Orman', 'Bahçe', 'Çiçekler'],
     ['Müzik', 'Enstrüman', 'Partisyon', 'Müzik Türleri'],
     ['Deniz', 'Plaj', 'Deniz Araçları', 'Balık', 'Gemi'],
@@ -43,12 +49,15 @@ export function generateLevels(startId, count, language = 'tr', initialBlockedCa
     ['Hayvanlar', 'Kuşlar', 'Böcekler', 'Balık'],
     ['Mutfak', 'Türk Mutfağı'],
   ];
-  
-  function getConflicts(catName) {
+  const CONFLICT_GROUPS = CONFLICT_GROUPS_TR.map((g) =>
+    new Set(g.map((n) => trIdxByName.get(n)).filter((x) => x !== undefined))
+  );
+
+  function getConflictIndices(canonicalIdx) {
     const conflicts = new Set();
     for (const group of CONFLICT_GROUPS) {
-      if (group.includes(catName)) {
-        group.forEach(c => conflicts.add(c));
+      if (group.has(canonicalIdx)) {
+        group.forEach((c) => conflicts.add(c));
       }
     }
     return conflicts;
@@ -86,34 +95,39 @@ export function generateLevels(startId, count, language = 'tr', initialBlockedCa
     const hints = isBoss ? 0 : Math.max(3 - Math.floor(tier / 3), 0);
 
     // Kategori seçimi — ÖNCEKİ 3 BÖLÜM + ÇAKIŞAN KATEGORİLER ENGELLENİR
-    const blocked = new Set([...lastUsedCats, ...prevPrevCats, ...prevPrevPrevCats]);
-    const allEligible = pools.filter((p) => p.words.length >= 3);
+    const blocked = new Set([...lastUsedIdx, ...prevPrevIdx, ...prevPrevPrevIdx]);
+    // Position-based canonical index: WORD_POOLS entries are aligned across
+    // languages for the first ~20 categories (Fruits=0, Animals=1, ...). Using
+    // the native-pool index as canonical lets conflict groups work everywhere.
+    const allEligible = pools
+      .map((p, i) => ({ ...p, _idx: i }))
+      .filter((p) => p.words.length >= 3);
     const shuffled = seededShuffle(allEligible, rand);
-    
+
     const picked = [];
     const usedConflicts = new Set();
-    
+
     for (const pool of shuffled) {
       if (picked.length >= numCats) break;
-      if (blocked.has(pool.name)) continue;
-      if (usedConflicts.has(pool.name)) continue;
+      if (blocked.has(pool._idx)) continue;
+      if (usedConflicts.has(pool._idx)) continue;
       picked.push(pool);
-      const conflicts = getConflicts(pool.name);
-      conflicts.forEach(c => usedConflicts.add(c));
+      const conflicts = getConflictIndices(pool._idx);
+      conflicts.forEach((c) => usedConflicts.add(c));
     }
     // Yeterli bulunamadıysa kısıtlamaları gevşet
     if (picked.length < numCats) {
       for (const pool of shuffled) {
         if (picked.length >= numCats) break;
-        if (picked.find(pp => pp.name === pool.name)) continue;
+        if (picked.find((pp) => pp.name === pool.name)) continue;
         picked.push(pool);
       }
     }
-    
+
     // Bu bölümün kategorilerini kaydet (sonraki bölümler için)
-    prevPrevPrevCats = new Set(prevPrevCats);
-    prevPrevCats = new Set(lastUsedCats);
-    lastUsedCats = new Set(picked.map(p => p.name));
+    prevPrevPrevIdx = new Set(prevPrevIdx);
+    prevPrevIdx = new Set(lastUsedIdx);
+    lastUsedIdx = new Set(picked.map((p) => p._idx).filter((x) => x !== undefined));
 
     // Kelime/kategori: BASE + varyasyon (her kategori farklı sayıda)
     const baseWords = Math.min((isBoss ? 4 : 3) + Math.floor(tier / 3), 6);

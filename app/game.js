@@ -892,7 +892,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
 
         if (catCompleted && !isComplete) {
           setFeedback('🎉 ' + target.category.word + t.categoryComplete);
-          try { markCategoryCompleted(target.category.word); } catch (e) {}
+          try { markCategoryCompleted(target.category.word, lang); } catch (e) {}
           setTimeout(() => playSound('complete'), 10);
           // Sparkle effect on completed slot
           const slotWidth = (SW - GAME_PAD * 2) / gs.slots.length;

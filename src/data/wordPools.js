@@ -669,7 +669,7 @@ export const CATEGORY_EMOJIS = {
   'Art': '🎨', 'Tools': '🔧',
   // DE
   'Früchte': '🍎', 'Tiere': '🐾', 'Farben': '🎨', 'Sport': '🏆',
-  'Getränke': '🥤', 'Bäume': '🌳', 'Gemüse': '🥬',
+  'Getränke': '🥤', 'Bäume': '🌳', 'Musik': '🎵', 'Gemüse': '🥬',
   'Länder': '🌍', 'Planeten': '🌍', 'Jahreszeiten': '🍃', 'Gefühle': '💭',
   'Schule': '📚', 'Essen': '🍽️', 'Wetter': '🌤️', 'Verkehr': '🚀',
   'Kleidung': '👕', 'Vögel': '🐦', 'Blumen': '🌸', 'Meer': '🐳',
@@ -687,6 +687,7 @@ export const CATEGORY_EMOJIS = {
   'Países': '🌍', 'Planetas': '🌍', 'Estaciones': '🍃', 'Emociones': '💭',
   'Escuela': '📚', 'Comida': '🍽️', 'Clima': '🌤️', 'Transporte': '🚀',
   'Ropa': '👕', 'Aves': '🐦', 'Flores': '🌸', 'Profesiones': '👨‍💼',
+  'Océano': '🐳', 'Muebles': '💺',
   // AR
   'فواكه': '🍎', 'حيوانات': '🐾', 'ألوان': '🎨', 'رياضة': '🏆',
   'مشروبات': '🥤', 'أشجار': '🌳', 'موسيقى': '🎵', 'خضروات': '🥬',

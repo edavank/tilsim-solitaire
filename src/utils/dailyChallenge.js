@@ -64,9 +64,20 @@ export function getDailyChallenge(language = 'tr', customSeed) {
   };
 }
 
-export function getDailyDateString() {
+export function getDailyDateString(language) {
   const d = new Date();
-  return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
+  const LOCALE_MAP = { tr: 'tr-TR', en: 'en-US', de: 'de-DE', fr: 'fr-FR', es: 'es-ES', ar: 'ar-SA' };
+  const loc = LOCALE_MAP[language] || 'en-US';
+  try { return d.toLocaleDateString(loc, { day: 'numeric', month: 'long' }); }
+  catch (e) { return d.toLocaleDateString('en-US', { day: 'numeric', month: 'long' }); }
+}
+
+// LOCAL date (YYYY-MM-DD) — matches the key format used in app/daily.js dateToKey()
+// Critical: AsyncStorage keys must be consistent between read/write, so we always
+// use local date (not UTC) to avoid a 3-hour drift window near midnight.
+function todayKeyLocal() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 export function getDailySeedForDate(date) {
@@ -76,7 +87,7 @@ export function getDailySeedForDate(date) {
 export async function isDailyChallengeCompleted(dateStr) {
   try {
     const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-    const key = dateStr || new Date().toISOString().split('T')[0];
+    const key = dateStr || todayKeyLocal();
     return (await AsyncStorage.getItem('@tilsim_daily_' + key)) === 'done';
   } catch (e) { return false; }
 }
@@ -84,7 +95,7 @@ export async function isDailyChallengeCompleted(dateStr) {
 export async function markDailyChallengeCompleted(dateStr) {
   try {
     const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-    const key = dateStr || new Date().toISOString().split('T')[0];
+    const key = dateStr || todayKeyLocal();
     return AsyncStorage.setItem('@tilsim_daily_' + key, 'done');
   } catch (e) {}
 }
@@ -111,7 +122,7 @@ export async function getDailyStreak() {
   let streak = 0;
   const d = new Date();
   while (true) {
-    const key = d.toISOString().split('T')[0];
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     if (map[key]) {
       streak++;
       d.setDate(d.getDate() - 1);
