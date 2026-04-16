@@ -7,12 +7,44 @@ import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, FONTS } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { getDailyCompletionMap, getDailyStreak } from '../src/utils/dailyChallenge';
+import { useLang } from '../src/context/LanguageContext';
 
 const SW = Dimensions.get('window').width;
 const CELL = Math.floor((SW - 48) / 7);
 
-const DAYS_TR = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
-const MONTHS_TR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+// Pzt-Paz (Monday first) - 6 languages
+const DAY_ABBR = {
+  tr: ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'],
+  en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  de: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'],
+  fr: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
+  es: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+  ar: ['اثن', 'ثلا', 'أرب', 'خمي', 'جمع', 'سبت', 'أحد'],
+};
+
+const MONTHS = {
+  tr: ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'],
+  en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+  de: ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'],
+  fr: ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'],
+  es: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+  ar: ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'],
+};
+
+const DAILY_I18N = {
+  tr: { title: 'Günlük Meydan Okuma', streak: '🔥 Seri', totalLabel: '✅ Toplam', reward: '🪙 Ödül',
+    info: '📅 Her gün benzersiz bir bölüm\n🏆 6 kategori × 5 kelime — zor!\n🪙 Tamamla → 100 coin kazan\n⏪ Geçmiş günleri de oynayabilirsin' },
+  en: { title: 'Daily Challenge', streak: '🔥 Streak', totalLabel: '✅ Total', reward: '🪙 Reward',
+    info: '📅 A unique level every day\n🏆 6 categories × 5 words — hard!\n🪙 Complete → earn 100 coins\n⏪ You can play past days too' },
+  de: { title: 'Tägliche Herausforderung', streak: '🔥 Serie', totalLabel: '✅ Gesamt', reward: '🪙 Belohnung',
+    info: '📅 Ein einzigartiges Level pro Tag\n🏆 6 Kategorien × 5 Wörter — schwer!\n🪙 Abschließen → 100 Münzen verdienen\n⏪ Vergangene Tage können auch gespielt werden' },
+  fr: { title: 'Défi quotidien', streak: '🔥 Série', totalLabel: '✅ Total', reward: '🪙 Récompense',
+    info: '📅 Un niveau unique chaque jour\n🏆 6 catégories × 5 mots — difficile !\n🪙 Terminer → gagner 100 pièces\n⏪ Vous pouvez jouer les jours passés' },
+  es: { title: 'Desafío diario', streak: '🔥 Racha', totalLabel: '✅ Total', reward: '🪙 Recompensa',
+    info: '📅 Un nivel único cada día\n🏆 6 categorías × 5 palabras — ¡difícil!\n🪙 Completa → gana 100 monedas\n⏪ También puedes jugar días pasados' },
+  ar: { title: 'التحدي اليومي', streak: '🔥 سلسلة', totalLabel: '✅ المجموع', reward: '🪙 مكافأة',
+    info: '📅 مستوى فريد كل يوم\n🏆 6 فئات × 5 كلمات — صعب!\n🪙 أكمل → اربح 100 عملة\n⏪ يمكنك أيضاً لعب الأيام الماضية' },
+};
 
 function getMonthDays(year, month) {
   const firstDay = new Date(year, month, 1);
@@ -30,6 +62,10 @@ function dateToKey(y, m, d) {
 
 export default function DailyScreen() {
   const router = useRouter();
+  const { lang } = useLang();
+  const txt = DAILY_I18N[lang] || DAILY_I18N.tr;
+  const dayAbbr = DAY_ABBR[lang] || DAY_ABBR.tr;
+  const monthNames = MONTHS[lang] || MONTHS.tr;
   const today = new Date();
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [viewYear, setViewYear] = useState(today.getFullYear());
@@ -112,7 +148,7 @@ export default function DailyScreen() {
         <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace("/")} style={st.backBtn}>
           <MaterialIcons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={st.headerTitle}>Günlük Meydan Okuma</Text>
+        <Text style={st.headerTitle}>{txt.title}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -121,15 +157,15 @@ export default function DailyScreen() {
         <View style={st.statsRow}>
           <View style={st.statBox}>
             <Text style={st.statNum}>{streak}</Text>
-            <Text style={st.statLabel}>🔥 Seri</Text>
+            <Text style={st.statLabel}>{txt.streak}</Text>
           </View>
           <View style={st.statBox}>
             <Text style={st.statNum}>{doneCount}</Text>
-            <Text style={st.statLabel}>✅ Toplam</Text>
+            <Text style={st.statLabel}>{txt.totalLabel}</Text>
           </View>
           <View style={st.statBox}>
             <Text style={st.statNum}>100</Text>
-            <Text style={st.statLabel}>🪙 Ödül</Text>
+            <Text style={st.statLabel}>{txt.reward}</Text>
           </View>
         </View>
 
@@ -138,7 +174,7 @@ export default function DailyScreen() {
           <TouchableOpacity onPress={prevMonth} style={st.monthBtn}>
             <MaterialIcons name="chevron-left" size={28} color="#fff" />
           </TouchableOpacity>
-          <Text style={st.monthTitle}>{MONTHS_TR[viewMonth]} {viewYear}</Text>
+          <Text style={st.monthTitle}>{monthNames[viewMonth]} {viewYear}</Text>
           <TouchableOpacity onPress={nextMonth} style={st.monthBtn} disabled={isFutureMonth}>
             <MaterialIcons name="chevron-right" size={28} color={isFutureMonth ? 'rgba(255,255,255,0.2)' : '#fff'} />
           </TouchableOpacity>
@@ -146,7 +182,7 @@ export default function DailyScreen() {
 
         {/* Day headers */}
         <View style={st.dayHeaders}>
-          {DAYS_TR.map((d) => (
+          {dayAbbr.map((d) => (
             <View key={d} style={st.dayHeaderCell}>
               <Text style={st.dayHeaderText}>{d}</Text>
             </View>
@@ -160,12 +196,7 @@ export default function DailyScreen() {
 
         {/* Info */}
         <View style={st.infoBox}>
-          <Text style={st.infoText}>
-            📅 Her gün benzersiz bir bölüm{'\n'}
-            🏆 6 kategori × 5 kelime — zor!{'\n'}
-            🪙 Tamamla → 100 coin kazan{'\n'}
-            ⏪ Geçmiş günleri de oynayabilirsin
-          </Text>
+          <Text style={st.infoText}>{txt.info}</Text>
         </View>
       </ScrollView>
 

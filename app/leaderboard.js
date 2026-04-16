@@ -6,6 +6,7 @@ import { COLORS, FONTS, SIZES  } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { loadProgress } from '../src/utils/storage';
 import { useLang } from '../src/context/LanguageContext';
+import { router } from 'expo-router';
 import { fetchLeaderboard, getUserRank } from '../src/utils/leaderboardService';
 
 

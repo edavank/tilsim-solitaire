@@ -7,14 +7,21 @@ import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, FONTS } from '../src/constants/theme';
 import { loadCollection } from '../src/utils/collection';
 import { WORD_POOLS, CATEGORY_EMOJIS } from '../src/data/wordPools';
+import { useLang } from '../src/context/LanguageContext';
+
+const COLLECTION_TITLE = {
+  tr: 'Koleksiyon', en: 'Collection', de: 'Sammlung',
+  fr: 'Collection', es: 'Colección', ar: 'المجموعة',
+};
 
 export default function CollectionScreen() {
   const router = useRouter();
+  const { lang } = useLang();
   const [collection, setCollection] = useState({});
 
   useFocusEffect(useCallback(() => { loadCollection().then(setCollection); }, []));
 
-  const allCats = (WORD_POOLS.tr || []).map(p => p.name);
+  const allCats = (WORD_POOLS[lang] || WORD_POOLS.tr || []).map(p => p.name);
   const discovered = Object.keys(collection).length;
   const total = allCats.length;
 
@@ -26,7 +33,7 @@ export default function CollectionScreen() {
         <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace("/")} style={s.backBtn}>
           <MaterialIcons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>Koleksiyon</Text>
+        <Text style={s.headerTitle}>{COLLECTION_TITLE[lang] || COLLECTION_TITLE.tr}</Text>
         <Text style={s.headerCount}>{discovered}/{total}</Text>
       </View>
 
