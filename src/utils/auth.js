@@ -9,12 +9,16 @@ export function getUser() { return currentUser; }
 
 export function onAuthChange(callback) {
   authListeners.push(callback);
-  callback(currentUser); // immediate fire
+  // Güvenli immediate fire — callback throw ederse diğer akışı bozmasın
+  try { callback(currentUser); } catch (e) {}
   return () => { authListeners = authListeners.filter((cb) => cb !== callback); };
 }
 
 function notifyListeners() {
-  authListeners.forEach((cb) => cb(currentUser));
+  // Her listener ayrı try/catch — biri throw ederse diğerleri çalışmalı
+  for (const cb of authListeners) {
+    try { cb(currentUser); } catch (e) {}
+  }
 }
 
 function userFromSession(session) {
@@ -29,6 +33,8 @@ function userFromSession(session) {
   };
 }
 
+let _authSubscribed = false;
+
 // ─── Init ────────────────────────────────────────────────────
 export async function initAuth() {
   try {
@@ -41,10 +47,14 @@ export async function initAuth() {
       notifyListeners();
     }
 
-    supabase.auth.onAuthStateChange((_event, session) => {
-      currentUser = userFromSession(session);
-      notifyListeners();
-    });
+    // Tek subscription yeterli — multiple initAuth çağrılarında duplicate listener olmasın
+    if (!_authSubscribed) {
+      _authSubscribed = true;
+      supabase.auth.onAuthStateChange((_event, session) => {
+        currentUser = userFromSession(session);
+        notifyListeners();
+      });
+    }
   } catch (e) {
     console.log('[Auth] init skipped:', e.message);
   }
@@ -185,6 +195,12 @@ export async function signOut() {
 }
 
 // ─── Cloud Sync (merge: keep highest) ───────────────────────
+// NOT: Alan-bazlı Math.max, cihazlar arası sync için çalışır ama canlı play'de
+// "powerup aldım, coin azaldı" gibi durumlarda eski yüksek coin cloud'dan gelip
+// üzerine yazabilir. Data model üzerinde "coins_spent" tutulmadığı sürece
+// düzgün çözüm yok. Bu davranış kasıtlı — kullanıcı cihaz kaybederse ilerlemesi
+// korunsun. Alternatif "zaman damgalı full-snapshot" için data model değişikliği
+// gerekiyor; bu PR'da scope dışı.
 export async function syncProgressToCloud(localProgress) {
   if (!supabase || !currentUser) return null;
   try {

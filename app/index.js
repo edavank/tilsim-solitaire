@@ -253,10 +253,12 @@ export default function HomeScreen() {
               onPress={async () => {
                 const reward = dailyLoginData.reward.coins;
                 await claimDailyReward(dailyLoginData.streak);
-                const p = await loadProgress();
-                const nc = (p.coins || 0) + reward;
-                setCoins(nc);
-                await updateProgress({ coins: nc });
+                // Race-safe: updateProgress mutex'iyle paralel güncellemelerin
+                // ezilmesini engelle. Callback içinde en güncel coins'i oku.
+                const next = await updateProgress((cur) => ({ coins: (cur.coins || 0) + reward }));
+                // Geriye uyumluluk: updateProgress objesi de alabiliyor, ama
+                // callback pattern atomik. storage.js her iki biçimi destekler.
+                setCoins(next.coins);
                 setDailyLoginData(null);
               }}
               activeOpacity={0.8}

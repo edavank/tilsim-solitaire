@@ -12,6 +12,22 @@ try { AsyncStorage = require('@react-native-async-storage/async-storage').defaul
 
 const COL_KEY = '@tilsim_collection';
 
+// Serial lock — eşzamanlı markCategoryCompleted çağrılarında kayıp önler
+const _locks = new Map();
+async function withLock(key, fn) {
+  const prev = _locks.get(key) || Promise.resolve();
+  let release;
+  const next = new Promise((r) => { release = r; });
+  _locks.set(key, prev.then(() => next));
+  try {
+    await prev;
+    return await fn();
+  } finally {
+    release();
+    if (_locks.get(key) === next) _locks.delete(key);
+  }
+}
+
 // Verilen dildeki kategori adını, o dilin pool'undaki index'e çevir.
 // Bulunamazsa herhangi bir dilde arar (migration için). -1 dönerse kayıt atılır.
 function nameToIdx(name, language = 'tr') {
@@ -92,30 +108,34 @@ export async function loadCollection(language) {
 }
 
 export async function markCategorySeen(catName, language = 'tr') {
-  try {
-    if (!AsyncStorage) return;
-    const idx = nameToIdx(catName, language);
-    if (idx < 0) return;
-    const raw = await loadRaw();
-    const col = migrate(raw);
-    const key = `idx_${idx}`;
-    if (!col[key]) col[key] = { seen: 0, completed: 0, firstSeen: Date.now() };
-    col[key].seen++;
-    await saveRaw(col);
-  } catch (e) {}
+  if (!AsyncStorage) return;
+  const idx = nameToIdx(catName, language);
+  if (idx < 0) return;
+  return withLock(COL_KEY, async () => {
+    try {
+      const raw = await loadRaw();
+      const col = migrate(raw);
+      const key = `idx_${idx}`;
+      if (!col[key]) col[key] = { seen: 0, completed: 0, firstSeen: Date.now() };
+      col[key].seen++;
+      await saveRaw(col);
+    } catch (e) {}
+  });
 }
 
 export async function markCategoryCompleted(catName, language = 'tr') {
-  try {
-    if (!AsyncStorage) return;
-    const idx = nameToIdx(catName, language);
-    if (idx < 0) return;
-    const raw = await loadRaw();
-    const col = migrate(raw);
-    const key = `idx_${idx}`;
-    if (!col[key]) col[key] = { seen: 0, completed: 0, firstSeen: Date.now() };
-    col[key].completed++;
-    col[key].lastCompleted = Date.now();
-    await saveRaw(col);
-  } catch (e) {}
+  if (!AsyncStorage) return;
+  const idx = nameToIdx(catName, language);
+  if (idx < 0) return;
+  return withLock(COL_KEY, async () => {
+    try {
+      const raw = await loadRaw();
+      const col = migrate(raw);
+      const key = `idx_${idx}`;
+      if (!col[key]) col[key] = { seen: 0, completed: 0, firstSeen: Date.now() };
+      col[key].completed++;
+      col[key].lastCompleted = Date.now();
+      await saveRaw(col);
+    } catch (e) {}
+  });
 }

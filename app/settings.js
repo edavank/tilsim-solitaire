@@ -131,7 +131,12 @@ export default function SettingsScreen() {
               {user.provider === 'apple' && <MaterialIcons name="apple" size={18} color={COLORS.onSurfaceVariant} />}
             </View>
             <View style={s.divider} />
-            <TouchableOpacity style={{ padding: 14, alignItems: 'center' }} onPress={async () => { await handleSignOut(); Alert.alert(t.signedOut || 'Çıkış yapıldı'); }}>
+            <TouchableOpacity style={{ padding: 14, alignItems: 'center' }} onPress={async () => {
+              await handleSignOut();
+              Alert.alert(t.signedOut || 'Çıkış yapıldı');
+              // Progress sıfırlandı — home'a dön ki eski coin/level flash'ı gözükmesin
+              router.replace('/');
+            }}>
               <Text style={{ fontFamily: FONTS.body, fontSize: 14, color: COLORS.primary }}>{t.signOut}</Text>
             </TouchableOpacity>
           </View>

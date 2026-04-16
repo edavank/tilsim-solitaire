@@ -32,27 +32,28 @@ export function AuthProvider({ children }) {
   const initDone = useRef(false);
 
   // Init auth + check if login screen was seen before
+  // StrictMode / hot-reload safe: initDone guard'ı only init işini tekilleştirir,
+  // listener her mount'ta yeniden bağlanır ve cleanup'ta temizlenir.
   useEffect(() => {
-    if (initDone.current) return;
-    initDone.current = true;
+    let cancelled = false;
 
-    (async () => {
-      // Check if user has seen login screen before
+    const runInit = async () => {
+      if (initDone.current) return;
+      initDone.current = true;
       try {
         const seen = await AsyncStorage?.getItem(HAS_SEEN_LOGIN_KEY);
-        setHasSeenLogin(seen === 'true');
+        if (!cancelled) setHasSeenLogin(seen === 'true');
       } catch (e) {
-        setHasSeenLogin(false);
+        if (!cancelled) setHasSeenLogin(false);
       }
-
-      // Init auth (restores session if exists)
       await authModule.initAuth();
-      setAuthReady(true);
-    })();
+      if (!cancelled) setAuthReady(true);
+    };
+    runInit();
 
-    // Listen for auth changes
-    const unsub = authModule.onAuthChange((u) => setUser(u));
-    return unsub;
+    // Listener her mount'ta yenilenir — initDone guard'ının dışında
+    const unsub = authModule.onAuthChange((u) => { if (!cancelled) setUser(u); });
+    return () => { cancelled = true; unsub && unsub(); };
   }, []);
 
   const markLoginSeen = useCallback(async () => {
@@ -83,7 +84,21 @@ export function AuthProvider({ children }) {
   }, [markLoginSeen]);
 
   const handleSignOut = useCallback(async () => {
+    // Sign-out öncesi son bir kez yerel -> cloud sync ki kullanıcı ilerlemesini
+    // kaybetmesin. Sonra supabase'den çıkış + yerel veri temizliği.
+    try {
+      const { loadProgress } = require('../utils/storage');
+      const local = await loadProgress();
+      await authModule.syncProgressToCloud(local);
+    } catch (e) {}
     await authModule.signOut();
+    // Hesaplar arası veri sızıntısını önle: Kullanıcı A çıkış yapıp B'ye
+    // girerse, A'nın local coin/level'i Math.max merge ile B'nin cloud'una
+    // geçerdi. Local ilerlemeyi varsayılana döndür (settings/device_id korunur).
+    try {
+      const { resetUserScopedData } = require('../utils/storage');
+      await resetUserScopedData();
+    } catch (e) {}
   }, []);
 
   // Cloud sync helpers

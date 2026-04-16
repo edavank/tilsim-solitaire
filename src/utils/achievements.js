@@ -2,6 +2,22 @@
 let AsyncStorage;
 try { AsyncStorage = require('@react-native-async-storage/async-storage').default; } catch (e) {}
 
+// Race-safe serial lock — eşzamanlı achievement check'lerinde kayıp önler
+const _locks = new Map();
+async function withLock(key, fn) {
+  const prev = _locks.get(key) || Promise.resolve();
+  let release;
+  const next = new Promise((r) => { release = r; });
+  _locks.set(key, prev.then(() => next));
+  try {
+    await prev;
+    return await fn();
+  } finally {
+    release();
+    if (_locks.get(key) === next) _locks.delete(key);
+  }
+}
+
 const ACHIEVEMENTS = [
   // İlerleme
   { id: 'first_win', icon: '🏅', title: 'İlk Zafer', desc: 'İlk bölümü tamamla', reward: 20, check: (s) => s.totalWins >= 1 },
@@ -60,22 +76,24 @@ export async function saveAchievements(map) {
 }
 
 export async function checkAchievements(stats) {
-  const current = await loadAchievements();
-  const newlyUnlocked = [];
-  
-  for (const ach of ACHIEVEMENTS) {
-    if (current[ach.id]) continue; // Zaten kazanılmış
-    if (ach.check(stats)) {
-      current[ach.id] = { unlockedAt: Date.now() };
-      newlyUnlocked.push(ach);
+  return withLock(ACHIEV_KEY, async () => {
+    const current = await loadAchievements();
+    const newlyUnlocked = [];
+
+    for (const ach of ACHIEVEMENTS) {
+      if (current[ach.id]) continue; // Zaten kazanılmış
+      if (ach.check(stats)) {
+        current[ach.id] = { unlockedAt: Date.now() };
+        newlyUnlocked.push(ach);
+      }
     }
-  }
-  
-  if (newlyUnlocked.length > 0) {
-    await saveAchievements(current);
-  }
-  
-  return newlyUnlocked;
+
+    if (newlyUnlocked.length > 0) {
+      await saveAchievements(current);
+    }
+
+    return newlyUnlocked;
+  });
 }
 
 export function getAchievementProgress(stats) {
