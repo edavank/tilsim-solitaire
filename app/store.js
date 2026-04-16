@@ -49,7 +49,7 @@ export default function StoreScreen() {
     setAdLoading(true);
     try {
       const result = await showRewarded();
-      if (result && result.earned) {
+      if (result && result.success) {
         const newCoins = coins + 50;
         setCoins(newCoins);
         await updateProgress({ coins: newCoins });
