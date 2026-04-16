@@ -180,10 +180,10 @@ export default function SettingsScreen() {
         {/* Footer */}
         <View style={s.footer}>
           <View style={s.footerLinks}>
-            <TouchableOpacity onPress={() => Linking.openURL('https://tilsim-solitaire.vercel.app/privacy')}>
+            <TouchableOpacity onPress={() => Linking.openURL('https://tilsim-solitaire-legal.vercel.app/privacy')}>
               <Text style={s.footerLink}>{t.privacyPolicy}</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => Linking.openURL('https://tilsim-solitaire.vercel.app/terms')}>
+            <TouchableOpacity onPress={() => Linking.openURL('https://tilsim-solitaire-legal.vercel.app/terms')}>
               <Text style={s.footerLink}>{t.termsOfUse}</Text>
             </TouchableOpacity>
           </View>
