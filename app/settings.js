@@ -9,6 +9,10 @@ import { loadSettings, saveSettings, loadProgress, resetAll } from '../src/utils
 import { setVibrationEnabled, setSoundEnabled, setBgmEnabled, getBgmEnabled } from '../src/utils/sounds';
 import { useLang } from '../src/context/LanguageContext';
 import { useAuth } from '../src/context/AuthContext';
+import Constants from 'expo-constants';
+
+const APP_VERSION = Constants?.expoConfig?.version || '1.0.0';
+
 const LANG_OPTIONS = [
   { code: 'tr', flag: '🇹🇷', name: 'Türkçe' },
   { code: 'en', flag: '🇬🇧', name: 'English' },
@@ -137,7 +141,7 @@ export default function SettingsScreen() {
               setBusy(true);
               const result = await handleGoogleLogin();
               setBusy(false);
-              if (result.error && result.error !== 'Giriş iptal edildi') Alert.alert(t.loginError || 'Giriş Hatası', result.error);
+              if (result.error && result.code !== 'cancelled') Alert.alert(t.loginError || 'Error', result.error);
               else if (!result.error) {
                 try { const local = await loadProgress(); await syncToCloud(local); } catch (e) {}
               }
@@ -150,7 +154,7 @@ export default function SettingsScreen() {
                 setBusy(true);
                 const result = await handleAppleLogin();
                 setBusy(false);
-                if (result.error && result.error !== 'Giriş iptal edildi') Alert.alert(t.loginError || 'Giriş Hatası', result.error);
+                if (result.error && result.code !== 'cancelled') Alert.alert(t.loginError || 'Error', result.error);
                 else if (!result.error) {
                   try { const local = await loadProgress(); await syncToCloud(local); } catch (e) {}
                 }
@@ -181,7 +185,7 @@ export default function SettingsScreen() {
           <View style={s.footerBrand}>
             <Text style={s.footerName}>TILSIM SOLITAIRE</Text>
           </View>
-          <Text style={s.footerVersion}>VERSİON V1.0.0</Text>
+          <Text style={s.footerVersion}>VERSION V{APP_VERSION}</Text>
         </View>
 
         <View style={{ height: 120 }} />

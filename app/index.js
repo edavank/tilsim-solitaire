@@ -223,9 +223,9 @@ export default function HomeScreen() {
         <View style={{ ...StyleSheet.absoluteFillObject, zIndex: 999, justifyContent: 'center', alignItems: 'center' }}>
           <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.7)' }} />
           <View style={{ width: SW - 48, backgroundColor: COLORS.surfaceContainerHigh, borderRadius: 24, padding: 24, alignItems: 'center', borderWidth: 1, borderColor: COLORS.panelBorder, zIndex: 1000 }}>
-            <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 22, color: COLORS.coin, marginBottom: 4 }}>Günlük Giriş Ödülü</Text>
+            <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 22, color: COLORS.coin, marginBottom: 4 }}>{t.dailyLoginTitle || 'Daily Login Reward'}</Text>
             <Text style={{ fontFamily: FONTS.body, fontSize: 13, color: COLORS.onSurfaceVariant, marginBottom: 16 }}>
-              {dailyLoginData.streak} gün üst üste giriş!
+              {(t.dailyLoginStreak || '{streak} consecutive days!').replace('{streak}', dailyLoginData.streak)}
             </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginBottom: 20 }}>
               {DAILY_REWARDS.map((day, i) => {
@@ -238,7 +238,7 @@ export default function HomeScreen() {
                     borderWidth: isToday ? 2 : 1, borderColor: isToday ? COLORS.coin : isPast ? 'rgba(255,215,0,0.3)' : 'rgba(255,255,255,0.1)',
                   }}>
                     <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 11, color: isToday ? '#000' : isPast ? COLORS.coin : COLORS.onSurfaceVariant }}>
-                      {day.day}. Gün
+                      {(t.dailyLoginDayLabel || 'Day {day}').replace('{day}', day.day)}
                     </Text>
                     <Text style={{ fontSize: 18, marginTop: 2 }}>{isPast ? '✅' : '🪙'}</Text>
                     <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 10, color: isToday ? '#000' : isPast ? COLORS.coin : COLORS.onSurfaceVariant }}>
@@ -262,7 +262,7 @@ export default function HomeScreen() {
               activeOpacity={0.8}
             >
               <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#000' }}>
-                🪙 {dailyLoginData.reward.coins} Coin Topla
+                {(t.dailyLoginClaim || '🪙 Claim {coins} Coins').replace('{coins}', dailyLoginData.reward.coins)}
               </Text>
             </TouchableOpacity>
           </View>
