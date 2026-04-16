@@ -19,8 +19,9 @@ export default function LoginScreen() {
     const result = method === 'google' ? await handleGoogleLogin() : await handleAppleLogin();
     if (result.error) {
       setBusy(false);
-      if (result.error !== 'Giriş iptal edildi') {
-        Alert.alert(t.loginError || 'Hata', result.error);
+      // Kullanıcı iptal ettiyse hata mesajı gösterme (code ile kontrol — dil bağımsız)
+      if (result.code !== 'cancelled') {
+        Alert.alert(t.loginError || 'Error', result.error);
       }
       return;
     }

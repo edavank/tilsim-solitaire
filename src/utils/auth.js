@@ -23,7 +23,7 @@ function userFromSession(session) {
   return {
     id: u.id,
     email: u.email,
-    name: u.user_metadata?.full_name || u.user_metadata?.name || u.email?.split('@')[0] || 'Oyuncu',
+    name: u.user_metadata?.full_name || u.user_metadata?.name || u.email?.split('@')[0] || 'Player',
     avatar: u.user_metadata?.avatar_url || null,
     provider: u.app_metadata?.provider || 'unknown',
   };
@@ -54,7 +54,7 @@ export async function initAuth() {
 // ─── Google Sign-In (Supabase OAuth) ────────
 export async function signInWithGoogle() {
   try {
-    if (!supabase) return { error: 'Supabase bağlantısı yok' };
+    if (!supabase) return { error: 'Supabase connection unavailable', code: 'no_supabase' };
 
     const { makeRedirectUri } = require('expo-auth-session');
     const WebBrowser = require('expo-web-browser');
@@ -76,7 +76,7 @@ export async function signInWithGoogle() {
     });
 
     if (error) return { error: error.message };
-    if (!data?.url) return { error: 'OAuth URL alınamadı' };
+    if (!data?.url) return { error: 'OAuth URL unavailable', code: 'no_oauth_url' };
 
     const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
     console.log('[Auth] result type:', result.type);
@@ -105,29 +105,29 @@ export async function signInWithGoogle() {
           return { user: currentUser };
         }
       }
-      return { error: 'Token alınamadı' };
+      return { error: 'Could not retrieve token', code: 'no_token' };
     }
 
-    return { error: 'Giriş iptal edildi' };
+    return { error: 'Sign-in cancelled', code: 'cancelled' };
   } catch (e) {
-    return { error: e.message || 'Google girişi başarısız' };
+    return { error: e.message || 'Google sign-in failed', code: 'google_fail' };
   }
 }
 
 // ─── Apple Sign-In (iOS native — expo-apple-authentication) ──
 export async function signInWithApple() {
   try {
-    if (!supabase) return { error: 'Supabase bağlantısı yok' };
+    if (!supabase) return { error: 'Supabase connection unavailable', code: 'no_supabase' };
 
     let AppleAuthentication;
     try {
       AppleAuthentication = require('expo-apple-authentication');
     } catch (e) {
-      return { error: 'Apple girişi bu cihazda desteklenmiyor' };
+      return { error: 'Apple sign-in not supported on this device', code: 'apple_unavailable' };
     }
 
     const isAvailable = await AppleAuthentication.isAvailableAsync();
-    if (!isAvailable) return { error: 'Apple girişi bu cihazda desteklenmiyor' };
+    if (!isAvailable) return { error: 'Apple sign-in not supported on this device', code: 'apple_unavailable' };
 
     const credential = await AppleAuthentication.signInAsync({
       requestedScopes: [
@@ -137,7 +137,7 @@ export async function signInWithApple() {
     });
 
     if (!credential.identityToken) {
-      return { error: 'Apple kimlik doğrulama başarısız' };
+      return { error: 'Apple authentication failed', code: 'apple_no_token' };
     }
 
     const { data, error } = await supabase.auth.signInWithIdToken({
@@ -167,9 +167,9 @@ export async function signInWithApple() {
     return { user: currentUser };
   } catch (e) {
     if (e.code === 'ERR_REQUEST_CANCELED' || e.code === 'ERR_CANCELED') {
-      return { error: 'Giriş iptal edildi' };
+      return { error: 'Sign-in cancelled', code: 'cancelled' };
     }
-    return { error: e.message || 'Apple girişi başarısız' };
+    return { error: e.message || 'Apple sign-in failed', code: 'apple_fail' };
   }
 }
 

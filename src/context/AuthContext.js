@@ -64,7 +64,7 @@ export function AuthProvider({ children }) {
     setLoading(true);
     const result = await authModule.signInWithGoogle();
     setLoading(false);
-    if (result.error) return { error: result.error };
+    if (result.error) return { error: result.error, code: result.code };
     await markLoginSeen();
     return { user: result.user };
   }, [markLoginSeen]);
@@ -73,7 +73,7 @@ export function AuthProvider({ children }) {
     setLoading(true);
     const result = await authModule.signInWithApple();
     setLoading(false);
-    if (result.error) return { error: result.error };
+    if (result.error) return { error: result.error, code: result.code };
     await markLoginSeen();
     return { user: result.user };
   }, [markLoginSeen]);

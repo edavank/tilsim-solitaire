@@ -68,6 +68,7 @@ const SOUND_FILES = {
 };
 
 export async function loadSounds() {
+  if (!Audio) return; // expo-av yoksa sessizce çık
   try {
     await Audio.setAudioModeAsync({
       playsInSilentModeIOS: true,

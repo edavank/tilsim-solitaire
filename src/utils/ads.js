@@ -163,9 +163,12 @@ export function showRewarded() {
     }
 
     let resolved = false;
+    let cleanup = () => {};
     const safeResolve = (result) => {
       if (resolved) return;
       resolved = true;
+      cleanup();
+      clearTimeout(timeoutId);
       resolve(result);
     };
 
@@ -196,29 +199,25 @@ export function showRewarded() {
       );
 
       const closeUnsub = rewarded.addAdEventListener(AdEventType.CLOSED, () => {
-        clearTimeout(timeoutId);
-        cleanup();
         safeResolve({ success: earned, reward: earned ? rewardData : null });
       });
 
       const errorUnsub = rewarded.addAdEventListener(AdEventType.ERROR, (error) => {
         console.log('[Ads] rewarded hatası:', error.message);
-        clearTimeout(timeoutId);
-        cleanup();
         safeResolve({ success: false, reward: null });
       });
 
-      function cleanup() {
-        loadUnsub();
-        earnUnsub();
-        closeUnsub();
-        errorUnsub();
-      }
+      // Listener temizleyici — safeResolve çağrıldığında tetiklenir
+      cleanup = () => {
+        try { loadUnsub?.(); } catch (e) {}
+        try { earnUnsub?.(); } catch (e) {}
+        try { closeUnsub?.(); } catch (e) {}
+        try { errorUnsub?.(); } catch (e) {}
+      };
 
       rewarded.load();
     } catch (e) {
       console.log('[Ads] showRewarded hatası:', e.message);
-      clearTimeout(timeoutId);
       safeResolve({ success: false, reward: null });
     }
   });
