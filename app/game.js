@@ -1486,8 +1486,16 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
     setHintCard(null); setHintSlot(null); setCombo(0); comboRef.current = 0; startTimeRef.current = Date.now(); setElapsedTime(0);
     wrongMovesRef.current = 0;
     if (isTimed) setTimeRemaining(getTimedSeconds(nextId));
-    setCoins((prog.coins || 0) + 30 + bonus);
     // Araç tanıtım popup'ı
+    // BUG FIX: Önceki kod `setCoins((prog.coins||0) + 30 + bonus)` yaparak
+    // achievement bonus'unu UI'dan siliyordu. Şimdi en güncel değeri disk'ten
+    // alıyoruz ki win sırasında kazanılan achievement coin'i ekranda korunsun.
+    try {
+      const latest = await loadProgress();
+      setCoins(latest.coins || 0);
+    } catch (e) {
+      setCoins((prog.coins || 0) + 30 + bonus);
+    }
     if (introTool) {
       setTimeout(() => { playSound('unlock'); setToolIntro(TOOL_INFO[introTool]); }, 500);
     }

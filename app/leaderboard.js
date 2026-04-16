@@ -44,9 +44,16 @@ export default function LeaderboardScreen() {
   const [userRank, setUserRank] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // useEffect mount/unmount + tab switch: cancelled flag ile async race önlenir.
+  // Önceden setState unmounted'da cagrilabiliyordu; tab hizli degisince
+  // eski fetch'in sonucu yeni tab'in uzerine yazabiliyordu.
+  const _loadTokenRef = React.useRef(0);
+
   const loadData = async (tabIdx) => {
+    const token = ++_loadTokenRef.current;
     setLoading(true);
     const prog = await loadProgress();
+    if (token !== _loadTokenRef.current) return;
     setUserScore(prog.bestScore || 0);
     setUserLevel(prog.currentLevel || 1);
     setCoins(prog.coins || 0);
@@ -54,15 +61,20 @@ export default function LeaderboardScreen() {
     setTotalGames(prog.totalGames || 0);
 
     const { data } = await fetchLeaderboard(PERIODS[tabIdx], 20);
+    if (token !== _loadTokenRef.current) return;
     if (data && data.length > 0) setLeaders(data);
     else setLeaders(PLACEHOLDER);
 
     const { rank } = await getUserRank();
+    if (token !== _loadTokenRef.current) return;
     setUserRank(rank);
     setLoading(false);
   };
 
-  useEffect(() => { loadData(activeTab); }, []);
+  useEffect(() => {
+    loadData(activeTab);
+    return () => { _loadTokenRef.current++; };
+  }, []);
 
   const changeTab = (idx) => {
     setActiveTab(idx);
