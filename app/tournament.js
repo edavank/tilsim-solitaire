@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -6,34 +6,38 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, FONTS } from '../src/constants/theme';
 import { loadProgress } from '../src/utils/storage';
+import { useLang } from '../src/context/LanguageContext';
 
 function getWeekNumber() {
   const d = new Date();
   const start = new Date(d.getFullYear(), 0, 1);
   const diff = d - start;
-  return Math.ceil(diff / (7 * 24 * 60 * 60 * 1000));
+  return Math.max(1, Math.ceil(diff / (7 * 24 * 60 * 60 * 1000)));
 }
 
 function getWeekEnd() {
   const d = new Date();
   const day = d.getDay();
-  const diff = 7 - day;
+  // Sunday (day=0) → end today; otherwise → upcoming Sunday
+  const diff = day === 0 ? 0 : 7 - day;
   const end = new Date(d);
   end.setDate(end.getDate() + diff);
-  end.setHours(23, 59, 59);
+  end.setHours(23, 59, 59, 999);
   return end;
 }
 
-function timeLeft() {
+function formatTimeLeft(t) {
   const end = getWeekEnd();
   const now = new Date();
-  const ms = end - now;
+  const ms = Math.max(0, end - now);
   const h = Math.floor(ms / 3600000);
   const m = Math.floor((ms % 3600000) / 60000);
-  return `${h}s ${m}dk`;
+  const hShort = (t && t.tournamentHourShort) || 'h';
+  const mShort = (t && t.tournamentMinShort) || 'm';
+  return `${h}${hShort} ${m}${mShort}`;
 }
 
-// Simüle edilmiş turnuva katılımcıları
+// Simulated tournament participants (placeholder fake data)
 const FAKE_PLAYERS = [
   { name: 'Bilge Baykuş', score: 0, isYou: true },
   { name: 'Yıldız_42', score: 8500 },
@@ -51,33 +55,45 @@ const REWARDS = ['🥇 500', '🥈 300', '🥉 200', '4. 100', '5. 50'];
 
 export default function TournamentScreen() {
   const router = useRouter();
+  const { t } = useLang();
   const [myScore, setMyScore] = useState(0);
+  const [, setNow] = useState(Date.now());
 
   useFocusEffect(useCallback(() => {
     loadProgress().then(p => setMyScore(p.bestScore || 0));
   }, []));
 
+  // Keep countdown fresh (re-render every minute)
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(id);
+  }, []);
+
   const players = FAKE_PLAYERS.map(p => p.isYou ? { ...p, score: myScore } : p)
     .sort((a, b) => b.score - a.score);
   const myRank = players.findIndex(p => p.isYou) + 1;
 
+  const weekLabel = (t.tournamentWeek || 'Week {n}').replace('{n}', getWeekNumber());
+  const timeLabel = (t.tournamentTimeLeft || 'Remaining: {time}').replace('{time}', formatTimeLeft(t));
+  const pointsLabel = (t.tournamentPoints || '{n} points').replace('{n}', myScore.toLocaleString());
+
   return (
     <View style={s.container}>
       <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
-      
+
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace("/")} style={s.backBtn}>
           <MaterialIcons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>Haftalık Turnuva</Text>
+        <Text style={s.headerTitle}>{t.tournamentTitle || t.weeklyTournament || 'Weekly Tournament'}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={s.scroll}>
         {/* Week info */}
         <View style={s.weekCard}>
-          <Text style={s.weekTitle}>Hafta {getWeekNumber()}</Text>
-          <Text style={s.weekTimer}>Kalan: {timeLeft()}</Text>
+          <Text style={s.weekTitle}>{weekLabel}</Text>
+          <Text style={s.weekTimer}>{timeLabel}</Text>
         </View>
 
         {/* Rewards */}
@@ -91,16 +107,16 @@ export default function TournamentScreen() {
 
         {/* Your rank */}
         <View style={s.myRank}>
-          <Text style={s.myRankLabel}>Sıralaman</Text>
+          <Text style={s.myRankLabel}>{t.tournamentYourRank || 'Your Rank'}</Text>
           <Text style={s.myRankNum}>#{myRank}</Text>
-          <Text style={s.myRankScore}>{myScore} puan</Text>
+          <Text style={s.myRankScore}>{pointsLabel}</Text>
         </View>
 
         {/* Leaderboard */}
         {players.map((p, i) => (
           <View key={i} style={[s.row, p.isYou && s.rowYou]}>
             <Text style={s.rank}>{i < 3 ? ['🥇', '🥈', '🥉'][i] : `${i + 1}.`}</Text>
-            <Text style={[s.name, p.isYou && { color: COLORS.primary }]}>{p.isYou ? 'Sen' : p.name}</Text>
+            <Text style={[s.name, p.isYou && { color: COLORS.primary }]}>{p.isYou ? (t.tournamentYou || 'You') : p.name}</Text>
             <Text style={s.score}>{p.score.toLocaleString()}</Text>
           </View>
         ))}

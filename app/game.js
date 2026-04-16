@@ -198,9 +198,11 @@ const FaceDownCard = React.memo(function FaceDownCard({ w, h }) {
 });
 
 const FaceUpCard = React.memo(function FaceUpCard({ card, selected, w, h, hinted, isDragging }) {
+  const { t } = useLang();
   const cw = w || '100%'; const ch = h || CARD_H;
   const isCat = card.type === 'category';
   const isJoker = card.isJoker;
+  const displayWord = isJoker ? ('✦ ' + (t.joker || 'Joker')) : card.word;
   const catColor = isJoker ? '#FFD166' : CATEGORY_COLORS[card.categoryIndex % CATEGORY_COLORS.length];
   const bg = '#FFFFFF';
   const txt = '#1e293b';
@@ -221,7 +223,7 @@ const FaceUpCard = React.memo(function FaceUpCard({ card, selected, w, h, hinted
       ) : (
         <>
           <Text style={{ fontSize: wordEmojiSize, textAlign: 'center' }}>{card.emoji}</Text>
-          <Text style={[st.word, { fontSize: wordTextSize, color: isJoker ? '#B8860B' : txt }]} numberOfLines={1} ellipsizeMode="tail">{card.word}</Text>
+          <Text style={[st.word, { fontSize: wordTextSize, color: isJoker ? '#B8860B' : txt }]} numberOfLines={1} ellipsizeMode="tail">{displayWord}</Text>
           {!isJoker && <View style={{ position: 'absolute', top: 3, right: 3, width: 6, height: 6, borderRadius: 3, backgroundColor: catColor }} />}
         </>
       )}
@@ -367,8 +369,8 @@ function LevelCompleteOverlay({ t, score, coins, movesLeft, maxMoves, levelId, c
         <Image source={OWL_HAPPY} style={ov.owl} />
         <Text style={ov.title}>{t.congrats}</Text>
         <Text style={ov.subtitle}>{isDaily ? '📅 ' + (t.dailyChallenge || 'DAILY').toUpperCase() : t.level + ' ' + levelId} {t.levelComplete}</Text>
-        {combo > 0 && <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 12, color: COLORS.tertiary, marginBottom: 4 }}>🔥 Max Combo: {combo}x</Text>}
-        <Text style={{ fontFamily: FONTS.body, fontSize: 11, color: COLORS.onSurfaceVariant, marginBottom: 8 }}>⏱ {Math.floor(elapsedTime / 60)}:{String(elapsedTime % 60).padStart(2, '0')}{speedBonus > 0 ? ' ⚡ Hız Bonusu!' : ''}</Text>
+        {combo > 0 && <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 12, color: COLORS.tertiary, marginBottom: 4 }}>🔥 {t.maxCombo || 'Max Combo'}: {combo}x</Text>}
+        <Text style={{ fontFamily: FONTS.body, fontSize: 11, color: COLORS.onSurfaceVariant, marginBottom: 8 }}>⏱ {Math.floor(elapsedTime / 60)}:{String(elapsedTime % 60).padStart(2, '0')}{speedBonus > 0 ? ' ' + (t.speedBonusLabel || '⚡ Speed Bonus!') : ''}</Text>
         <View style={ov.statsRow}>
           <View style={ov.statBox}>
             <Text style={ov.statLabel}>{t.score}</Text>
@@ -380,7 +382,7 @@ function LevelCompleteOverlay({ t, score, coins, movesLeft, maxMoves, levelId, c
               <Text style={ov.statLabel}>{t.gold}</Text>
             </View>
             <Text style={[ov.statValue, { color: COLORS.coin }]}>+{totalCoins}</Text>
-            {(moveBonus > 0 || speedBonus > 0) && <Text style={{ fontFamily: FONTS.body, fontSize: 9, color: COLORS.onSurfaceVariant, marginTop: 2 }}>({coins}{moveBonus > 0 ? ' +' + moveBonus + ' hamle' : ''}{speedBonus > 0 ? ' +' + speedBonus + ' hız' : ''})</Text>}
+            {(moveBonus > 0 || speedBonus > 0) && <Text style={{ fontFamily: FONTS.body, fontSize: 9, color: COLORS.onSurfaceVariant, marginTop: 2 }}>({coins}{moveBonus > 0 ? ' +' + moveBonus + ' ' + (t.moveBonusSuffix || 'moves') : ''}{speedBonus > 0 ? ' +' + speedBonus + ' ' + (t.speedBonusSuffix || 'speed') : ''})</Text>}
           </View>
         </View>
         <TouchableOpacity onPress={onNext} activeOpacity={0.85}>
@@ -907,7 +909,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         setCombo((c) => c + totalPlaced);
         const comboBonus = comboRef.current * 5;
         showScorePopup('+' + ((totalPlaced * 10) + catBonus + comboBonus));
-        if (combo >= 3) setFeedback('🔥 ' + combo + 'x Combo! +' + comboBonus);
+        if (combo >= 3) setFeedback((t.comboToast || '🔥 {n}x Combo! +{bonus}').replace('{n}', combo).replace('{bonus}', comboBonus));
         return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + (totalPlaced * 10) + catBonus + comboBonus, completedCats: newCompletedCats, isComplete, isFailed: prev.moves - 1 <= 0 && !isComplete };
       }
       return prev;
@@ -923,7 +925,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         if (targetCol.locked) { setFeedback(t.isLocked); return prev; }
         // Sadece BOŞ sütuna park edilebilir
         if (targetCol.cards.length > 0) {
-          setFeedback('📂 Kategori kartı sadece boş sütuna konabilir!');
+          setFeedback(t.catOnlyEmptyColumn || '📂 Category card goes only on empty column!');
           return prev;
         }
         const ns = removeFromSource(prev, source, sourceIndex, card.id);
@@ -946,12 +948,12 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         if (!topCard.faceUp) { setFeedback(t.cantPlace); return prev; }
         // KURAL: Sadece AYNI KATEGORİ üst üste gelebilir (solitaire renk kuralı gibi)
         if (topCard.type === 'word' && card.categoryIndex !== topCard.categoryIndex && !card.isJoker) {
-          setFeedback('⛔ Farklı kategori! Sadece aynı kategoriden kartlar üst üste gelir.');
+          setFeedback(t.diffCategoryStack || '⛔ Different category!');
           return prev;
         }
         // Kategori kartının üstüne kelime kartı konamaz (sütunda)
         if (topCard.type === 'category') {
-          setFeedback('📂 Kategori kartını önce boş slota taşı!');
+          setFeedback(t.catMoveToSlot || '📂 Move category card to empty slot first!');
           return prev;
         }
       }
@@ -983,7 +985,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       }
       // Valid stack — select it
       setSelected({ card, source, sourceIndex, stackCards: stack });
-      setFeedback('✋ ' + stack.length + ' kart seçildi');
+      setFeedback((t.stackSelected || '✋ {n} cards selected').replace('{n}', stack.length));
       return;
     }
     setSelected((prev) => {
@@ -1006,7 +1008,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   const moveStackToColumn = useCallback((stackCards, source, sourceIndex, targetColIndex) => {
     if (source === 'column' && sourceIndex === targetColIndex) return;
     if (stackCards.some(c => c.type === 'category')) {
-      setFeedback('📂 Kategori kartını üstteki boş slota koy!');
+      setFeedback(t.catFirstSlot || '📂 Place category card in empty upper slot!');
       return;
     }
     setGs((prev) => {
@@ -1018,11 +1020,11 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         if (!topCard.faceUp) { setFeedback(t.cantPlace); return prev; }
         // AYNI KATEGORİ KURALI (Joker bypass)
         if (topCard.type === 'word' && stackCards[0].categoryIndex !== topCard.categoryIndex && !stackCards[0].isJoker && !topCard.isJoker) {
-          setFeedback('⛔ Farklı kategori!');
+          setFeedback(t.diffCategoryShort || '⛔ Different category!');
           return prev;
         }
         if (topCard.type === 'category') {
-          setFeedback('📂 Kategori kartını önce boş slota taşı!');
+          setFeedback(t.catMoveToSlot || '📂 Move category card to empty slot first!');
           return prev;
         }
       }
@@ -1162,7 +1164,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       setGs((p) => {
         if (p.drawnCards.length === 0) return p;
         const newDrawn = [...p.drawnCards];
-        const lastCard = { ...newDrawn[newDrawn.length - 1], isJoker: true, word: '✦ Joker', emoji: '🃏' };
+        const lastCard = { ...newDrawn[newDrawn.length - 1], isJoker: true, word: '', emoji: '🃏' };
         newDrawn[newDrawn.length - 1] = lastCard;
         return { ...p, drawnCards: newDrawn };
       });
@@ -1298,7 +1300,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         const emptySlot = gs.slots.findIndex((sl) => !sl.locked && !sl.category);
         if (emptySlot >= 0) {
           setHintCard(p.card.id); setHintSlot(emptySlot);
-          setFeedback('💡 ' + p.card.word + ' → boş slota koy!');
+          setFeedback((t.hintToEmptySlot || '💡 {word} → place in empty slot!').replace('{word}', p.card.word));
           return;
         }
       }
@@ -1311,7 +1313,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         }
       }
     }
-    setFeedback('Uygun hamle yok. Desteden kart çek veya sütunları düzenle!');
+    setFeedback(t.hintNoMoves || 'No suitable move. Draw from deck or rearrange columns!');
   }, [gs]);
 
   const resetGame = useCallback(() => {
@@ -1771,8 +1773,8 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       <View style={st.toolbar}>
         <ToolBtn icon="lightbulb" label={t.hint} badge={toolCredits.hint > 0 ? toolCredits.hint : '🪙'} badgeColor={toolCredits.hint > 0 ? COLORS.success : COLORS.coin} onPress={useHint} locked={!isToolUnlocked('hint')} unlockLevel={TOOL_UNLOCK.hint} pulse={gs.moves <= 5 && !isTimed} />
         <ToolBtn icon="undo" label={t.undo} badge={toolCredits.undo > 0 ? toolCredits.undo : '🪙'} badgeColor={toolCredits.undo > 0 ? COLORS.success : COLORS.coin} onPress={useUndo} locked={!isToolUnlocked('undo')} unlockLevel={TOOL_UNLOCK.undo} pulse={gs.moves <= 3 && !isTimed} />
-        <ToolBtn icon="style" label="JOKER" badge={toolCredits.joker > 0 ? toolCredits.joker : '🪙'} badgeColor={toolCredits.joker > 0 ? COLORS.success : COLORS.coin} onPress={useJoker} locked={!isToolUnlocked('joker')} unlockLevel={TOOL_UNLOCK.joker} />
-        <ToolBtn icon="shuffle" label="KARIŞTIR" badge={toolCredits.shuffle > 0 ? toolCredits.shuffle : '🪙'} badgeColor={toolCredits.shuffle > 0 ? COLORS.success : COLORS.coin} onPress={useShuffle} locked={!isToolUnlocked('shuffle')} unlockLevel={TOOL_UNLOCK.shuffle} />
+        <ToolBtn icon="style" label={t.joker || 'JOKER'} badge={toolCredits.joker > 0 ? toolCredits.joker : '🪙'} badgeColor={toolCredits.joker > 0 ? COLORS.success : COLORS.coin} onPress={useJoker} locked={!isToolUnlocked('joker')} unlockLevel={TOOL_UNLOCK.joker} />
+        <ToolBtn icon="shuffle" label={t.shuffle || 'SHUFFLE'} badge={toolCredits.shuffle > 0 ? toolCredits.shuffle : '🪙'} badgeColor={toolCredits.shuffle > 0 ? COLORS.success : COLORS.coin} onPress={useShuffle} locked={!isToolUnlocked('shuffle')} unlockLevel={TOOL_UNLOCK.shuffle} />
         <ToolBtn icon="auto-fix-normal" label={t.delete} badge={toolCredits.delete > 0 ? toolCredits.delete : '🪙'} badgeColor={toolCredits.delete > 0 ? COLORS.success : COLORS.coin} onPress={useDelete} locked={!isToolUnlocked('delete')} unlockLevel={TOOL_UNLOCK.delete} />
       </View>
 
