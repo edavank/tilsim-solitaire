@@ -60,7 +60,7 @@ export default function TournamentScreen() {
   const [, setNow] = useState(Date.now());
 
   useFocusEffect(useCallback(() => {
-    loadProgress().then(p => setMyScore(p.bestScore || 0));
+    loadProgress().then(p => setMyScore(p.bestScore || 0)).catch(() => {});
   }, []));
 
   // Keep countdown fresh (re-render every minute)

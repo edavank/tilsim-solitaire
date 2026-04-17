@@ -21,7 +21,7 @@ export default function AchievementsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadAchievements().then(setUnlocked);
+      loadAchievements().then(setUnlocked).catch(() => {});
       loadProgress().then(async (p) => {
         const dailyMap = await getDailyCompletionMap();
         setStats({ ...p, dailyCount: Object.keys(dailyMap).length });

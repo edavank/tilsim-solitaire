@@ -74,8 +74,8 @@ export default function DailyScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      getDailyCompletionMap().then(setCompletionMap);
-      getDailyStreak().then(setStreak);
+      getDailyCompletionMap().then(setCompletionMap).catch(() => {});
+      getDailyStreak().then(setStreak).catch(() => {});
     }, [])
   );
 

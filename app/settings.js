@@ -37,8 +37,8 @@ export default function SettingsScreen() {
       setVibration(s.vibration !== false);
       setSound(s.sound !== false);
       setBgm(s.bgm !== false);
-    });
-    loadProgress().then((p) => setCoins(p.coins));
+    }).catch(() => {});
+    loadProgress().then((p) => setCoins(p.coins)).catch(() => {});
   }, []);
 
   const toggleSound = (v) => {

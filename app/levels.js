@@ -19,17 +19,17 @@ export default function LevelsScreen() {
   const chapters = t.chapters || [];
 
   useEffect(() => {
-    loadProgress().then((p) => setCurrentLevel(p.currentLevel || 1));
-    loadLevelStars().then(setStarMap);
-    loadXP().then(setXpData);
+    loadProgress().then((p) => setCurrentLevel(p.currentLevel || 1)).catch(() => {});
+    loadLevelStars().then(setStarMap).catch(() => {});
+    loadXP().then(setXpData).catch(() => {});
     setTotalLevels(getTotalLevels(lang));
   }, [lang]);
 
   useFocusEffect(
     useCallback(() => {
-      loadProgress().then((p) => setCurrentLevel(p.currentLevel || 1));
-      loadLevelStars().then(setStarMap);
-      loadXP().then(setXpData);
+      loadProgress().then((p) => setCurrentLevel(p.currentLevel || 1)).catch(() => {});
+      loadLevelStars().then(setStarMap).catch(() => {});
+      loadXP().then(setXpData).catch(() => {});
     }, [])
   );
 

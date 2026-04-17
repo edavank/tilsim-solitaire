@@ -19,7 +19,7 @@ export default function CollectionScreen() {
   const { lang } = useLang();
   const [collection, setCollection] = useState({});
 
-  useFocusEffect(useCallback(() => { loadCollection(lang).then(setCollection); }, [lang]));
+  useFocusEffect(useCallback(() => { loadCollection(lang).then(setCollection).catch(() => {}); }, [lang]));
 
   const allCats = (WORD_POOLS[lang] || WORD_POOLS.tr || []).map(p => p.name);
   const discovered = Object.keys(collection).length;

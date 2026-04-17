@@ -25,7 +25,7 @@ export default function StoreScreen() {
   const [adLoading, setAdLoading] = useState(false);
 
   useEffect(() => {
-    loadProgress().then((p) => setCoins(p.coins));
+    loadProgress().then((p) => setCoins(p.coins)).catch(() => {});
   }, []);
 
   const BOOSTERS = [

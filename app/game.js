@@ -827,10 +827,10 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   }
 
   const placeCard = useCallback((card, source, sourceIndex, slotIndex) => {
-    if (slotIndex < 0 || slotIndex >= gs.slots.length) return;
-    if (gs.slots[slotIndex].locked) { setFeedback(t.isLocked); return; }
-
     setGs((prev) => {
+      if (slotIndex < 0 || slotIndex >= prev.slots.length) return prev;
+      if (prev.slots[slotIndex].locked) { setFeedback(t.isLocked); return prev; }
+
       const newSlots = prev.slots.map((sl) => ({ ...sl, placedCards: [...sl.placedCards] }));
       const target = newSlots[slotIndex];
 
@@ -963,7 +963,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       }
       return prev;
     });
-  }, [gs.slots, level.categories.length]);
+  }, [level.categories.length]);
 
   const moveToColumn = useCallback((card, source, sourceIndex, targetColIndex) => {
     if (source === 'column' && sourceIndex === targetColIndex) return;

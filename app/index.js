@@ -95,10 +95,10 @@ export default function HomeScreen() {
           }).catch(() => {});
         }
       });
-      isDailyChallengeCompleted().then(setDailyDone);
+      isDailyChallengeCompleted().then(setDailyDone).catch(() => {});
       checkDailyLogin().then((result) => {
         if (result.shouldShow) setDailyLoginData(result);
-      });
+      }).catch(() => {});
     }, [user])
   );
   const owlBounce = useRef(new Animated.Value(0)).current;
@@ -344,13 +344,6 @@ const s = StyleSheet.create({
   ctaTitle: { fontFamily: FONTS.headlineBlack, fontSize: 26, color: '#fff', letterSpacing: 2 },
   ctaSub: { fontFamily: FONTS.bodyMedium, fontSize: 11, color: 'rgba(255,255,255,0.7)', letterSpacing: 2, marginTop: 2 },
 
-  adBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    width: '100%', maxWidth: 340,
-    backgroundColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 20, paddingVertical: 14,
-    borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
-    shadowColor: '#9B7DFF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.15, shadowRadius: 10,
-  },
   levelSelectBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     width: '100%', maxWidth: 340, paddingVertical: 12, marginBottom: 12,
@@ -359,22 +352,4 @@ const s = StyleSheet.create({
     shadowColor: '#9B7DFF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.15, shadowRadius: 10,
   },
   levelSelectText: { fontFamily: FONTS.headline, fontSize: 14, color: COLORS.onSurface },
-  adLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  adText: { fontFamily: FONTS.headline, fontSize: 15, color: COLORS.onSurface },
-  adBadge: { backgroundColor: COLORS.tertiary, paddingHorizontal: 12, paddingVertical: 4, borderRadius: SIZES.radiusFull },
-  adBadgeText: { fontFamily: FONTS.headlineBlack, fontSize: 11, color: '#fff' },
-
-  dailyBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    width: '100%', maxWidth: 340, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 12,
-    backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 16,
-    borderWidth: 1.5, borderColor: COLORS.coin,
-    shadowColor: COLORS.coin, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.3, shadowRadius: 10,
-  },
-  dailyLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  dailyTitle: { fontFamily: FONTS.headlineBlack, fontSize: 14, color: COLORS.onSurface },
-  dailyDate: { fontFamily: FONTS.body, fontSize: 11, color: COLORS.onSurfaceVariant },
-  dailyDoneBadge: { width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.success, alignItems: 'center', justifyContent: 'center' },
-  dailyRewardBadge: { backgroundColor: COLORS.coin, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  dailyRewardText: { fontFamily: FONTS.headlineBlack, fontSize: 11, color: '#000' },
 });
