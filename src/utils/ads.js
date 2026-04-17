@@ -157,8 +157,13 @@ export async function showInterstitial() {
 export function showRewarded() {
   return new Promise((resolve) => {
     if (!adsReady || !RewardedAd) {
-      // AdMob yoksa yine ödül ver (geliştirme modu)
-      resolve({ success: true, reward: { amount: 1 } });
+      // Production'da AdMob yoksa ödül YOK — reklam izlenmeden ödül verilmez.
+      // __DEV__ modunda (Expo Go test) geliştirici kolaylığı için ödül verilir.
+      if (__DEV__) {
+        resolve({ success: true, reward: { amount: 1 } });
+      } else {
+        resolve({ success: false, reward: null });
+      }
       return;
     }
 

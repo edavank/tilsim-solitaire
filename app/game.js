@@ -243,7 +243,7 @@ function FoundationSlot({ t, slot, slotIndex, onPress, onUnlock, hinted }) {
         <Text style={st.lockedText}>{t.locked}</Text>
         <MaterialIcons name="style" size={18} color="rgba(255,255,255,0.15)" />
         <TouchableOpacity style={st.adBadge} onPress={() => onUnlock?.('slot', slotIndex)}>
-          <Text style={st.adText}>▶ AD</Text>
+          <Text style={st.adText}>▶ Ad</Text>
         </TouchableOpacity>
       </View>
     );
@@ -280,7 +280,7 @@ const TableauColumn = React.memo(function TableauColumn({ column, colIndex, sele
       <View style={[st.slotBox, st.slotDashed, { height: CARD_H }]}>
         <MaterialIcons name="lock" size={16} color="rgba(255,255,255,0.2)" />
         <TouchableOpacity style={st.adBadge} onPress={() => onUnlock?.('column', colIndex)}>
-          <Text style={st.adText}>▶ AD</Text>
+          <Text style={st.adText}>▶ Ad</Text>
         </TouchableOpacity>
       </View>
     );
@@ -1459,8 +1459,11 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
     const nextId = levelId + 1;
     const nextLevel = getLevel(nextId, gameLang);
     if (!nextLevel) { router.canGoBack() ? router.back() : router.replace("/"); return; }
+    // currentLevel sadece İLERİ gider — eski bölümü replay edip "Sonraki"ye
+    // basınca currentLevel 20'den 6'ya DÜŞMEMELİ
+    const safeCurrentLevel = Math.max(nextId, prog.currentLevel || 1);
     await updateProgress({
-      currentLevel: nextId,
+      currentLevel: safeCurrentLevel,
       coins: (prog.coins || 0) + Math.floor((30 + bonus) * eventMultiplier),
       totalGames: (prog.totalGames || 0) + 1,
       totalWins: (prog.totalWins || 0) + 1,
