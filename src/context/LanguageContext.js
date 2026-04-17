@@ -13,7 +13,7 @@ export function LanguageProvider({ children }) {
       const l = s.language || 'tr';
       setLangState(l);
       setT(getT(l));
-    });
+    }).catch(() => {});
   }, []);
 
   const setLang = async (code) => {

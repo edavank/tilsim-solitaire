@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, ActivityIndicator, StyleSheet, Animated, Image, Text, TouchableOpacity, Dimensions } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Animated, Image, Text, TouchableOpacity } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -27,7 +27,6 @@ import { LanguageProvider, useLang } from '../src/context/LanguageContext';
 import { AuthProvider } from '../src/context/AuthContext';
 
 const OWL = require('../assets/bilge-happy.png');
-const { width: SW } = Dimensions.get('window');
 
 const LANGUAGES = [
   { code: 'tr', flag: '🇹🇷', name: 'Türkçe', available: true },
@@ -79,10 +78,8 @@ const lang = StyleSheet.create({
   subtitle: { fontFamily: 'BeVietnamPro_400Regular', fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 24 },
   list: { width: '100%', gap: 8 },
   item: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: 'rgba(255,255,255,0.08)', paddingVertical: 14, paddingHorizontal: 18, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  itemDisabled: { opacity: 0.4 },
   flag: { fontSize: 28 },
   name: { flex: 1, fontFamily: 'PlusJakartaSans_700Bold', fontSize: 16, color: '#fff' },
-  soon: { fontFamily: 'BeVietnamPro_400Regular', fontSize: 11, color: 'rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
   check: { width: 24, height: 24, borderRadius: 12, backgroundColor: COLORS.success, alignItems: 'center', justifyContent: 'center' },
 });
 
@@ -139,10 +136,9 @@ export default function RootLayout() {
         setSoundEnabled(s.sound !== false);
         setBgmEnabled(s.bgm !== false);
         if (s.bgm !== false) startBgm();
-        // İlk açılışta dil seçimi göster
         if (!s.languageSelected) setShowLangPicker(true);
       });
-    });
+    }).catch(() => {});
   }, []);
 
   if (!fontsLoaded) {
