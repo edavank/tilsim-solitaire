@@ -24,7 +24,7 @@ const LANG_OPTIONS = [
 
 export default function SettingsScreen() {
   const { lang, t, setLang } = useLang();
-  const { user, loading, handleGoogleLogin, handleAppleLogin, handleSignOut, isAppleAvailable, syncToCloud } = useAuth();
+  const { user, loading, handleGoogleLogin, handleAppleLogin, handleSignOut, handleDeleteAccount, isAppleAvailable, syncToCloud } = useAuth();
   const [sound, setSound] = useState(true);
   const [vibration, setVibration] = useState(true);
   const [bgm, setBgm] = useState(true);
@@ -134,10 +134,34 @@ export default function SettingsScreen() {
             <TouchableOpacity style={{ padding: 14, alignItems: 'center' }} onPress={async () => {
               await handleSignOut();
               Alert.alert(t.signedOut || 'Çıkış yapıldı');
-              // Progress sıfırlandı — home'a dön ki eski coin/level flash'ı gözükmesin
               router.replace('/');
             }}>
               <Text style={{ fontFamily: FONTS.body, fontSize: 14, color: COLORS.primary }}>{t.signOut}</Text>
+            </TouchableOpacity>
+            <View style={s.divider} />
+            <TouchableOpacity style={{ padding: 14, alignItems: 'center' }} onPress={() => {
+              Alert.alert(
+                t.deleteAccount || 'Delete Account',
+                t.deleteAccountConfirm || 'Your account and all associated data will be permanently deleted. This cannot be undone. Are you sure?',
+                [
+                  { text: t.cancel, style: 'cancel' },
+                  { text: t.deleteAccountBtn || 'Delete', style: 'destructive', onPress: async () => {
+                    setBusy(true);
+                    const result = await handleDeleteAccount();
+                    setBusy(false);
+                    if (result.success) {
+                      Alert.alert(t.deleteAccountDone || 'Account Deleted', t.deleteAccountDoneMsg || 'Your account and data have been deleted.');
+                      router.replace('/');
+                    } else {
+                      Alert.alert('Error', result.error || 'Failed to delete account');
+                    }
+                  }},
+                ]
+              );
+            }}>
+              <Text style={{ fontFamily: FONTS.body, fontSize: 14, color: COLORS.error }}>
+                {t.deleteAccount || 'Delete Account'}
+              </Text>
             </TouchableOpacity>
           </View>
         ) : (

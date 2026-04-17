@@ -13,6 +13,7 @@ try {
     signInWithGoogle: async () => ({ error: 'Auth kullanılamıyor' }),
     signInWithApple: async () => ({ error: 'Auth kullanılamıyor' }),
     signOut: async () => {},
+    deleteAccount: async () => ({ success: true }),
     syncProgressToCloud: async () => null,
     loadProgressFromCloud: async () => null,
   };
@@ -101,6 +102,18 @@ export function AuthProvider({ children }) {
     } catch (e) {}
   }, []);
 
+  // Apple 5.1.1(v): Hesap silme — cloud + local tüm verileri siler
+  const handleDeleteAccount = useCallback(async () => {
+    const result = await authModule.deleteAccount();
+    if (result.success) {
+      try {
+        const { resetUserScopedData } = require('../utils/storage');
+        await resetUserScopedData();
+      } catch (e) {}
+    }
+    return result;
+  }, []);
+
   // Cloud sync helpers
   const syncToCloud = useCallback(async (localProgress) => {
     return await authModule.syncProgressToCloud(localProgress);
@@ -123,6 +136,7 @@ export function AuthProvider({ children }) {
     handleAppleLogin,
     handleSkipLogin,
     handleSignOut,
+    handleDeleteAccount,
     syncToCloud,
     loadFromCloud,
   };

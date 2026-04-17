@@ -425,7 +425,7 @@ function LevelFailedOverlay({ t, levelId, onAddMovesAd, onAddMovesCoin, onShuffl
         <TouchableOpacity onPress={onAddMovesCoin} activeOpacity={0.85} style={{ marginTop: 8, width: '100%' }}>
           <View style={[ov.addMovesBtn, { backgroundColor: COLORS.panelBg, borderWidth: 1.5, borderColor: COLORS.coin, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 9999 }]}>
             <Text style={{ fontSize: 16 }}>🪙</Text>
-            <Text style={[ov.addMovesText, { color: COLORS.coin }]}>500 Coin → +20</Text>
+            <Text style={[ov.addMovesText, { color: COLORS.coin }]}>🪙 500 → +20 {t.moves || 'MOVES'}</Text>
           </View>
         </TouchableOpacity>
         <TouchableOpacity onPress={onShuffle} activeOpacity={0.85} style={{ marginTop: 8, width: '100%' }}>

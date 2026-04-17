@@ -194,6 +194,49 @@ export async function signOut() {
   notifyListeners();
 }
 
+// ─── Delete Account ─────────────────────────────────────────
+// Apple 5.1.1(v) requirement: hesap oluşturma varsa silme de olmalı.
+// Kullanıcının tüm verilerini siler (cloud + local), ardından çıkış yapar.
+export async function deleteAccount() {
+  if (!supabase || !currentUser) {
+    // Hesap yoksa sadece yerel veriyi temizle
+    return { success: true };
+  }
+  try {
+    const userId = currentUser.id;
+
+    // 1. Cloud verileri sil
+    try {
+      await supabase.from('user_progress').delete().eq('user_id', userId);
+    } catch (e) { console.log('[Auth] delete user_progress error:', e.message); }
+
+    try {
+      await supabase.from('leaderboard').delete().eq('device_id', await _getDeviceId());
+    } catch (e) { console.log('[Auth] delete leaderboard error:', e.message); }
+
+    // 2. Supabase auth sign out
+    try {
+      await supabase.auth.signOut();
+    } catch (e) { console.log('[Auth] signOut during delete:', e.message); }
+
+    currentUser = null;
+    notifyListeners();
+
+    return { success: true };
+  } catch (e) {
+    console.log('[Auth] deleteAccount error:', e.message);
+    return { success: false, error: e.message };
+  }
+}
+
+// Device ID helper for account deletion (leaderboard uses device_id)
+async function _getDeviceId() {
+  try {
+    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+    return await AsyncStorage.getItem('@tilsim_device_id');
+  } catch (e) { return null; }
+}
+
 // ─── Cloud Sync (merge: keep highest) ───────────────────────
 // NOT: Alan-bazlı Math.max, cihazlar arası sync için çalışır ama canlı play'de
 // "powerup aldım, coin azaldı" gibi durumlarda eski yüksek coin cloud'dan gelip
