@@ -107,6 +107,12 @@ export const WORD_POOLS = {
     { name: 'Çizgi Filmler', words: ['Pepee', 'Rafadan', 'Heidi', 'Pokemon', 'Niloya', 'Keloğlan'] },
     { name: 'Bitkiler', words: ['Kaktüs', 'Sukulent', 'Eğrelti', 'Yosun', 'Sarmaşık', 'Bambu'] },
     { name: 'Hobiler', words: ['Koleksiyon', 'Örgü', 'Model', 'Origami', 'Puzzle', 'Kaligrafi'] },
+    // === 5 YENİ KATEGORİ (v1.0.4) ===
+    { name: 'Felsefe', words: ['Platon', 'Sokrates', 'Mantık', 'Etik', 'Bilgelik', 'Düşünce'] },
+    { name: 'Robotik', words: ['Robot', 'Sensör', 'Drone', 'Motor', 'Otomasyon', 'Algoritma'] },
+    { name: 'Dünya Mutfağı', words: ['Pizza', 'Sushi', 'Taco', 'Burger', 'Ramen', 'Croissant'] },
+    { name: 'Dinozorlar', words: ['Tiranozor', 'Stegozor', 'Triseratops', 'Raptor', 'Brontosaur', 'Pterodaktil'] },
+    { name: 'Festivaller', words: ['Karnaval', 'Konser', 'Gösteri', 'Havai Fişek', 'Kostüm', 'Sahne'] },
   ],
 
   en: [
@@ -148,6 +154,12 @@ export const WORD_POOLS = {
     { name: 'Math', words: ['Addition', 'Subtraction', 'Multiply', 'Division', 'Triangle', 'Circle'] },
     { name: 'Art', words: ['Painting', 'Sculpture', 'Brush', 'Canvas', 'Paint', 'Museum'] },
     { name: 'Tools', words: ['Hammer', 'Screwdriver', 'Pliers', 'Saw', 'Drill', 'Wrench'] },
+    // === 5 NEW CATEGORIES (v1.0.4) ===
+    { name: 'Philosophy', words: ['Plato', 'Socrates', 'Logic', 'Ethics', 'Wisdom', 'Thought'] },
+    { name: 'Robotics', words: ['Robot', 'Sensor', 'Drone', 'Motor', 'Automation', 'Algorithm'] },
+    { name: 'World Cuisine', words: ['Pizza', 'Sushi', 'Taco', 'Burger', 'Ramen', 'Croissant'] },
+    { name: 'Dinosaurs', words: ['T-Rex', 'Stegosaurus', 'Triceratops', 'Raptor', 'Brontosaurus', 'Pterodactyl'] },
+    { name: 'Festivals', words: ['Carnival', 'Concert', 'Show', 'Fireworks', 'Costume', 'Stage'] },
   ],
 
   de: [
@@ -175,6 +187,11 @@ export const WORD_POOLS = {
     { name: 'Möbel', words: ['Tisch', 'Stuhl', 'Schrank', 'Sofa', 'Bett', 'Spiegel'] },
     { name: 'Körper', words: ['Auge', 'Nase', 'Ohr', 'Hand', 'Fuß', 'Herz'] },
     { name: 'Weltraum', words: ['Mond', 'Sonne', 'Stern', 'Galaxie', 'Meteor', 'Satellit'] },
+    { name: 'Philosophie', words: ['Platon', 'Sokrates', 'Logik', 'Ethik', 'Weisheit', 'Gedanke'] },
+    { name: 'Robotik', words: ['Roboter', 'Sensor', 'Drohne', 'Motor', 'Automation', 'Algorithmus'] },
+    { name: 'Weltküche', words: ['Pizza', 'Sushi', 'Taco', 'Burger', 'Ramen', 'Croissant'] },
+    { name: 'Dinosaurier', words: ['T-Rex', 'Stegosaurus', 'Triceratops', 'Raptor', 'Brontosaurus', 'Pterodaktylus'] },
+    { name: 'Festivals', words: ['Karneval', 'Konzert', 'Show', 'Feuerwerk', 'Kostüm', 'Bühne'] },
   ],
 
   fr: [
@@ -200,6 +217,11 @@ export const WORD_POOLS = {
     { name: 'Océan', words: ['Dauphin', 'Requin', 'Pieuvre', 'Crabe', 'Hippocampe', 'Homard'] },
     { name: 'Métiers', words: ['Médecin', 'Professeur', 'Ingénieur', 'Cuisinier', 'Pilote', 'Policier'] },
     { name: 'Meubles', words: ['Table', 'Chaise', 'Armoire', 'Canapé', 'Lit', 'Miroir'] },
+    { name: 'Philosophie', words: ['Platon', 'Socrate', 'Logique', 'Éthique', 'Sagesse', 'Pensée'] },
+    { name: 'Robotique', words: ['Robot', 'Capteur', 'Drone', 'Moteur', 'Automation', 'Algorithme'] },
+    { name: 'Cuisine du monde', words: ['Pizza', 'Sushi', 'Taco', 'Burger', 'Ramen', 'Croissant'] },
+    { name: 'Dinosaures', words: ['T-Rex', 'Stégosaure', 'Tricératops', 'Raptor', 'Brontosaure', 'Ptérodactyle'] },
+    { name: 'Festivals', words: ['Carnaval', 'Concert', 'Spectacle', 'Feux', 'Costume', 'Scène'] },
   ],
 
   es: [
@@ -225,6 +247,11 @@ export const WORD_POOLS = {
     { name: 'Océano', words: ['Delfín', 'Tiburón', 'Pulpo', 'Cangrejo', 'Caballito', 'Langosta'] },
     { name: 'Profesiones', words: ['Doctor', 'Maestro', 'Ingeniero', 'Cocinero', 'Piloto', 'Policía'] },
     { name: 'Muebles', words: ['Mesa', 'Silla', 'Armario', 'Sofá', 'Cama', 'Espejo'] },
+    { name: 'Filosofía', words: ['Platón', 'Sócrates', 'Lógica', 'Ética', 'Sabiduría', 'Pensamiento'] },
+    { name: 'Robótica', words: ['Robot', 'Sensor', 'Dron', 'Motor', 'Automatización', 'Algoritmo'] },
+    { name: 'Cocina mundial', words: ['Pizza', 'Sushi', 'Taco', 'Hamburguesa', 'Ramen', 'Croissant'] },
+    { name: 'Dinosaurios', words: ['T-Rex', 'Estegosaurio', 'Triceratops', 'Raptor', 'Brontosaurio', 'Pterodáctilo'] },
+    { name: 'Festivales', words: ['Carnaval', 'Concierto', 'Espectáculo', 'Fuegos', 'Disfraz', 'Escenario'] },
   ],
 
   ar: [
@@ -248,6 +275,11 @@ export const WORD_POOLS = {
     { name: 'طيور', words: ['ببغاء', 'عصفور', 'نسر', 'نورس', 'بومة', 'فلامنغو'] },
     { name: 'زهور', words: ['وردة', 'أقحوان', 'توليب', 'بنفسج', 'أوركيد', 'زنبق'] },
     { name: 'بحر', words: ['دلفين', 'قرش', 'أخطبوط', 'سلطعون', 'حصان بحر', 'كركند'] },
+    { name: 'فلسفة', words: ['أفلاطون', 'سقراط', 'منطق', 'أخلاق', 'حكمة', 'فكر'] },
+    { name: 'روبوتات', words: ['روبوت', 'مستشعر', 'درون', 'محرك', 'أتمتة', 'خوارزمية'] },
+    { name: 'مطبخ عالمي', words: ['بيتزا', 'سوشي', 'تاكو', 'برجر', 'رامن', 'كرواسون'] },
+    { name: 'ديناصورات', words: ['تيركس', 'ستيغوصور', 'تريسيراتوبس', 'رابتور', 'برونتوصور', 'بتيرودكتيل'] },
+    { name: 'مهرجانات', words: ['كرنفال', 'حفلة', 'عرض', 'ألعاب نارية', 'أزياء', 'مسرح'] },
   ],
 };
 
@@ -624,6 +656,41 @@ export const EMOJI_MAP = {
   'Kaktüs': '🌵', 'Sukulent': '🪴', 'Eğrelti': '🌿', 'Yosun': '🍃', 'Sarmaşık': '🌿', 'Bambu': '🎋',
   // Hobiler
   'Koleksiyon': '📦', 'Örgü': '🧶', 'Model': '🏗️', 'Origami': '🪷', 'Kaligrafi': '✒️',
+  // === Yeni kategoriler (v1.0.4) ===
+  // Felsefe
+  'Platon': '🏛️', 'Plato': '🏛️', 'أفلاطون': '🏛️', 'Platón': '🏛️',
+  'Sokrates': '🧠', 'Socrates': '🧠', 'Socrate': '🧠', 'Sócrates': '🧠', 'سقراط': '🧠',
+  'Mantık': '🔮', 'Logic': '🔮', 'Logik': '🔮', 'Logique': '🔮', 'Lógica': '🔮', 'منطق': '🔮',
+  'Etik': '⚖️', 'Ethics': '⚖️', 'Ethik': '⚖️', 'Éthique': '⚖️', 'Ética': '⚖️', 'أخلاق': '⚖️',
+  'Bilgelik': '📜', 'Wisdom': '📜', 'Weisheit': '📜', 'Sagesse': '📜', 'Sabiduría': '📜', 'حكمة': '📜',
+  'Düşünce': '💭', 'Thought': '💭', 'Gedanke': '💭', 'Pensée': '💭', 'Pensamiento': '💭', 'فكر': '💭',
+  // Robotik
+  'Robot': '🤖', 'Roboter': '🤖', 'روبوت': '🤖',
+  'Sensör': '📡', 'Sensor': '📡', 'Capteur': '📡', 'مستشعر': '📡',
+  'Drone': '🛸', 'Drohne': '🛸', 'Dron': '🛸', 'درون': '🛸',
+  'Otomasyon': '⚙️', 'Automation': '⚙️', 'Automatización': '⚙️', 'أتمتة': '⚙️',
+  'Algoritma': '🔢', 'Algorithm': '🔢', 'Algorithmus': '🔢', 'Algorithme': '🔢', 'Algoritmo': '🔢', 'خوارزمية': '🔢',
+  // Dünya Mutfağı
+  'Pizza': '🍕', 'بيتزا': '🍕',
+  'Sushi': '🍣', 'سوشي': '🍣',
+  'Taco': '🌮', 'تاكو': '🌮',
+  'Burger': '🍔', 'Hamburguesa': '🍔', 'برجر': '🍔',
+  'Ramen': '🍜', 'رامن': '🍜',
+  'Croissant': '🥐', 'كرواسون': '🥐',
+  // Dinozorlar
+  'Tiranozor': '🦖', 'T-Rex': '🦖', 'تيركس': '🦖',
+  'Stegozor': '🦕', 'Stegosaurus': '🦕', 'Stégosaure': '🦕', 'Estegosaurio': '🦕', 'ستيغوصور': '🦕',
+  'Triseratops': '🦕', 'Triceratops': '🦕', 'Tricératops': '🦕', 'تريسيراتوبس': '🦕',
+  'Raptor': '🦖', 'رابتور': '🦖',
+  'Brontosaur': '🦕', 'Brontosaurus': '🦕', 'Brontosaure': '🦕', 'Brontosaurio': '🦕', 'برونتوصور': '🦕',
+  'Pterodaktil': '🦅', 'Pterodactyl': '🦅', 'Pterodaktylus': '🦅', 'Ptérodactyle': '🦅', 'Pterodáctilo': '🦅', 'بتيرودكتيل': '🦅',
+  // Festivaller
+  'Karnaval': '🎭', 'Carnival': '🎭', 'Karneval': '🎭', 'Carnaval': '🎭', 'كرنفال': '🎭',
+  'Konser': '🎤', 'Concert': '🎤', 'Konzert': '🎤', 'Concierto': '🎤', 'حفلة': '🎤',
+  'Gösteri': '🎬', 'Show': '🎬', 'Spectacle': '🎬', 'Espectáculo': '🎬', 'عرض': '🎬',
+  'Havai Fişek': '🎆', 'Fireworks': '🎆', 'Feuerwerk': '🎆', 'Feux': '🎆', 'Fuegos': '🎆', 'ألعاب نارية': '🎆',
+  'Kostüm': '🎃', 'Costume': '🎃', 'Disfraz': '🎃', 'أزياء': '🎃',
+  'Bühne': '🎭', 'Escenario': '🎭', 'Scène': '🎭', 'مسرح': '🎭',
 };
 
 // Category emoji mapping
@@ -656,6 +723,8 @@ export const CATEGORY_EMOJIS = {
   'Sirk': '🎪', 'Oyun Konsolu': '🎮', 'Dans Türleri': '🪩', 'Yarış Araçları': '🏎️',
   'Sosyal Medya': '📱', 'Bayramlar': '🎉', 'Tiyatro': '🎭', 'Çizgi Filmler': '📺',
   'Bitkiler': '🌿', 'Hobiler': '🎯',
+  // Yeni kategoriler (v1.0.4)
+  'Felsefe': '🏛️', 'Robotik': '🤖', 'Dünya Mutfağı': '🌮', 'Dinozorlar': '🦕', 'Festivaller': '🎪',
   // EN
   'Fruits': '🍎', 'Animals': '🐾', 'Colors': '🎨', 'Sports': '🏆',
   'Drinks': '🥤', 'Trees': '🌳', 'Music': '🎵', 'Vegetables': '🥬',
@@ -667,6 +736,7 @@ export const CATEGORY_EMOJIS = {
   'Technology': '📱', 'Computer': '💻', 'Cinema': '🎬', 'Kitchen': '🍳',
   'Nature': '🏔️', 'Vacation': '🏖️', 'Toys': '🧸', 'Math': '🔢',
   'Art': '🎨', 'Tools': '🔧',
+  'Philosophy': '🏛️', 'Robotics': '🤖', 'World Cuisine': '🌮', 'Dinosaurs': '🦕', 'Festivals': '🎪',
   // DE
   'Früchte': '🍎', 'Tiere': '🐾', 'Farben': '🎨', 'Sport': '🏆',
   'Getränke': '🥤', 'Bäume': '🌳', 'Musik': '🎵', 'Gemüse': '🥬',
@@ -674,6 +744,7 @@ export const CATEGORY_EMOJIS = {
   'Schule': '📚', 'Essen': '🍽️', 'Wetter': '🌤️', 'Verkehr': '🚀',
   'Kleidung': '👕', 'Vögel': '🐦', 'Blumen': '🌸', 'Meer': '🐳',
   'Berufe': '👨‍💼', 'Möbel': '💺', 'Körper': '❤️', 'Weltraum': '🚀',
+  'Philosophie': '🏛️', 'Robotik': '🤖', 'Weltküche': '🌮', 'Dinosaurier': '🦕', 'Festivals': '🎪',
   // FR
   'Animaux': '🐾', 'Couleurs': '🎨',
   'Boissons': '🥤', 'Arbres': '🌳', 'Musique': '🎵', 'Légumes': '🥬',
@@ -681,6 +752,7 @@ export const CATEGORY_EMOJIS = {
   'École': '📚', 'Nourriture': '🍽️', 'Météo': '🌤️',
   'Vêtements': '👕', 'Oiseaux': '🐦', 'Fleurs': '🌸', 'Océan': '🐳',
   'Métiers': '👨‍💼', 'Meubles': '💺',
+  'Philosophie': '🏛️', 'Robotique': '🤖', 'Cuisine du monde': '🌮', 'Dinosaures': '🦕', 'Festivals': '🎪',
   // ES
   'Frutas': '🍎', 'Animales': '🐾', 'Colores': '🎨', 'Deportes': '🏆',
   'Bebidas': '🥤', 'Árboles': '🌳', 'Música': '🎵', 'Verduras': '🥬',
@@ -688,10 +760,12 @@ export const CATEGORY_EMOJIS = {
   'Escuela': '📚', 'Comida': '🍽️', 'Clima': '🌤️', 'Transporte': '🚀',
   'Ropa': '👕', 'Aves': '🐦', 'Flores': '🌸', 'Profesiones': '👨‍💼',
   'Océano': '🐳', 'Muebles': '💺',
+  'Filosofía': '🏛️', 'Robótica': '🤖', 'Cocina mundial': '🌮', 'Dinosaurios': '🦕', 'Festivales': '🎪',
   // AR
   'فواكه': '🍎', 'حيوانات': '🐾', 'ألوان': '🎨', 'رياضة': '🏆',
   'مشروبات': '🥤', 'أشجار': '🌳', 'موسيقى': '🎵', 'خضروات': '🥬',
   'دول': '🌍', 'كواكب': '🌍', 'فصول': '🍃', 'مشاعر': '💭',
   'مدرسة': '📚', 'طعام': '🍽️', 'طقس': '🌤️', 'مواصلات': '🚀',
   'ملابس': '👕', 'طيور': '🐦', 'زهور': '🌸', 'بحر': '🐳',
+  'فلسفة': '🏛️', 'روبوتات': '🤖', 'مطبخ عالمي': '🌮', 'ديناصورات': '🦕', 'مهرجانات': '🎪',
 };
