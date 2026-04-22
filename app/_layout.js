@@ -35,6 +35,7 @@ const LANGUAGES = [
   { code: 'fr', flag: '🇫🇷', name: 'Français', available: true },
   { code: 'es', flag: '🇪🇸', name: 'Español', available: true },
   { code: 'ar', flag: '🇸🇦', name: 'العربية', available: true },
+  { code: 'ru', flag: '🇷🇺', name: 'Русский', available: true },
 ];
 
 function LanguageSelector({ onSelect }) {

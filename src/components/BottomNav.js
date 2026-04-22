@@ -12,6 +12,7 @@ const TAB_LABELS = {
   fr: { store: 'BOUTIQUE', home: 'ACCUEIL', achievements: 'SUCCÈS', leaderboard: 'CLASSEMENT' },
   es: { store: 'TIENDA', home: 'INICIO', achievements: 'LOGROS', leaderboard: 'LÍDERES' },
   ar: { store: 'متجر', home: 'الرئيسية', achievements: 'إنجازات', leaderboard: 'المتصدرين' },
+  ru: { store: 'МАГАЗИН', home: 'ГЛАВНАЯ', achievements: 'ДОСТИЖЕНИЯ', leaderboard: 'ЛИДЕРЫ' },
 };
 
 const tabDefs = [

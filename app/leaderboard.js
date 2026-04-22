@@ -17,6 +17,7 @@ const LB_TEXT = {
   fr: { tabs: ['Semaine', 'Mois', 'Tout temps'], games: 'Parties', wins: 'Victoires', success: 'Succès', you: 'Vous', level: 'Niveau', noData: 'Pas encore de données' },
   es: { tabs: ['Semanal', 'Mensual', 'Todo'], games: 'Juegos', wins: 'Victorias', success: 'Éxito', you: 'Tú', level: 'Nivel', noData: 'Sin datos aún' },
   ar: { tabs: ['أسبوعي', 'شهري', 'كل الوقت'], games: 'ألعاب', wins: 'فوز', success: 'نجاح', you: 'أنت', level: 'مستوى', noData: 'لا توجد بيانات' },
+  ru: { tabs: ['Неделя', 'Месяц', 'Все время'], games: 'Игры', wins: 'Победы', success: 'Успех', you: 'Вы', level: 'Уровень', noData: 'Нет данных' },
 };
 
 const PERIODS = ['weekly', 'monthly', 'all'];

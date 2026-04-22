@@ -66,7 +66,7 @@ export function getDailyChallenge(language = 'tr', customSeed) {
 
 export function getDailyDateString(language) {
   const d = new Date();
-  const LOCALE_MAP = { tr: 'tr-TR', en: 'en-US', de: 'de-DE', fr: 'fr-FR', es: 'es-ES', ar: 'ar-SA' };
+  const LOCALE_MAP = { tr: 'tr-TR', en: 'en-US', de: 'de-DE', fr: 'fr-FR', es: 'es-ES', ar: 'ar-SA', ru: 'ru-RU' };
   const loc = LOCALE_MAP[language] || 'en-US';
   try { return d.toLocaleDateString(loc, { day: 'numeric', month: 'long' }); }
   catch (e) { return d.toLocaleDateString('en-US', { day: 'numeric', month: 'long' }); }

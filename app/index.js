@@ -55,7 +55,7 @@ function FloatingParticles() {
   );
 }
 
-const LANG_FLAGS = { tr: '🇹🇷 TÜRKÇE', en: '🇬🇧 ENGLISH', de: '🇩🇪 DEUTSCH', fr: '🇫🇷 FRANÇAIS', es: '🇪🇸 ESPAÑOL', ar: '🇸🇦 العربية' };
+const LANG_FLAGS = { tr: '🇹🇷 TÜRKÇE', en: '🇬🇧 ENGLISH', de: '🇩🇪 DEUTSCH', fr: '🇫🇷 FRANÇAIS', es: '🇪🇸 ESPAÑOL', ar: '🇸🇦 العربية', ru: '🇷🇺 РУССКИЙ' };
 
 export default function HomeScreen() {
   const { lang, t } = useLang();

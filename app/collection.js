@@ -11,7 +11,7 @@ import { useLang } from '../src/context/LanguageContext';
 
 const COLLECTION_TITLE = {
   tr: 'Koleksiyon', en: 'Collection', de: 'Sammlung',
-  fr: 'Collection', es: 'Colección', ar: 'المجموعة',
+  fr: 'Collection', es: 'Colección', ar: 'المجموعة', ru: 'Коллекция',
 };
 
 export default function CollectionScreen() {
