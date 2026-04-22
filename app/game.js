@@ -1178,7 +1178,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       const newCredits = { ...toolCredits, delete: toolCredits.delete - 1 };
       setToolCredits(newCredits);
       await updateProgress({ toolCredits: newCredits });
-      setGs((p) => ({ ...p, drawnCards: p.drawnCards.slice(0, -1), moves: p.moves - 1 }));
+      setGs((p) => ({ ...p, drawnCards: p.drawnCards.slice(0, -1), moves: p.moves - 1, isFailed: p.moves - 1 <= 0 }));
       setSelected(null);
       setFeedback(t.deleteDone);
       return;
