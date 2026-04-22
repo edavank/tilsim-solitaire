@@ -767,7 +767,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
           }
         } catch (e) {}
       }
-    });
+    }).catch(() => {});
   }, []);
 
   // Shake animation

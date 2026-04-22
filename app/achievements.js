@@ -26,7 +26,7 @@ export default function AchievementsScreen() {
         const dailyMap = await getDailyCompletionMap();
         setStats({ ...p, dailyCount: Object.keys(dailyMap).length });
                 if (p.unseenAch > 0) await updateProgress({ unseenAch: 0 });
-      });
+      }).catch(() => {});
     }, [])
   );
 

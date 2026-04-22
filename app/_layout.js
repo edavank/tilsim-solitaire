@@ -137,7 +137,7 @@ export default function RootLayout() {
         setBgmEnabled(s.bgm !== false);
         if (s.bgm !== false) startBgm();
         if (!s.languageSelected) setShowLangPicker(true);
-      });
+      }).catch(() => {});
     }).catch(() => {});
   }, []);
 

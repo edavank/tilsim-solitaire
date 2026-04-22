@@ -94,7 +94,7 @@ export default function HomeScreen() {
             xp: p.xp || 0,
           }).catch(() => {});
         }
-      });
+      }).catch(() => {});
       isDailyChallengeCompleted().then(setDailyDone).catch(() => {});
       checkDailyLogin().then((result) => {
         if (result.shouldShow) setDailyLoginData(result);
