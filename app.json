@@ -20,7 +20,9 @@
       "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSUserTrackingUsageDescription": "Reklamları size özel hale getirmek için izninizi istiyoruz. İzin vermezseniz yine de uygulamamızı kullanabilirsiniz."
+        "NSUserTrackingUsageDescription": "Reklamları size özel hale getirmek için izninizi istiyoruz. İzin vermezseniz yine de uygulamamızı kullanabilirsiniz.",
+        "CFBundleLocalizations": ["tr", "en", "de", "fr", "es", "ar", "ru"],
+        "CFBundleDevelopmentRegion": "tr"
       }
     },
     "android": {
