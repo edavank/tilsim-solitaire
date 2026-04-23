@@ -20,6 +20,7 @@ const LANG_OPTIONS = [
   { code: 'fr', flag: '🇫🇷', name: 'Français' },
   { code: 'es', flag: '🇪🇸', name: 'Español' },
   { code: 'ar', flag: '🇸🇦', name: 'العربية' },
+  { code: 'ru', flag: '🇷🇺', name: 'Русский' },
 ];
 
 export default function SettingsScreen() {
