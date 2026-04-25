@@ -60,11 +60,35 @@ export { ACHIEVEMENTS };
 
 const ACHIEV_KEY = '@tilsim_achievements';
 
+// Migration: eski format (claimed yok) → claimed: true (geriye dönük, çift coin önle)
+function migrateEntry(entry) {
+  if (!entry) return entry;
+  if (typeof entry.claimed === 'undefined') {
+    return { ...entry, claimed: true }; // Eski kazanılmış başarım — coin zaten alınmış sayılır
+  }
+  return entry;
+}
+
 export async function loadAchievements() {
   try {
     if (!AsyncStorage) return {};
     const raw = await AsyncStorage.getItem(ACHIEV_KEY);
-    return raw ? JSON.parse(raw) : {};
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    // Migration: her entry'ye claimed: true ekle (eski user'lar)
+    const migrated = {};
+    let didMigrate = false;
+    for (const id in parsed) {
+      const entry = parsed[id];
+      const newEntry = migrateEntry(entry);
+      migrated[id] = newEntry;
+      if (newEntry !== entry) didMigrate = true;
+    }
+    // Migration olduysa kaydı güncelle
+    if (didMigrate) {
+      await AsyncStorage.setItem(ACHIEV_KEY, JSON.stringify(migrated));
+    }
+    return migrated;
   } catch (e) { return {}; }
 }
 
@@ -83,7 +107,8 @@ export async function checkAchievements(stats) {
     for (const ach of ACHIEVEMENTS) {
       if (current[ach.id]) continue; // Zaten kazanılmış
       if (ach.check(stats)) {
-        current[ach.id] = { unlockedAt: Date.now() };
+        // YENİ: claimed: false olarak kaydet — kullanıcı topla'ya basacak
+        current[ach.id] = { unlockedAt: Date.now(), claimed: false };
         newlyUnlocked.push(ach);
       }
     }
@@ -94,6 +119,45 @@ export async function checkAchievements(stats) {
 
     return newlyUnlocked;
   });
+}
+
+// YENİ: Tek bir başarımın ödülünü topla
+export async function claimAchievement(id) {
+  return withLock(ACHIEV_KEY, async () => {
+    const current = await loadAchievements();
+    const entry = current[id];
+    if (!entry) return { success: false, reward: 0, reason: 'not_unlocked' };
+    if (entry.claimed) return { success: false, reward: 0, reason: 'already_claimed' };
+
+    const ach = ACHIEVEMENTS.find(a => a.id === id);
+    const reward = ach?.reward || 0;
+
+    current[id] = { ...entry, claimed: true, claimedAt: Date.now() };
+    await saveAchievements(current);
+
+    return { success: true, reward };
+  });
+}
+
+// YENİ: Toplanmamış (unclaimed) başarımları say
+export function countUnclaimed(unlockedMap) {
+  let count = 0;
+  for (const id in unlockedMap) {
+    if (unlockedMap[id] && unlockedMap[id].claimed === false) count++;
+  }
+  return count;
+}
+
+// YENİ: Toplanmamış başarımların toplam ödülünü hesapla
+export function totalUnclaimedReward(unlockedMap) {
+  let total = 0;
+  for (const id in unlockedMap) {
+    if (unlockedMap[id] && unlockedMap[id].claimed === false) {
+      const ach = ACHIEVEMENTS.find(a => a.id === id);
+      if (ach) total += (ach.reward || 0);
+    }
+  }
+  return total;
 }
 
 export function getAchievementProgress(stats) {
@@ -108,6 +172,8 @@ export const ACHIEVEMENT_I18N = {
   tr: {
     pageTitle: 'Başarımlar',
     earned: 'Başarım Kazanıldı!',
+    claim: 'TOPLA',
+    claimAll: 'Tümünü Topla',
     first_win: ['İlk Zafer', 'İlk bölümü tamamla'],
     win_10: ['Çırak', '10 bölüm tamamla'],
     win_50: ['Usta', '50 bölüm tamamla'],
@@ -141,6 +207,8 @@ export const ACHIEVEMENT_I18N = {
   en: {
     pageTitle: 'Achievements',
     earned: 'Achievement Earned!',
+    claim: 'CLAIM',
+    claimAll: 'Claim All',
     first_win: ['First Victory', 'Complete first level'],
     win_10: ['Apprentice', 'Complete 10 levels'],
     win_50: ['Master', 'Complete 50 levels'],
@@ -174,6 +242,8 @@ export const ACHIEVEMENT_I18N = {
   de: {
     pageTitle: 'Erfolge',
     earned: 'Erfolg freigeschaltet!',
+    claim: 'ABHOLEN',
+    claimAll: 'Alle abholen',
     first_win: ['Erster Sieg', 'Erstes Level abschließen'],
     win_10: ['Lehrling', '10 Level abschließen'],
     win_50: ['Meister', '50 Level abschließen'],
@@ -207,6 +277,8 @@ export const ACHIEVEMENT_I18N = {
   fr: {
     pageTitle: 'Succès',
     earned: 'Succès débloqué !',
+    claim: 'RÉCLAMER',
+    claimAll: 'Tout réclamer',
     first_win: ['Première Victoire', 'Terminer le premier niveau'],
     win_10: ['Apprenti', 'Terminer 10 niveaux'],
     win_50: ['Maître', 'Terminer 50 niveaux'],
@@ -240,6 +312,8 @@ export const ACHIEVEMENT_I18N = {
   es: {
     pageTitle: 'Logros',
     earned: '¡Logro desbloqueado!',
+    claim: 'RECLAMAR',
+    claimAll: 'Reclamar todo',
     first_win: ['Primera Victoria', 'Completar primer nivel'],
     win_10: ['Aprendiz', 'Completar 10 niveles'],
     win_50: ['Maestro', 'Completar 50 niveles'],
@@ -273,6 +347,8 @@ export const ACHIEVEMENT_I18N = {
   ar: {
     pageTitle: 'الإنجازات',
     earned: 'تم فتح إنجاز!',
+    claim: 'استلام',
+    claimAll: 'استلام الكل',
     first_win: ['النصر الأول', 'أكمل المستوى الأول'],
     win_10: ['المتدرب', 'أكمل 10 مستويات'],
     win_50: ['الأستاذ', 'أكمل 50 مستوى'],
@@ -306,6 +382,8 @@ export const ACHIEVEMENT_I18N = {
   ru: {
     pageTitle: 'Достижения',
     earned: 'Достижение получено!',
+    claim: 'ЗАБРАТЬ',
+    claimAll: 'Забрать всё',
     first_win: ['Первая победа', 'Пройди первый уровень'],
     win_10: ['Ученик', 'Пройди 10 уровней'],
     win_50: ['Мастер', 'Пройди 50 уровней'],

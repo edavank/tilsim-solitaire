@@ -1427,15 +1427,8 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         const newAch = await checkAchievements(achStats);
         if (newAch.length > 0) {
           const totalReward = newAch.reduce((sum, a) => sum + (a.reward || 0), 0);
-          // Başarım coin'ini HEMEN ekle — popup sadece gösterim
-          if (totalReward > 0) {
-            const coinsAfterAch = newCoins + totalReward;
-            await updateProgress({ coins: coinsAfterAch, unseenAch: (prog.unseenAch || 0) + newAch.length });
-            setCoins(coinsAfterAch);
-            playSound('coin');
-          } else {
-            await updateProgress({ unseenAch: (prog.unseenAch || 0) + newAch.length });
-          }
+          // Coin OTOMATİK eklenmez — kullanıcı başarımlar ekranından "Topla" ile alacak
+          await updateProgress({ unseenAch: (prog.unseenAch || 0) + newAch.length });
           setAchievementPopup({ ...newAch[0], reward: newAch[0].reward || 0, pendingCoins: totalReward });
         }
       } catch (e) {}
@@ -1495,15 +1488,8 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       const newAch = await checkAchievements(achStats);
       if (newAch.length > 0) {
         const totalReward = newAch.reduce((sum, a) => sum + (a.reward || 0), 0);
-        // Başarım coin'ini HEMEN ekle
-        if (totalReward > 0) {
-          const coinsAfterAch = currentCoinsNow + totalReward;
-          await updateProgress({ coins: coinsAfterAch, unseenAch: (prog.unseenAch || 0) + newAch.length });
-          setCoins(coinsAfterAch);
-          playSound('coin');
-        } else {
-          await updateProgress({ unseenAch: (prog.unseenAch || 0) + newAch.length });
-        }
+        // Coin OTOMATİK eklenmez — kullanıcı başarımlar ekranından "Topla" ile alacak
+        await updateProgress({ unseenAch: (prog.unseenAch || 0) + newAch.length });
         setAchievementPopup({ ...newAch[0], reward: newAch[0].reward || 0, pendingCoins: totalReward });
       }
     } catch (e) {}
