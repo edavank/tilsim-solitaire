@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tılsım Solitaire",
     "slug": "tilsim-solitaire",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -16,12 +16,20 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.edavank.tilsimsolitaire",
-      "buildNumber": "4",
+      "buildNumber": "5",
       "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSUserTrackingUsageDescription": "Reklamları size özel hale getirmek için izninizi istiyoruz. İzin vermezseniz yine de uygulamamızı kullanabilirsiniz.",
-        "CFBundleLocalizations": ["tr", "en", "de", "fr", "es", "ar", "ru"],
+        "CFBundleLocalizations": [
+          "tr",
+          "en",
+          "de",
+          "fr",
+          "es",
+          "ar",
+          "ru"
+        ],
         "CFBundleDevelopmentRegion": "tr"
       }
     },
@@ -31,7 +39,7 @@
         "backgroundColor": "#150629"
       },
       "package": "com.edavank.tilsimsolitaire",
-      "versionCode": 4
+      "versionCode": 5
     },
     "web": {
       "bundler": "metro",
@@ -46,8 +54,8 @@
       [
         "react-native-google-mobile-ads",
         {
-          "androidAppId": "ca-app-pub-6957067642370440~8230350590",
-          "iosAppId": "ca-app-pub-6957067642370440~9982415965"
+          "androidAppId": "ca-app-pub-9511518953640494~4778986906",
+          "iosAppId": "ca-app-pub-9511518953640494~6944009450"
         }
       ]
     ],

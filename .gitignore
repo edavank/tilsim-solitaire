@@ -48,3 +48,4 @@ play-store-key.json
 credentials.json
 build*.apk
 build.log
+*.bak

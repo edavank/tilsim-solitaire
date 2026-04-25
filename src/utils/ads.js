@@ -24,16 +24,16 @@ const AD_IDS = {
   },
   production: {
     banner: Platform.select({
-      ios: 'ca-app-pub-6957067642370440/1277929434',
-      android: 'ca-app-pub-6957067642370440/4650198232',
+      ios: 'ca-app-pub-9511518953640494/2822907409',
+      android: 'ca-app-pub-9511518953640494/2017092190',
     }),
     interstitial: Platform.select({
-      ios: 'ca-app-pub-6957067642370440/8964847764',
-      android: 'ca-app-pub-6957067642370440/7620585313',
+      ios: 'ca-app-pub-9511518953640494/6215672138',
+      android: 'ca-app-pub-9511518953640494/8390928854',
     }),
     rewarded: Platform.select({
-      ios: 'ca-app-pub-6957067642370440/4182248190',
-      android: 'ca-app-pub-6957067642370440/6307503647',
+      ios: 'ca-app-pub-9511518953640494/3002870807',
+      android: 'ca-app-pub-9511518953640494/8526660229',
     }),
   },
 };
