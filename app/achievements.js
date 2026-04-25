@@ -11,7 +11,6 @@ import { ACHIEVEMENTS, loadAchievements, ACHIEVEMENT_I18N, claimAchievement, cou
 import { loadProgress, updateProgress } from '../src/utils/storage';
 import { getDailyCompletionMap } from '../src/utils/dailyChallenge';
 import { useLang } from '../src/context/LanguageContext';
-import { playSound } from '../src/utils/sound';
 
 export default function AchievementsScreen() {
   const router = useRouter();
@@ -46,7 +45,7 @@ export default function AchievementsScreen() {
         const newCoins = (p.coins || 0) + result.reward;
         await updateProgress({ coins: newCoins });
         setCoins(newCoins);
-        try { playSound('coin'); } catch (e) {}
+        // playSound kaldırıldı
         // unlocked map'i güncelle
         await refresh();
       }
@@ -70,7 +69,7 @@ export default function AchievementsScreen() {
         const newCoins = (p.coins || 0) + totalGained;
         await updateProgress({ coins: newCoins });
         setCoins(newCoins);
-        try { playSound('coin'); } catch (e) {}
+        // playSound kaldırıldı
         await refresh();
       }
     } catch (e) {}
