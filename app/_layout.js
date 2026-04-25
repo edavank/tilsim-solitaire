@@ -25,6 +25,7 @@ import { setVibrationEnabled, setSoundEnabled, setBgmEnabled, loadSounds, startB
 import { loadSettings, saveSettings } from '../src/utils/storage';
 import { LanguageProvider, useLang } from '../src/context/LanguageContext';
 import { AuthProvider } from '../src/context/AuthContext';
+import UpdatePrompt from '../src/components/UpdatePrompt';
 
 const OWL = require('../assets/bilge-happy.png');
 
@@ -162,6 +163,8 @@ export default function RootLayout() {
             <LanguageSelectorWithContext onDone={() => setShowLangPicker(false)} />
           )}
           {/* ConsentDialog kaldırıldı — ATT yeterli */}
+          {/* OTA Update prompt — en üst katmanda, splash ve dil seçici kapandıktan sonra görünür */}
+          {splashDone && !showLangPicker && <UpdatePrompt />}
         </GestureHandlerRootView>
       </AuthProvider>
     </LanguageProvider>
