@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tılsım Solitaire",
     "slug": "tilsim-solitaire",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -16,7 +16,6 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.edavank.tilsimsolitaire",
-      "buildNumber": "5",
       "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -38,8 +37,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#150629"
       },
-      "package": "com.edavank.tilsimsolitaire",
-      "versionCode": 5
+      "package": "com.edavank.tilsimsolitaire"
     },
     "web": {
       "bundler": "metro",
