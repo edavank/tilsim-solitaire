@@ -2,13 +2,14 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Dimensions,
   ScrollView, Vibration, Image, Animated, Easing,
+  ImageBackground,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { COLORS, FONTS, SIZES, CATEGORY_COLORS } from '../src/constants/theme';
+import { COLORS, FONTS, SIZES, CATEGORY_COLORS, TOOL_COLORS, getCategoryColor } from '../src/constants/theme';
 import { generateGameState, getLevel } from '../src/data/levels';
-import { loadProgress, updateProgress, clearSavedGame, saveSavedGame, saveLevelStars, addXP } from '../src/utils/storage';
+import { loadProgress, updateProgress, clearSavedGame, saveSavedGame, saveLevelStars, addXP, loadSelectedAvatar, getAvatarEmoji } from '../src/utils/storage';
 import { playSound } from '../src/utils/sounds';
 import { showRewarded, showInterstitial } from '../src/utils/ads';
 import AdBanner from '../src/components/AdBanner';
@@ -22,7 +23,8 @@ import { markCategoryCompleted } from '../src/utils/collection';
 
 import { IS_TABLET, fs, getGameLayout } from '../src/utils/responsive';
 
-const OWL_HAPPY = require('../assets/bilge-happy.png');
+const OWL_HAPPY = require('../assets/logo-main.png');
+const BG_STARS = require('../assets/bg-stars.webp');
 
 /* ── Responsive Game Dimensions (recalculated on rotation) ── */
 function useGameDimensions() {
@@ -185,15 +187,14 @@ function PopInView({ children, trigger }) {
 }
 
 /* ── Card Components ── */
+const CARD_BACK_IMG = require('../assets/card-back.png');
 const FaceDownCard = React.memo(function FaceDownCard({ w, h }) {
-  const cb = COLORS.cardBackTop;
-  const accent = '#9B7DFF';
   return (
-    <LinearGradient colors={[cb, cb]}
-      start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-      style={[st.faceDown, { width: w || '100%', height: h || CARD_H, borderWidth: 1, borderColor: accent + '40' }]}>
-      <View style={[st.innerFrame, { borderColor: accent + '30' }]}><View style={[st.innerFrameInner, { borderColor: accent + '20' }]} /></View>
-    </LinearGradient>
+    <Image
+      source={CARD_BACK_IMG}
+      style={{ width: w || '100%', height: h || CARD_H, borderRadius: 10 }}
+      resizeMode="cover"
+    />
   );
 });
 
@@ -204,16 +205,16 @@ const FaceUpCard = React.memo(function FaceUpCard({ card, selected, w, h, hinted
   const isJoker = card.isJoker;
   const displayWord = isJoker ? ('✦ ' + (t.joker || 'Joker')) : card.word;
   const catColor = isJoker ? '#FFD166' : CATEGORY_COLORS[card.categoryIndex % CATEGORY_COLORS.length];
-  const bg = '#FFFFFF';
-  const txt = '#1e293b';
-  const bdr = 'rgba(155,125,255,0.15)';
+  const bg = '#1f1736';  // Stitch ikonları ile renk uyumu için
+  const txt = '#fff';
+  const bdr = '#FFD166';
   const accent = '#9B7DFF';
   const catEmojiSize = 26;
   const wordEmojiSize = 22;
   const catTextSize = 10;
   const wordTextSize = 10;
   return (
-    <View style={[st.faceUp, { width: cw, height: ch, backgroundColor: bg, borderColor: bdr, borderWidth: 1.5, borderBottomWidth: isCat ? 0 : 3, borderBottomColor: catColor, shadowColor: accent, shadowOpacity: 0.15, shadowRadius: 4 }, selected && st.cardSelected, isCat && st.catCardBorder, isJoker && { borderColor: '#FFD166', borderWidth: 2, shadowColor: '#FFD166', shadowOpacity: 0.8, shadowRadius: 12, backgroundColor: '#FFFBF0' }, hinted && st.cardHinted, isDragging && { opacity: 0.3 }]}>
+    <View style={[st.faceUp, { width: cw, height: ch, backgroundColor: bg, borderColor: bdr, borderWidth: 1.5, borderBottomWidth: 3, borderBottomColor: catColor, shadowColor: accent, shadowOpacity: 0.45, shadowRadius: 10 }, selected && st.cardSelected, isCat && st.catCardBorder, isJoker && { borderColor: '#FFD166', borderWidth: 2, shadowColor: '#FFD166', shadowOpacity: 0.8, shadowRadius: 12, backgroundColor: '#FFFBF0' }, hinted && st.cardHinted, isDragging && { opacity: 0.3 }]}>
       {isCat ? (
         <>
           <View style={st.catBadge}><Text style={st.catBadgeText}>0/{card.totalWords}</Text></View>
@@ -223,7 +224,7 @@ const FaceUpCard = React.memo(function FaceUpCard({ card, selected, w, h, hinted
       ) : (
         <>
           <Text style={{ fontSize: wordEmojiSize, textAlign: 'center' }}>{card.emoji}</Text>
-          <Text style={[st.word, { fontSize: wordTextSize, color: isJoker ? '#B8860B' : txt }]} numberOfLines={1} ellipsizeMode="tail">{displayWord}</Text>
+          <Text style={[st.word, { fontSize: wordTextSize, color: isJoker ? '#FFD166' : txt }]} numberOfLines={1} ellipsizeMode="tail">{displayWord}</Text>
           {!isJoker && <View style={{ position: 'absolute', top: 3, right: 3, width: 6, height: 6, borderRadius: 3, backgroundColor: catColor }} />}
         </>
       )}
@@ -240,8 +241,7 @@ function FoundationSlot({ t, slot, slotIndex, onPress, onUnlock, hinted }) {
   if (slot.locked) {
     return (
       <View style={[st.slotBox, { height: h, borderColor: slotBdr, borderStyle: 'dashed', backgroundColor: slotBgC }]}>
-        <Text style={st.lockedText}>{t.locked}</Text>
-        <MaterialIcons name="style" size={18} color="rgba(255,255,255,0.15)" />
+        <MaterialIcons name="lock" size={26} color="#FFE9A6" />
         <TouchableOpacity style={st.adBadge} onPress={() => onUnlock?.('slot', slotIndex)}>
           <Text style={st.adText}>▶ Ad</Text>
         </TouchableOpacity>
@@ -268,7 +268,7 @@ function FoundationSlot({ t, slot, slotIndex, onPress, onUnlock, hinted }) {
   }
   return (
     <TouchableOpacity style={[st.slotBox, { height: h, borderColor: slotBdr, borderStyle: 'dashed', backgroundColor: slotBgC }, hinted && st.slotHinted]} onPress={onPress} activeOpacity={0.7}>
-      <Text style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>{t.empty}</Text>
+      <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', fontFamily: FONTS.headlineBlack, letterSpacing: 0.5 }}>{t.empty}</Text>
     </TouchableOpacity>
   );
 }
@@ -278,7 +278,7 @@ const TableauColumn = React.memo(function TableauColumn({ column, colIndex, sele
   if (column.locked) {
     return (
       <View style={[st.slotBox, st.slotDashed, { height: CARD_H }]}>
-        <MaterialIcons name="lock" size={16} color="rgba(255,255,255,0.2)" />
+        <MaterialIcons name="lock" size={26} color="#FFE9A6" />
         <TouchableOpacity style={st.adBadge} onPress={() => onUnlock?.('column', colIndex)}>
           <Text style={st.adText}>▶ Ad</Text>
         </TouchableOpacity>
@@ -478,7 +478,11 @@ export default function GameScreen() {
     return state;
   });
   const [selected, setSelected] = useState(null);
-  const [feedback, setFeedback] = useState('');
+  const [feedback, setFeedbackRaw] = useState({ msg: '', id: 0 });
+  const setFeedback = useCallback((msg) => {
+    setFeedbackRaw({ msg: msg || '', id: Date.now() + Math.random() });
+  }, []);
+  const [adLoadingTool, setAdLoadingTool] = useState(null);
   const [history, setHistory] = useState([]);
   const [elapsedTime, setElapsedTime] = useState(0);
   const startTimeRef = useRef(Date.now());
@@ -655,7 +659,14 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         return true;
       }
       // Boş slot + kelime kartı → slot'a yerleşemez, sütuna dene
-      if (!slot.category && card.type === 'word') return false;
+      // JOKER: Joker de boş slot'a yerleşemez. Joker yapan oyuncu kartı 
+      // dolu (kategorisi atanmış, henüz tamamlanmamış) bir slot'a sürüklemeli.
+      if (!slot.category && card.type === 'word') {
+        if (card.isJoker) {
+          setFeedback(t.jokerNeedFilledSlot || '🃏 Joker\'i dolu bir kategori slotuna sürükle');
+        }
+        return false;
+      }
       // Dolu slot + kategori kartı → zaten dolu, sütuna dene
       if (slot.category && card.type === 'category') return false;
       // Dolu slot + kelime kartı → KATEGORİ EŞLEŞME kontrolü
@@ -801,7 +812,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
     };
   }, []);
 
-  useEffect(() => { if (feedback) { const tmr = setTimeout(() => setFeedback(''), 2500); return () => clearTimeout(tmr); } }, [feedback]);
+  useEffect(() => { if (feedback.msg) { const tmr = setTimeout(() => setFeedbackRaw({ msg: '', id: 0 }), 2500); return () => clearTimeout(tmr); } }, [feedback.id]);
 
   // Clear hint after 2s
   useEffect(() => {
@@ -845,9 +856,17 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         showScorePopup('+' + (5 + comboBonus));
         return { ...ns, slots: newSlots, moves: prev.moves - 1, score: prev.score + 5 + comboBonus, isFailed: prev.moves - 1 <= 0 };
       }
-      if (!target.category && card.type === 'word') { setFeedback(t.putCategoryFirst); return prev; }
+      if (!target.category && card.type === 'word') { 
+        setFeedback(card.isJoker ? (t.jokerNeedFilledSlot || '🃏 Joker\'i dolu bir kategori slotuna sürükle') : t.putCategoryFirst); 
+        return prev; 
+      }
       if (target.category && card.type === 'category') { setFeedback(t.alreadyFull); return prev; }
       if (target.category && card.type === 'word') {
+        // Slot zaten tamamlanmış mı? Joker bile olsa konamaz
+        if (target.placedCards.length >= target.category.totalWords) {
+          setFeedback(t.alreadyFull || '✓ Bu kategori zaten tamamlandı');
+          return prev;
+        }
         if (card.categoryIndex !== target.category.categoryIndex && !card.isJoker) {
           setTimeout(() => { playSound('wrong'); }, 10);
           triggerShake(slotIndex);
@@ -1161,8 +1180,12 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       const _aft450 = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 450 })); setCoins(_aft450.coins);
     }
     if (method === 'ad') {
-      const result = await showRewarded();
-      if (!result.success) { setToolModal(null); return; }
+      if (adLoadingTool) { setToolModal(null); return; }
+      const result = await showRewarded((loading) => {
+        setAdLoadingTool(loading ? 'undo' : null);
+      });
+      setAdLoadingTool(null);
+      if (!result.success) { setToolModal(null); setFeedback(t.adFailed || 'Reklam yuklenemedi'); return; }
     }
     const newCredits = { ...toolCredits, undo: toolCredits.undo + 1 };
     setToolCredits(newCredits);
@@ -1192,8 +1215,12 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       const _aftDel = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 500 })); setCoins(_aftDel.coins);
     }
     if (method === 'ad') {
-      const result = await showRewarded();
-      if (!result.success) { setToolModal(null); return; }
+      if (adLoadingTool) { setToolModal(null); return; }
+      const result = await showRewarded((loading) => {
+        setAdLoadingTool(loading ? 'delete' : null);
+      });
+      setAdLoadingTool(null);
+      if (!result.success) { setToolModal(null); setFeedback(t.adFailed || 'Reklam yuklenemedi'); return; }
     }
     const newCredits = { ...toolCredits, delete: toolCredits.delete + 1 };
     setToolCredits(newCredits);
@@ -1229,8 +1256,12 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       const _aft750 = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 750 })); setCoins(_aft750.coins);
     }
     if (method === 'ad') {
-      const result = await showRewarded();
-      if (!result.success) { setToolModal(null); return; }
+      if (adLoadingTool) { setToolModal(null); return; }
+      const result = await showRewarded((loading) => {
+        setAdLoadingTool(loading ? 'joker' : null);
+      });
+      setAdLoadingTool(null);
+      if (!result.success) { setToolModal(null); setFeedback(t.adFailed || 'Reklam yuklenemedi'); return; }
     }
     const newCredits = { ...toolCredits, joker: toolCredits.joker + 1 };
     setToolCredits(newCredits);
@@ -1292,8 +1323,12 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       const _aftShuf = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 500 })); setCoins(_aftShuf.coins);
     }
     if (method === 'ad') {
-      const result = await showRewarded();
-      if (!result.success) { setToolModal(null); return; }
+      if (adLoadingTool) { setToolModal(null); return; }
+      const result = await showRewarded((loading) => {
+        setAdLoadingTool(loading ? 'shuffle' : null);
+      });
+      setAdLoadingTool(null);
+      if (!result.success) { setToolModal(null); setFeedback(t.adFailed || 'Reklam yuklenemedi'); return; }
     }
     const newCredits = { ...toolCredits, shuffle: toolCredits.shuffle + 1 };
     setToolCredits(newCredits);
@@ -1319,10 +1354,13 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   const useHint = useCallback(async () => {
     if (!isToolUnlocked('hint')) return;
     if (toolCredits.hint > 0) {
-      const newCredits = { ...toolCredits, hint: toolCredits.hint - 1 };
-      setToolCredits(newCredits);
-      await updateProgress({ toolCredits: newCredits });
-      runHintLogic();
+      // Önce hint çalıştır, sadece bulduysa kredi düş (uygun hamle yoksa kredi yenmez)
+      const found = runHintLogic();
+      if (found) {
+        const newCredits = { ...toolCredits, hint: toolCredits.hint - 1 };
+        setToolCredits(newCredits);
+        await updateProgress({ toolCredits: newCredits });
+      }
       return;
     }
     setToolModal('hint');
@@ -1335,8 +1373,12 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       setFeedback(t.hintBought);
     }
     if (method === 'ad') {
-      const result = await showRewarded();
-      if (!result.success) { setToolModal(null); return; }
+      if (adLoadingTool) { setToolModal(null); return; }
+      const result = await showRewarded((loading) => {
+        setAdLoadingTool(loading ? 'hint' : null);
+      });
+      setAdLoadingTool(null);
+      if (!result.success) { setToolModal(null); setFeedback(t.adFailed || 'Reklam yuklenemedi'); return; }
       setFeedback(t.hintEarned);
     }
     setToolModal(null);
@@ -1363,6 +1405,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         if (emptySlot >= 0) {
           setHintCard(p.card.id); setHintSlot(emptySlot);
           setFeedback((t.hintToEmptySlot || '💡 {word} → place in empty slot!').replace('{word}', p.card.word));
+          return true;
           return;
         }
       }
@@ -1371,11 +1414,13 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         if (matchSlot >= 0) {
           setHintCard(p.card.id); setHintSlot(matchSlot);
           setFeedback('💡 ' + p.card.word + ' → ' + gs.slots[matchSlot].category.word + '!');
+          return true;
           return;
         }
       }
     }
     setFeedback(t.hintNoMoves || 'No suitable move. Draw from deck or rearrange columns!');
+    return false;
   }, [gs]);
 
   const resetGame = useCallback(() => {
@@ -1389,11 +1434,18 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   }, [levelId, isDaily, isTimed, gameLang]);
 
   const addMovesAd = useCallback(async () => {
-    const result = await showRewarded();
-    if (!result.success) return;
+    if (adLoadingTool) return;
+    const result = await showRewarded((loading) => {
+      setAdLoadingTool(loading ? 'moves' : null);
+    });
+    setAdLoadingTool(null);
+    if (!result.success) {
+      setFeedback(t.adFailed || 'Reklam yuklenemedi');
+      return;
+    }
     setGs((p) => ({ ...p, moves: p.moves + 20, isFailed: false }));
     setFeedback(t.movesAdded);
-  }, []);
+  }, [adLoadingTool, t, setFeedback]);
 
   const addMovesCoin = useCallback(async () => {
     if (coins < 500) { setFeedback(t.coinNeeded500); return; }
@@ -1472,12 +1524,17 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
     await addXP(stars * 50 + Math.floor(levelId / 5) * 10);
     // Submit to leaderboard
     try {
-      submitScore({
-        score: Math.max(prog.bestScore || 0, gs.score),
-        level: nextId,
-        totalWins: (prog.totalWins || 0) + 1,
-        language: gameLang,
-      });
+      (async () => {
+        const avatarId = await loadSelectedAvatar();
+        submitScore({
+          score: Math.max(prog.bestScore || 0, gs.score),
+          level: nextId,
+          totalWins: (prog.totalWins || 0) + 1,
+          language: gameLang,
+          displayName: user?.name,
+          userAvatar: getAvatarEmoji(avatarId),
+        });
+      })();
     } catch (e) {}
     // Başarım kontrolü
     try {
@@ -1645,10 +1702,12 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   const DCW = dynCardW; const DCH = dynCardH; // Sütun kartlarıyla aynı boyut
   // dragStackIds hesaplanır ama prop olarak geçilmez (performans)
 
-  // Unlock slot or column (via ad or free)
   const handleUnlock = useCallback(async (type, index) => {
-    const result = await showRewarded();
-    // Reklam tamamlandıysa kilidi aç
+    if (adLoadingTool) return;
+    const result = await showRewarded((loading) => {
+      setAdLoadingTool(loading ? 'unlock' : null);
+    });
+    setAdLoadingTool(null);
     if (result.success) {
       setGs((prev) => {
         if (type === 'slot') {
@@ -1663,14 +1722,18 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       });
       setFeedback(t.unlocked);
       playSound('correct');
+    } else {
+      setFeedback(t.adFailed || 'Reklam yuklenemedi');
     }
-  }, []);
+  }, [adLoadingTool, t]);
 
   return (
     <View 
       style={st.container}
     >
-      <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
+      <ImageBackground source={BG_STARS} style={StyleSheet.absoluteFillObject} resizeMode="cover">
+        <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(21, 6, 41, 0.65)' }} />
+      </ImageBackground>
 
       {/* Sparkle */}
       {sparkle && <SparkleEffect visible={true} x={sparkle.x} y={sparkle.y} />}
@@ -1692,14 +1755,31 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
             ))}
           </View>
         </View>
-        <View style={{ width: 80, alignItems: 'flex-end' }}>
+        <View style={{ width: 80, alignItems: 'flex-end', flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
           <TouchableOpacity style={st.settingsBtn} onPress={() => setPaused(true)}>
-            <MaterialIcons name="settings" size={20} color={COLORS.onSurfaceVariant} />
+            <MaterialIcons name="pause" size={22} color={COLORS.onSurface} />
           </TouchableOpacity>
         </View>
       </View>
 
-      {!!feedback && <View style={st.feedbackBar}><Text style={st.feedbackText}>{feedback}</Text></View>}
+      {!!feedback.msg && (
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={st.feedbackBar}
+          onPress={() => setFeedbackRaw({ msg: '', id: 0 })}
+        >
+          <Text style={st.feedbackText}>{feedback.msg}</Text>
+        </TouchableOpacity>
+      )}
+
+      {!!adLoadingTool && (
+        <View style={st.adLoadingOverlay}>
+          <View style={st.adLoadingCard}>
+            <MaterialIcons name="hourglass-top" size={28} color="#fff" />
+            <Text style={st.adLoadingText}>{t.adLoading || 'Reklam yukleniyor...'}</Text>
+          </View>
+        </View>
+      )}
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={st.scrollContent} showsVerticalScrollIndicator={false} scrollEnabled={!scrollLocked} bounces={false} overScrollMode="never" ref={scrollRef}>
         <View style={{ height: 20 }} />
@@ -1796,9 +1876,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
           <TouchableOpacity onPress={drawCard} activeOpacity={0.7}>
             {gs.deck.length > 0 ? (
               <View>
-                <LinearGradient colors={[COLORS.cardBackTop, COLORS.cardBackBottom]} style={[st.faceDown, { width: DCW, height: DCH }]}>
-                  <View style={st.innerFrame}><View style={st.innerFrameInner} /></View>
-                </LinearGradient>
+                <Image source={CARD_BACK_IMG} style={{ width: DCW, height: DCH, borderRadius: 10 }} resizeMode="cover" />
                 <View style={st.deckBadge}><Text style={st.deckBadgeText}>{gs.deck.length}</Text></View>
               </View>
             ) : (
@@ -1834,11 +1912,11 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
 
       {/* Toolbar */}
       <View style={st.toolbar}>
-        <ToolBtn icon="lightbulb" label={t.hint} badge={toolCredits.hint > 0 ? toolCredits.hint : '🪙'} badgeColor={toolCredits.hint > 0 ? COLORS.success : COLORS.coin} onPress={useHint} locked={!isToolUnlocked('hint')} unlockLevel={TOOL_UNLOCK.hint} pulse={gs.moves <= 5 && !isTimed} />
-        <ToolBtn icon="undo" label={t.undo} badge={toolCredits.undo > 0 ? toolCredits.undo : '🪙'} badgeColor={toolCredits.undo > 0 ? COLORS.success : COLORS.coin} onPress={useUndo} locked={!isToolUnlocked('undo')} unlockLevel={TOOL_UNLOCK.undo} pulse={gs.moves <= 3 && !isTimed} />
-        <ToolBtn icon="style" label={t.joker || 'JOKER'} badge={toolCredits.joker > 0 ? toolCredits.joker : '🪙'} badgeColor={toolCredits.joker > 0 ? COLORS.success : COLORS.coin} onPress={useJoker} locked={!isToolUnlocked('joker')} unlockLevel={TOOL_UNLOCK.joker} />
-        <ToolBtn icon="shuffle" label={t.shuffle || 'SHUFFLE'} badge={toolCredits.shuffle > 0 ? toolCredits.shuffle : '🪙'} badgeColor={toolCredits.shuffle > 0 ? COLORS.success : COLORS.coin} onPress={useShuffle} locked={!isToolUnlocked('shuffle')} unlockLevel={TOOL_UNLOCK.shuffle} />
-        <ToolBtn icon="auto-fix-normal" label={t.delete} badge={toolCredits.delete > 0 ? toolCredits.delete : '🪙'} badgeColor={toolCredits.delete > 0 ? COLORS.success : COLORS.coin} onPress={useDelete} locked={!isToolUnlocked('delete')} unlockLevel={TOOL_UNLOCK.delete} />
+        <ToolBtn tone="hint" icon="lightbulb" label={t.hint} badge={toolCredits.hint > 0 ? toolCredits.hint : '🪙'} badgeColor={toolCredits.hint > 0 ? COLORS.success : COLORS.coin} onPress={useHint} locked={!isToolUnlocked('hint')} unlockLevel={TOOL_UNLOCK.hint} pulse={gs.moves <= 5 && !isTimed} />
+        <ToolBtn tone="undo" icon="undo" label={t.undo} badge={toolCredits.undo > 0 ? toolCredits.undo : '🪙'} badgeColor={toolCredits.undo > 0 ? COLORS.success : COLORS.coin} onPress={useUndo} locked={!isToolUnlocked('undo')} unlockLevel={TOOL_UNLOCK.undo} pulse={gs.moves <= 3 && !isTimed} />
+        <ToolBtn tone="joker" icon="style" label={t.joker || 'JOKER'} badge={toolCredits.joker > 0 ? toolCredits.joker : '🪙'} badgeColor={toolCredits.joker > 0 ? COLORS.success : COLORS.coin} onPress={useJoker} locked={!isToolUnlocked('joker')} unlockLevel={TOOL_UNLOCK.joker} />
+        <ToolBtn tone="shuffle" icon="shuffle" label={t.shuffle || 'SHUFFLE'} badge={toolCredits.shuffle > 0 ? toolCredits.shuffle : '🪙'} badgeColor={toolCredits.shuffle > 0 ? COLORS.success : COLORS.coin} onPress={useShuffle} locked={!isToolUnlocked('shuffle')} unlockLevel={TOOL_UNLOCK.shuffle} />
+        <ToolBtn tone="delete" icon="auto-fix-normal" label={t.delete} badge={toolCredits.delete > 0 ? toolCredits.delete : '🪙'} badgeColor={toolCredits.delete > 0 ? COLORS.success : COLORS.coin} onPress={useDelete} locked={!isToolUnlocked('delete')} unlockLevel={TOOL_UNLOCK.delete} />
       </View>
 
       {/* Ad Banner */}
@@ -2090,7 +2168,7 @@ const s_tut = StyleSheet.create({
   stepText: { fontFamily: FONTS.body, fontSize: 12, color: COLORS.onSurfaceVariant, lineHeight: 17 },
 });
 
-function ToolBtn({ icon, label, badge, badgeColor, onPress, big, locked, unlockLevel, pulse }) {
+function ToolBtn({ icon, label, badge, badgeColor, onPress, big, locked, unlockLevel, pulse, tone }) {
   const pulseAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (locked || !pulse) { pulseAnim.setValue(0); return; }
@@ -2118,7 +2196,7 @@ function ToolBtn({ icon, label, badge, badgeColor, onPress, big, locked, unlockL
   return (
     <View style={st.toolWrap}>
       <Animated.View style={{ transform: [{ scale: glowScale }], opacity: glowOpacity }}>
-        <TouchableOpacity style={[st.toolBtn, big && st.toolBtnBig]} onPress={onPress} activeOpacity={0.6}>
+        <TouchableOpacity style={[st.toolBtn, big && st.toolBtnBig, tone && TOOL_COLORS[tone] && { backgroundColor: TOOL_COLORS[tone].bg, shadowColor: TOOL_COLORS[tone].glow, shadowOpacity: 0.7, borderColor: "rgba(255,255,255,0.4)" }]} onPress={onPress} activeOpacity={0.6}>
           <MaterialIcons name={icon} size={big ? 26 : 22} color="#fff" />
           {badge !== undefined && <View style={[st.toolBdg, { backgroundColor: badgeColor }]}><Text style={st.toolBdgText}>{badge}</Text></View>}
         </TouchableOpacity>
@@ -2170,6 +2248,22 @@ const st = StyleSheet.create({
   settingsBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: COLORS.panelBg, alignItems: 'center', justifyContent: 'center' },
   feedbackBar: { position: 'absolute', top: 90, left: 20, right: 20, backgroundColor: 'rgba(0,0,0,0.75)', paddingVertical: 10, paddingHorizontal: 16, zIndex: 200, borderRadius: 12, alignSelf: 'center' },
   feedbackText: { fontFamily: FONTS.headline, fontSize: 13, color: '#fff', textAlign: 'center' },
+
+  adLoadingOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center', justifyContent: 'center', zIndex: 999,
+  },
+  adLoadingCard: {
+    backgroundColor: 'rgba(31,23,54,0.95)',
+    paddingVertical: 18, paddingHorizontal: 28,
+    borderRadius: 16, alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(183,148,246,0.4)',
+    flexDirection: 'row', gap: 12,
+  },
+  adLoadingText: {
+    fontFamily: FONTS.headlineBlack, fontSize: 14, color: '#fff',
+  },
   scrollContent: { paddingHorizontal: GAME_PAD, paddingTop: 2, gap: 10 },
   deckRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   movesPanel: { backgroundColor: COLORS.panelBg, borderWidth: 1.5, borderColor: COLORS.panelBorder, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 5, alignItems: 'center', minWidth: 60, shadowColor: '#9B7DFF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.2, shadowRadius: 8 },
@@ -2187,7 +2281,7 @@ const st = StyleSheet.create({
   faceUp: { borderRadius: 10, borderWidth: 1.5, borderColor: 'rgba(200,180,255,0.4)', backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2, paddingVertical: 3, shadowColor: '#9B7DFF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.35, shadowRadius: 10, elevation: 5 },
   cardSelected: { borderColor: COLORS.primary, borderWidth: 2.5, shadowColor: '#B794F6', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 20, elevation: 12, transform: [{ scale: 1.05 }] },
   cardHinted: { borderColor: COLORS.coin, borderWidth: 2.5, shadowColor: COLORS.coin, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 20, elevation: 14, transform: [{ scale: 1.08 }] },
-  catCardBorder: { borderColor: '#B794F6', borderWidth: 2, shadowColor: '#D4BBFF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.7, shadowRadius: 16, elevation: 8 },
+  catCardBorder: { borderColor: '#FFD166', borderWidth: 2.5, shadowColor: '#FFD166', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.95, shadowRadius: 18, elevation: 12 },
   word: { fontFamily: FONTS.headlineBlack, fontSize: 11, color: '#1e293b', textAlign: 'center', lineHeight: 14 },
   emoji: { fontSize: 24, textAlign: 'center' },
   catEmoji: { fontSize: 28, textAlign: 'center' },
@@ -2198,9 +2292,9 @@ const st = StyleSheet.create({
   slotBox: { borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', gap: 2 },
   slotDashed: { borderColor: 'rgba(183,148,246,0.3)', borderStyle: 'dashed', backgroundColor: 'rgba(124,92,252,0.05)' },
   slotHinted: { borderColor: COLORS.coin, borderWidth: 2.5, shadowColor: COLORS.coin, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 18 },
-  lockedText: { fontFamily: FONTS.headlineBlack, fontSize: 6, color: 'rgba(255,255,255,0.3)' },
+  lockedText: { fontFamily: FONTS.headlineBlack, fontSize: 11, color: '#FFE9A6', letterSpacing: 0.5 },
   adBadge: { backgroundColor: COLORS.primary, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-  adText: { fontFamily: FONTS.headlineBlack, fontSize: 7, color: '#fff' },
+  adText: { fontFamily: FONTS.headlineBlack, fontSize: 9, color: '#fff' },
   slotTag: { position: 'absolute', top: 0, left: 0, right: 0, paddingVertical: 2, alignItems: 'center', borderTopLeftRadius: 8, borderTopRightRadius: 8 },
   slotTagText: { fontFamily: FONTS.headlineBlack, fontSize: 8, color: '#fff' },
   tableauRow: { flexDirection: 'row', justifyContent: 'center', gap: COL_GAP, alignItems: 'flex-start', marginTop: 8 },

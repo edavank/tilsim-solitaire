@@ -1,12 +1,8 @@
 // AdMob entegrasyonu — react-native-google-mobile-ads
 // Expo Go'da güvenli: modül yoksa stub olarak çalışır
-// Kurulum: npm install react-native-google-mobile-ads --legacy-peer-deps
-// + app.json plugins'e AdMob config ekle (docs/LAUNCH_TODO.md)
 
 import { Platform } from 'react-native';
 
-// ─── Ad Unit ID'leri ────────────────────────────────────
-// ⚠️ YAYINDAN ÖNCE: production ID'leri gerçek AdMob ID'lerinle değiştir
 const AD_IDS = {
   test: {
     banner: Platform.select({
@@ -38,10 +34,8 @@ const AD_IDS = {
   },
 };
 
-// __DEV__ = Expo dev mode, production build'de false olur
 const ids = __DEV__ ? AD_IDS.test : AD_IDS.production;
 
-// ─── Lazy imports (Expo Go güvenli) ─────────────────────
 let MobileAds = null;
 let InterstitialAd = null;
 let RewardedAd = null;
@@ -62,9 +56,8 @@ function isExpoGo() {
 }
 
 function loadAdModules() {
-  // Expo Go'da native modül yok — yüklemeye çalışma
   if (isExpoGo()) {
-    console.log('[Ads] Expo Go — AdMob atlanıyor');
+    console.log('[Ads] Expo Go — AdMob atlaniyor');
     return false;
   }
   try {
@@ -78,12 +71,11 @@ function loadAdModules() {
     RewardedAdEventType = gma.RewardedAdEventType;
     return true;
   } catch (e) {
-    console.log('[Ads] react-native-google-mobile-ads yüklenmedi:', e.message);
+    console.log('[Ads] react-native-google-mobile-ads yuklenmedi:', e.message);
     return false;
   }
 }
 
-// ─── Tracking Transparency (iOS ATT) ───────────────────
 async function requestTrackingPermission() {
   if (Platform.OS !== 'ios') return true;
   try {
@@ -91,26 +83,25 @@ async function requestTrackingPermission() {
     const { status } = await requestTrackingPermissionsAsync();
     return status === 'granted';
   } catch (e) {
-    console.log('[Ads] tracking-transparency yüklenmedi');
+    console.log('[Ads] tracking-transparency yuklenmedi');
     return false;
   }
 }
 
-// ─── Init ───────────────────────────────────────────────
 export async function initAds() {
   if (!loadAdModules()) return;
   try {
     await requestTrackingPermission();
     await MobileAds().initialize();
     adsReady = true;
-    console.log('[Ads] AdMob hazır');
+    console.log('[Ads] AdMob hazir');
     preloadInterstitial();
+    preloadRewarded();
   } catch (e) {
-    console.log('[Ads] init hatası:', e.message);
+    console.log('[Ads] init hatasi:', e.message);
   }
 }
 
-// ─── Interstitial ───────────────────────────────────────
 let interstitialAd = null;
 let interstitialLoaded = false;
 
@@ -120,25 +111,21 @@ function preloadInterstitial() {
     interstitialAd = InterstitialAd.createForAdRequest(ids.interstitial, {
       requestNonPersonalizedAdsOnly: false,
     });
-
     interstitialAd.addAdEventListener(AdEventType.LOADED, () => {
       interstitialLoaded = true;
     });
-
     interstitialAd.addAdEventListener(AdEventType.CLOSED, () => {
       interstitialLoaded = false;
       setTimeout(preloadInterstitial, 1000);
     });
-
     interstitialAd.addAdEventListener(AdEventType.ERROR, (error) => {
-      console.log('[Ads] interstitial yükleme hatası:', error.message);
+      console.log('[Ads] interstitial yukleme hatasi:', error.message);
       interstitialLoaded = false;
       setTimeout(preloadInterstitial, 30000);
     });
-
     interstitialAd.load();
   } catch (e) {
-    console.log('[Ads] preloadInterstitial hatası:', e.message);
+    console.log('[Ads] preloadInterstitial hatasi:', e.message);
   }
 }
 
@@ -148,97 +135,199 @@ export async function showInterstitial() {
     await interstitialAd.show();
     return true;
   } catch (e) {
-    console.log('[Ads] interstitial gösterme hatası:', e.message);
+    console.log('[Ads] interstitial gosterme hatasi:', e.message);
     return false;
   }
 }
 
-// ─── Rewarded ───────────────────────────────────────────
-export function showRewarded() {
+let rewardedAd = null;
+let rewardedLoaded = false;
+let rewardedLoading = false;
+let rewardedLoadAttempts = 0;
+const REWARDED_MAX_RETRIES = 3;
+let preloadListenerUnsubs = [];
+
+let pendingShowRequest = null;
+
+function cleanupPreloadListeners() {
+  preloadListenerUnsubs.forEach((unsub) => {
+    try { unsub?.(); } catch (e) {}
+  });
+  preloadListenerUnsubs = [];
+}
+
+function attachShowListenersAndShow(resolve, onLoadingChange) {
+  if (!rewardedAd) {
+    try { onLoadingChange?.(false); } catch (e) {}
+    resolve({ success: false, reward: null });
+    return;
+  }
+
+  let earned = false;
+  let rewardData = { amount: 1 };
+  let unsubs = [];
+
+  const cleanup = () => {
+    unsubs.forEach((u) => { try { u?.(); } catch (e) {} });
+    unsubs = [];
+  };
+
+  const earnUnsub = rewardedAd.addAdEventListener(
+    RewardedAdEventType.EARNED_REWARD,
+    (reward) => {
+      earned = true;
+      rewardData = { amount: reward.amount || 1 };
+    }
+  );
+  unsubs.push(earnUnsub);
+
+  const closeUnsub = rewardedAd.addAdEventListener(AdEventType.CLOSED, () => {
+    cleanup();
+    rewardedLoaded = false;
+    rewardedAd = null;
+    setTimeout(preloadRewarded, 1000);
+    try { onLoadingChange?.(false); } catch (e) {}
+    resolve({ success: earned, reward: earned ? rewardData : null });
+  });
+  unsubs.push(closeUnsub);
+
+  const errUnsub = rewardedAd.addAdEventListener(AdEventType.ERROR, (error) => {
+    console.log('[Ads] rewarded show hatasi:', error.message);
+    cleanup();
+    rewardedLoaded = false;
+    rewardedAd = null;
+    setTimeout(preloadRewarded, 1000);
+    try { onLoadingChange?.(false); } catch (e) {}
+    resolve({ success: false, reward: null });
+  });
+  unsubs.push(errUnsub);
+
+  try {
+    try { onLoadingChange?.(false); } catch (e) {}
+    rewardedAd.show();
+  } catch (e) {
+    console.log('[Ads] rewarded show cagri hatasi:', e.message);
+    cleanup();
+    rewardedLoaded = false;
+    rewardedAd = null;
+    setTimeout(preloadRewarded, 1000);
+    resolve({ success: false, reward: null });
+  }
+}
+
+function preloadRewarded() {
+  if (!adsReady || !RewardedAd) return;
+  if (rewardedLoading || rewardedLoaded) return;
+
+  try {
+    rewardedLoading = true;
+    cleanupPreloadListeners();
+
+    rewardedAd = RewardedAd.createForAdRequest(ids.rewarded, {
+      requestNonPersonalizedAdsOnly: false,
+    });
+
+    const loadUnsub = rewardedAd.addAdEventListener(AdEventType.LOADED, () => {
+      rewardedLoaded = true;
+      rewardedLoading = false;
+      rewardedLoadAttempts = 0;
+      console.log('[Ads] rewarded preload OK');
+      cleanupPreloadListeners();
+
+      if (pendingShowRequest) {
+        const req = pendingShowRequest;
+        pendingShowRequest = null;
+        if (req.timeoutId) clearTimeout(req.timeoutId);
+        attachShowListenersAndShow(req.resolve, req.onLoadingChange);
+      }
+    });
+    preloadListenerUnsubs.push(loadUnsub);
+
+    const errorUnsub = rewardedAd.addAdEventListener(AdEventType.ERROR, (error) => {
+      console.log('[Ads] rewarded yukleme hatasi:', error.message);
+      rewardedLoaded = false;
+      rewardedLoading = false;
+      rewardedLoadAttempts++;
+      cleanupPreloadListeners();
+      rewardedAd = null;
+
+      if (pendingShowRequest) {
+        const req = pendingShowRequest;
+        pendingShowRequest = null;
+        if (req.timeoutId) clearTimeout(req.timeoutId);
+        try { req.onLoadingChange?.(false); } catch (e) {}
+        req.resolve({ success: false, reward: null });
+      }
+
+      if (rewardedLoadAttempts < REWARDED_MAX_RETRIES) {
+        setTimeout(preloadRewarded, 5000 * rewardedLoadAttempts);
+      } else {
+        setTimeout(() => { rewardedLoadAttempts = 0; preloadRewarded(); }, 60000);
+      }
+    });
+    preloadListenerUnsubs.push(errorUnsub);
+
+    rewardedAd.load();
+  } catch (e) {
+    console.log('[Ads] preloadRewarded hatasi:', e.message);
+    rewardedLoading = false;
+  }
+}
+
+export function showRewarded(onLoadingChange) {
   return new Promise((resolve) => {
     if (!adsReady || !RewardedAd) {
-      // Production'da AdMob yoksa ödül YOK — reklam izlenmeden ödül verilmez.
-      // __DEV__ modunda (Expo Go test) geliştirici kolaylığı için ödül verilir.
       if (__DEV__) {
+        try { onLoadingChange?.(false); } catch (e) {}
         resolve({ success: true, reward: { amount: 1 } });
       } else {
+        try { onLoadingChange?.(false); } catch (e) {}
         resolve({ success: false, reward: null });
       }
       return;
     }
 
-    let resolved = false;
-    let cleanup = () => {};
-    const safeResolve = (result) => {
-      if (resolved) return;
-      resolved = true;
-      cleanup();
-      clearTimeout(timeoutId);
-      resolve(result);
-    };
+    if (pendingShowRequest) {
+      console.log('[Ads] baska bir reklam istegi zaten bekliyor');
+      try { onLoadingChange?.(false); } catch (e) {}
+      resolve({ success: false, reward: null });
+      return;
+    }
 
-    // 30 saniye timeout — reklam hiç yüklenmezse sonsuza kadar beklemesin
+    if (rewardedLoaded && rewardedAd) {
+      attachShowListenersAndShow(resolve, onLoadingChange);
+      return;
+    }
+
+    try { onLoadingChange?.(true); } catch (e) {}
+
     const timeoutId = setTimeout(() => {
-      console.log('[Ads] rewarded timeout — 30s boyunca yanıt gelmedi');
-      safeResolve({ success: false, reward: null });
-    }, 30000);
+      console.log('[Ads] rewarded timeout — 15s boyunca yuklenmedi');
+      pendingShowRequest = null;
+      try { onLoadingChange?.(false); } catch (e) {}
+      resolve({ success: false, reward: null });
+    }, 15000);
 
-    try {
-      const rewarded = RewardedAd.createForAdRequest(ids.rewarded, {
-        requestNonPersonalizedAdsOnly: false,
-      });
+    pendingShowRequest = { resolve, onLoadingChange, timeoutId };
 
-      let earned = false;
-      let rewardData = { amount: 1 };
-
-      const loadUnsub = rewarded.addAdEventListener(AdEventType.LOADED, () => {
-        rewarded.show();
-      });
-
-      const earnUnsub = rewarded.addAdEventListener(
-        RewardedAdEventType.EARNED_REWARD,
-        (reward) => {
-          earned = true;
-          rewardData = { amount: reward.amount || 1 };
-        }
-      );
-
-      const closeUnsub = rewarded.addAdEventListener(AdEventType.CLOSED, () => {
-        safeResolve({ success: earned, reward: earned ? rewardData : null });
-      });
-
-      const errorUnsub = rewarded.addAdEventListener(AdEventType.ERROR, (error) => {
-        console.log('[Ads] rewarded hatası:', error.message);
-        safeResolve({ success: false, reward: null });
-      });
-
-      // Listener temizleyici — safeResolve çağrıldığında tetiklenir
-      cleanup = () => {
-        try { loadUnsub?.(); } catch (e) {}
-        try { earnUnsub?.(); } catch (e) {}
-        try { closeUnsub?.(); } catch (e) {}
-        try { errorUnsub?.(); } catch (e) {}
-      };
-
-      rewarded.load();
-    } catch (e) {
-      console.log('[Ads] showRewarded hatası:', e.message);
-      safeResolve({ success: false, reward: null });
+    if (!rewardedLoading) {
+      preloadRewarded();
     }
   });
 }
 
-// ─── Banner ─────────────────────────────────────────────
 export function getBannerComponent() {
   if (!adsReady || !BannerAd || !BannerAdSize) return null;
   return { BannerAd, BannerAdSize, unitId: ids.banner };
 }
 
-// ─── Helpers ────────────────────────────────────────────
 export function isAdsAvailable() {
   return adsReady;
 }
 
+export function isRewardedReady() {
+  return rewardedLoaded;
+}
+
 export function resetAdFrequency() {
-  // Frekans kontrolü game.js'de (her 3 bölümde bir)
 }

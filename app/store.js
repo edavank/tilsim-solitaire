@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert , ImageBackground} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -7,16 +7,18 @@ import { COLORS, FONTS, SIZES  } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { loadProgress, updateProgress } from '../src/utils/storage';
 import { useLang } from '../src/context/LanguageContext';
-import { showRewarded } from '../src/utils/ads';
+import { showRewarded, isAdsAvailable } from '../src/utils/ads';
+
+const BG_STARS = require('../assets/bg-stars.webp');
 
 const STORE_TEXT = {
-  tr: { title: 'MAĞAZA', earnCoins: 'Coin Kazan', watchAd: 'Reklam İzle', watchAdDesc: 'Reklam izle, 50 coin kazan!', earned: 'Kazandın!', earnedMsg: '50 coin eklendi.', boosters: 'Güçlendiriciler', hint: 'İpucu', hintDesc: 'Tıkanınca yolunu bul', undo: 'Geri Al', undoDesc: 'Hatalı hamleyi düzelt', notEnough: 'Yetersiz Coin', bought: 'Eklendi!', boughtMsg: ' eklendi.', adFail: 'Reklam yüklenemedi', footer: 'TILSIM SOLITAIRE MAĞAZA' },
-  en: { title: 'STORE', earnCoins: 'Earn Coins', watchAd: 'Watch Ad', watchAdDesc: 'Watch an ad, earn 50 coins!', earned: 'You won!', earnedMsg: '50 coins added.', boosters: 'Boosters', hint: 'Hint', hintDesc: 'Find your way when stuck', undo: 'Undo', undoDesc: 'Fix wrong moves', notEnough: 'Not Enough Coins', bought: 'Added!', boughtMsg: ' added.', adFail: 'Ad could not load', footer: 'TILSIM SOLITAIRE STORE' },
-  de: { title: 'SHOP', earnCoins: 'Coins verdienen', watchAd: 'Werbung ansehen', watchAdDesc: 'Werbung ansehen, 50 Coins!', earned: 'Gewonnen!', earnedMsg: '50 Coins hinzugefügt.', boosters: 'Booster', hint: 'Tipp', hintDesc: 'Finde deinen Weg', undo: 'Zurück', undoDesc: 'Fehler korrigieren', notEnough: 'Nicht genug Coins', bought: 'Hinzugefügt!', boughtMsg: ' hinzugefügt.', adFail: 'Werbung nicht geladen', footer: 'TILSIM SOLITAIRE SHOP' },
-  fr: { title: 'BOUTIQUE', earnCoins: 'Gagner des coins', watchAd: 'Regarder une pub', watchAdDesc: 'Regardez une pub, 50 coins!', earned: 'Gagné!', earnedMsg: '50 coins ajoutés.', boosters: 'Boosters', hint: 'Indice', hintDesc: 'Trouvez votre chemin', undo: 'Annuler', undoDesc: 'Corrigez les erreurs', notEnough: 'Pas assez de Coins', bought: 'Ajouté!', boughtMsg: ' ajouté.', adFail: 'Pub non chargée', footer: 'TILSIM SOLITAIRE BOUTIQUE' },
-  es: { title: 'TIENDA', earnCoins: 'Ganar monedas', watchAd: 'Ver anuncio', watchAdDesc: 'Ver un anuncio, 50 monedas!', earned: '¡Ganaste!', earnedMsg: '50 monedas añadidas.', boosters: 'Potenciadores', hint: 'Pista', hintDesc: 'Encuentra tu camino', undo: 'Deshacer', undoDesc: 'Corrige errores', notEnough: 'Coins insuficientes', bought: '¡Añadido!', boughtMsg: ' añadido.', adFail: 'Anuncio no cargado', footer: 'TILSIM SOLITAIRE TIENDA' },
-  ar: { title: 'المتجر', earnCoins: 'اكسب عملات', watchAd: 'شاهد إعلانا', watchAdDesc: 'شاهد إعلانا واربح 50 عملة!', earned: 'فزت!', earnedMsg: 'تمت إضافة 50 عملة.', boosters: 'معززات', hint: 'تلميح', hintDesc: 'اعثر على طريقك', undo: 'تراجع', undoDesc: 'صحح الأخطاء', notEnough: 'عملات غير كافية', bought: 'تمت الإضافة!', boughtMsg: ' تمت الإضافة.', adFail: 'فشل تحميل الإعلان', footer: 'TILSIM SOLITAIRE متجر' },
-  ru: { title: 'МАГАЗИН', earnCoins: 'Заработай монеты', watchAd: 'Смотреть рекламу', watchAdDesc: 'Посмотри рекламу, получи 50 монет!', earned: 'Получено!', earnedMsg: '50 монет добавлено.', boosters: 'Усилители', hint: 'Подсказка', hintDesc: 'Найди путь', undo: 'Отмена', undoDesc: 'Исправь ошибку', notEnough: 'Недостаточно монет', bought: 'Добавлено!', boughtMsg: ' добавлено.', adFail: 'Реклама не загрузилась', footer: 'TILSIM SOLITAIRE МАГАЗИН' },
+  tr: { title: 'MAGAZA', earnCoins: 'Coin Kazan', watchAd: 'Reklam Izle', watchAdDesc: 'Reklam izle, 50 coin kazan!', earned: 'Kazandin!', earnedMsg: '50 coin eklendi.', boosters: 'Guclendiriciler', hint: 'Ipucu', hintDesc: 'Tikaninca yolunu bul', undo: 'Geri Al', undoDesc: 'Hatali hamleyi duzelt', notEnough: 'Yetersiz Coin', notEnoughMsg: '{n} coin eksik. Reklam izleyerek 50 coin kazanabilirsin.', watchAdBtn: 'Reklam Izle (+50)', cancelBtn: 'Vazgec', adLoading: 'Reklam yukleniyor...', bought: 'Eklendi!', boughtMsg: ' eklendi.', adFail: 'Reklam yuklenemedi', footer: 'TILSIM SOLITAIRE MAGAZA' },
+  en: { title: 'STORE', earnCoins: 'Earn Coins', watchAd: 'Watch Ad', watchAdDesc: 'Watch an ad, earn 50 coins!', earned: 'You won!', earnedMsg: '50 coins added.', boosters: 'Boosters', hint: 'Hint', hintDesc: 'Find your way when stuck', undo: 'Undo', undoDesc: 'Fix wrong moves', notEnough: 'Not Enough Coins', notEnoughMsg: '{n} more coins needed. Watch an ad to earn 50 coins.', watchAdBtn: 'Watch Ad (+50)', cancelBtn: 'Cancel', adLoading: 'Ad loading...', bought: 'Added!', boughtMsg: ' added.', adFail: 'Ad could not load', footer: 'TILSIM SOLITAIRE STORE' },
+  de: { title: 'SHOP', earnCoins: 'Coins verdienen', watchAd: 'Werbung ansehen', watchAdDesc: 'Werbung ansehen, 50 Coins!', earned: 'Gewonnen!', earnedMsg: '50 Coins hinzugefugt.', boosters: 'Booster', hint: 'Tipp', hintDesc: 'Finde deinen Weg', undo: 'Zuruck', undoDesc: 'Fehler korrigieren', notEnough: 'Nicht genug Coins', notEnoughMsg: '{n} Coins fehlen. Werbung ansehen fur 50 Coins.', watchAdBtn: 'Werbung ansehen (+50)', cancelBtn: 'Abbrechen', adLoading: 'Werbung wird geladen...', bought: 'Hinzugefugt!', boughtMsg: ' hinzugefugt.', adFail: 'Werbung nicht geladen', footer: 'TILSIM SOLITAIRE SHOP' },
+  fr: { title: 'BOUTIQUE', earnCoins: 'Gagner des coins', watchAd: 'Regarder une pub', watchAdDesc: 'Regardez une pub, 50 coins!', earned: 'Gagne!', earnedMsg: '50 coins ajoutes.', boosters: 'Boosters', hint: 'Indice', hintDesc: 'Trouvez votre chemin', undo: 'Annuler', undoDesc: 'Corrigez les erreurs', notEnough: 'Pas assez de Coins', notEnoughMsg: 'Il manque {n} coins. Regardez une pub pour 50 coins.', watchAdBtn: 'Regarder pub (+50)', cancelBtn: 'Annuler', adLoading: 'Pub en cours...', bought: 'Ajoute!', boughtMsg: ' ajoute.', adFail: 'Pub non chargee', footer: 'TILSIM SOLITAIRE BOUTIQUE' },
+  es: { title: 'TIENDA', earnCoins: 'Ganar monedas', watchAd: 'Ver anuncio', watchAdDesc: 'Ver un anuncio, 50 monedas!', earned: 'Ganaste!', earnedMsg: '50 monedas anadidas.', boosters: 'Potenciadores', hint: 'Pista', hintDesc: 'Encuentra tu camino', undo: 'Deshacer', undoDesc: 'Corrige errores', notEnough: 'Coins insuficientes', notEnoughMsg: 'Faltan {n} coins. Ver un anuncio para 50 coins.', watchAdBtn: 'Ver anuncio (+50)', cancelBtn: 'Cancelar', adLoading: 'Cargando anuncio...', bought: 'Anadido!', boughtMsg: ' anadido.', adFail: 'Anuncio no cargado', footer: 'TILSIM SOLITAIRE TIENDA' },
+  ar: { title: 'STORE_AR', earnCoins: 'Earn', watchAd: 'Watch Ad', watchAdDesc: 'Watch ad, 50 coins!', earned: 'Win!', earnedMsg: '50 added.', boosters: 'Boosters', hint: 'Hint', hintDesc: 'Find way', undo: 'Undo', undoDesc: 'Fix error', notEnough: 'Not Enough Coins', notEnoughMsg: '{n} coins needed. Watch ad for 50.', watchAdBtn: 'Watch Ad (+50)', cancelBtn: 'Cancel', adLoading: 'Loading...', bought: 'Added!', boughtMsg: ' added.', adFail: 'Ad failed', footer: 'TILSIM' },
+  ru: { title: 'MAGAZIN', earnCoins: 'Zarabotay monety', watchAd: 'Smotret reklamu', watchAdDesc: 'Posmotri reklamu, 50 monet!', earned: 'Polucheno!', earnedMsg: '50 monet dobavleno.', boosters: 'Usiliteli', hint: 'Podskazka', hintDesc: 'Naydi put', undo: 'Otmena', undoDesc: 'Isprav oshibku', notEnough: 'Nedostatochno monet', notEnoughMsg: 'Ne hvataet {n} monet. Smotri reklamu za 50.', watchAdBtn: 'Smotret reklamu (+50)', cancelBtn: 'Otmena', adLoading: 'Zagruzka...', bought: 'Dobavleno!', boughtMsg: ' dobavleno.', adFail: 'Reklama ne zagruzilas', footer: 'TILSIM SOLITAIRE' },
 };
 
 export default function StoreScreen() {
@@ -24,6 +26,7 @@ export default function StoreScreen() {
   const st = STORE_TEXT[lang] || STORE_TEXT.tr;
   const [coins, setCoins] = useState(0);
   const [adLoading, setAdLoading] = useState(false);
+  const [insufficientModal, setInsufficientModal] = useState(null);
 
   useEffect(() => {
     loadProgress().then((p) => setCoins(p.coins)).catch(() => {});
@@ -35,26 +38,23 @@ export default function StoreScreen() {
   ];
 
   const buyBooster = async (booster) => {
-    // CRITICAL FIX: Önceden sadece coin düşürülüyor, envantere booster
-    // eklenmiyordu — kullanıcı coin harcayıp hiçbir şey almıyordu.
-    // Artık progress.toolCredits[toolKey]++ ile game.js'nin okuduğu
-    // yere yazılır. Ayrıca atomik: callback pattern ile concurrent
-    // coin değişikliklerinde kayıp önlenir.
     let insufficient = false;
+    let currentCoins = 0;
     try {
       const next = await updateProgress((cur) => {
-        if ((cur.coins || 0) < booster.coinCost) {
+        currentCoins = cur.coins || 0;
+        if (currentCoins < booster.coinCost) {
           insufficient = true;
-          return {}; // no-op patch
+          return {};
         }
         const prevCredits = cur.toolCredits || { hint: 0, joker: 0, shuffle: 0, undo: 0, delete: 0 };
         return {
-          coins: (cur.coins || 0) - booster.coinCost,
+          coins: currentCoins - booster.coinCost,
           toolCredits: { ...prevCredits, [booster.toolKey]: (prevCredits[booster.toolKey] || 0) + 1 },
         };
       });
       if (insufficient) {
-        Alert.alert(st.notEnough, `${booster.coinCost} coin`);
+        setInsufficientModal({ booster, deficit: booster.coinCost - currentCoins });
         return;
       }
       setCoins(next.coins);
@@ -64,13 +64,38 @@ export default function StoreScreen() {
     }
   };
 
+  const watchAdFromInsufficient = async () => {
+    if (adLoading) return;
+    setAdLoading(true);
+    try {
+      const result = await showRewarded();
+      if (result && result.success) {
+        const next = await updateProgress((cur) => ({ coins: (cur.coins || 0) + 50 }));
+        setCoins(next.coins);
+        if (insufficientModal && next.coins >= insufficientModal.booster.coinCost) {
+          setInsufficientModal(null);
+          Alert.alert(st.earned, st.earnedMsg);
+        } else if (insufficientModal) {
+          setInsufficientModal({
+            booster: insufficientModal.booster,
+            deficit: insufficientModal.booster.coinCost - next.coins,
+          });
+        }
+      } else {
+        Alert.alert(st.adFail);
+      }
+    } catch (e) {
+      Alert.alert(st.adFail);
+    }
+    setAdLoading(false);
+  };
+
   const watchAdForCoins = async () => {
     if (adLoading) return;
     setAdLoading(true);
     try {
       const result = await showRewarded();
       if (result && result.success) {
-        // Atomik: concurrent coin yazımını koru
         const next = await updateProgress((cur) => ({ coins: (cur.coins || 0) + 50 }));
         setCoins(next.coins);
         Alert.alert(st.earned, st.earnedMsg);
@@ -85,7 +110,9 @@ export default function StoreScreen() {
 
   return (
     <View style={s.container}>
-      <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
+      <ImageBackground source={BG_STARS} style={StyleSheet.absoluteFillObject} resizeMode="cover">
+        <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(21, 6, 41, 0.78)' }} />
+      </ImageBackground>
 
       <View style={s.header}>
         <View style={s.headerLeft}>
@@ -139,6 +166,45 @@ export default function StoreScreen() {
       </ScrollView>
 
       <BottomNav activeTab="store" />
+
+      {insufficientModal && (
+        <TouchableOpacity
+          style={s.modalOverlay}
+          activeOpacity={1}
+          onPress={() => !adLoading && setInsufficientModal(null)}
+        >
+          <TouchableOpacity activeOpacity={1} style={s.modalCard} onPress={(e) => e.stopPropagation?.()}>
+            <View style={s.modalIconCircle}>
+              <Text style={{ fontSize: 28 }}>🪙</Text>
+            </View>
+            <Text style={s.modalTitle}>{st.notEnough}</Text>
+            <Text style={s.modalDesc}>
+              {(st.notEnoughMsg || '{n} coin needed.').replace('{n}', insufficientModal.deficit)}
+            </Text>
+
+            <TouchableOpacity
+              style={[s.modalAdBtn, adLoading && { opacity: 0.6 }]}
+              onPress={watchAdFromInsufficient}
+              disabled={adLoading}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons name="play-circle-filled" size={20} color="#fff" />
+              <Text style={s.modalAdBtnText}>
+                {adLoading ? (st.adLoading || 'Loading...') : (st.watchAdBtn || 'Watch Ad (+50)')}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={s.modalCancelBtn}
+              onPress={() => !adLoading && setInsufficientModal(null)}
+              disabled={adLoading}
+              activeOpacity={0.7}
+            >
+              <Text style={s.modalCancelText}>{st.cancelBtn || 'Cancel'}</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -188,4 +254,46 @@ const s = StyleSheet.create({
   boosterPriceText: { fontFamily: FONTS.headlineBlack, fontSize: 14, color: COLORS.coin },
 
   footerText: { fontFamily: FONTS.body, fontSize: 10, color: COLORS.outlineVariant, textAlign: 'center', marginTop: 24, letterSpacing: 2 },
+
+  modalOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center', alignItems: 'center',
+    paddingHorizontal: 28, zIndex: 999,
+  },
+  modalCard: {
+    backgroundColor: COLORS.surface || '#1f1736',
+    borderRadius: 20, padding: 24, width: '100%', maxWidth: 340,
+    borderWidth: 1, borderColor: COLORS.panelBorder,
+    alignItems: 'center',
+  },
+  modalIconCircle: {
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: 'rgba(255,200,80,0.15)',
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 14,
+  },
+  modalTitle: {
+    fontFamily: FONTS.headlineBlack, fontSize: 18,
+    color: COLORS.onSurface, marginBottom: 8, textAlign: 'center',
+  },
+  modalDesc: {
+    fontFamily: FONTS.body, fontSize: 13,
+    color: COLORS.onSurfaceVariant, textAlign: 'center',
+    marginBottom: 22, lineHeight: 18,
+  },
+  modalAdBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    width: '100%', backgroundColor: COLORS.primary,
+    paddingVertical: 14, borderRadius: 14, marginBottom: 10,
+  },
+  modalAdBtnText: {
+    fontFamily: FONTS.headlineBlack, fontSize: 14, color: '#fff',
+  },
+  modalCancelBtn: {
+    paddingVertical: 12, paddingHorizontal: 28,
+  },
+  modalCancelText: {
+    fontFamily: FONTS.headline, fontSize: 14, color: COLORS.onSurfaceVariant,
+  },
 });
