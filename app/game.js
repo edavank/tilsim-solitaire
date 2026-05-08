@@ -11,7 +11,7 @@ import { COLORS, FONTS, SIZES, CATEGORY_COLORS, TOOL_COLORS, getCategoryColor } 
 import { generateGameState, getLevel } from '../src/data/levels';
 import { loadProgress, updateProgress, clearSavedGame, saveSavedGame, saveLevelStars, addXP, loadSelectedAvatar, getAvatarEmoji } from '../src/utils/storage';
 import { playSound } from '../src/utils/sounds';
-import { showRewarded, showInterstitial } from '../src/utils/ads';
+import { showRewarded, showInterstitial, showRewardedInterstitial } from '../src/utils/ads';
 import AdBanner from '../src/components/AdBanner';
 import { useLang } from '../src/context/LanguageContext';
 import { useAuth } from '../src/context/AuthContext';
@@ -814,6 +814,31 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
 
   useEffect(() => { if (feedback.msg) { const tmr = setTimeout(() => setFeedbackRaw({ msg: '', id: 0 }), 2500); return () => clearTimeout(tmr); } }, [feedback.id]);
 
+  // BUG-4 FIX: Achievement popup 4 saniye sonra otomatik kapansın
+  useEffect(() => {
+    if (achievementPopup) {
+      const tmr = setTimeout(() => setAchievementPopup(null), 4000);
+      return () => clearTimeout(tmr);
+    }
+  }, [achievementPopup?.id, achievementPopup?.title]);
+
+  // BUG-4 FIX: "Topla" → coin'i hemen ekle, popup'ı kapat, unseenAch decrement
+  const claimAchievement = useCallback(async () => {
+    if (!achievementPopup) return;
+    const reward = achievementPopup.pendingCoins || 0;
+    if (reward > 0) {
+      const after = await updateProgress((cur) => ({
+        coins: (cur.coins || 0) + reward,
+        unseenAch: Math.max(0, (cur.unseenAch || 0) - 1),
+      }));
+      setCoins(after.coins);
+      setFeedback(`+${reward} 🪙`);
+    } else {
+      await updateProgress((cur) => ({ unseenAch: Math.max(0, (cur.unseenAch || 0) - 1) }));
+    }
+    setAchievementPopup(null);
+  }, [achievementPopup, setFeedback]);
+
   // Clear hint after 2s
   useEffect(() => {
     if (hintCard) {
@@ -1550,8 +1575,21 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         setAchievementPopup({ ...newAch[0], reward: newAch[0].reward || 0, pendingCoins: totalReward });
       }
     } catch (e) {}
-    // Show interstitial ad every 3 levels
-    if (nextId % 3 === 0) await showInterstitial();
+    // FEAT-1: Her 3 bölümde bir Rewarded Interstitial göster (atlanabilir, izlerse +20 coin bonus)
+    if (nextId % 3 === 0) {
+      try {
+        const ri = await showRewardedInterstitial();
+        if (ri.success) {
+          // Kullanıcı reklamı izledi → +20 coin bonus
+          const bonusUpd = await updateProgress((cur) => ({ coins: (cur.coins || 0) + 20 }));
+          // setCoins aşağıda zaten yapılıyor, ama bonus'u UI'a hemen yansıtmak için feedback
+          setFeedback(`🎁 +20 🪙`);
+        }
+      } catch (e) {
+        // Hata durumunda eski davranışa fallback: interstitial göster
+        try { await showInterstitial(); } catch (e2) {}
+      }
+    }
     
     // Araç açılma kontrolü
     const currentUnlocked = prog.unlockedTools || [];
@@ -1680,16 +1718,85 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   }, [resetGame]);
 
   const handleHome = useCallback(async () => {
-    // Kaybedilmiş oyundan çıkılırsa streak sıfırla
-    if (gs && gs.isFailed && !gs.isComplete) {
-      const prog = await loadProgress();
+    const prog = await loadProgress();
+
+    // BUG-1 FIX: Bölüm tamamlandıktan sonra Home'a basılırsa progress save EDİLMELİ
+    // (önceden sadece clearSavedGame çağrılıyordu, leaderboard güncel ama level kayıp oluyordu)
+    if (gs && gs.isComplete && !gs.isFailed) {
+      const bonus = isTimed ? Math.min(levelId * 2, 50) : Math.floor(8 * (gs.moves / level.moves));
+
+      if (isDaily) {
+        const newCoins = (prog.coins || 0) + Math.floor(100 + bonus);
+        await updateProgress({
+          coins: newCoins,
+          totalGames: (prog.totalGames || 0) + 1,
+          totalWins: (prog.totalWins || 0) + 1,
+          bestScore: Math.max(prog.bestScore || 0, gs.score),
+        });
+        try { await markDailyChallengeCompleted(dailyDate); } catch (e) {}
+        if (user) {
+          syncToCloud({
+            currentLevel: prog.currentLevel || 1,
+            coins: newCoins,
+            totalGames: (prog.totalGames || 0) + 1,
+            totalWins: (prog.totalWins || 0) + 1,
+            bestScore: Math.max(prog.bestScore || 0, gs.score),
+            streak: prog.streak || 0,
+            xp: prog.xp || 0,
+          }).catch(() => {});
+        }
+      } else {
+        const nextId = levelId + 1;
+        const safeCurrentLevel = Math.max(nextId, prog.currentLevel || 1);
+        const newCoins = (prog.coins || 0) + 30 + bonus;
+        await updateProgress({
+          currentLevel: safeCurrentLevel,
+          coins: newCoins,
+          totalGames: (prog.totalGames || 0) + 1,
+          totalWins: (prog.totalWins || 0) + 1,
+          bestScore: Math.max(prog.bestScore || 0, gs.score),
+          streak: (prog.streak || 0) + 1,
+        });
+        // Yıldız ve XP
+        const moveRatio = gs.moves / level.moves;
+        const stars = moveRatio > 0.5 ? 3 : moveRatio > 0.25 ? 2 : 1;
+        await saveLevelStars(levelId, stars);
+        await addXP(stars * 50 + Math.floor(levelId / 5) * 10);
+        // Leaderboard
+        try {
+          const avatarId = await loadSelectedAvatar();
+          submitScore({
+            score: Math.max(prog.bestScore || 0, gs.score),
+            level: nextId,
+            totalWins: (prog.totalWins || 0) + 1,
+            language: gameLang,
+            displayName: user?.name,
+            userAvatar: getAvatarEmoji(avatarId),
+          });
+        } catch (e) {}
+        // Cloud sync
+        if (user) {
+          syncToCloud({
+            currentLevel: safeCurrentLevel,
+            coins: newCoins,
+            totalGames: (prog.totalGames || 0) + 1,
+            totalWins: (prog.totalWins || 0) + 1,
+            bestScore: Math.max(prog.bestScore || 0, gs.score),
+            streak: (prog.streak || 0) + 1,
+            xp: prog.xp || 0,
+          }).catch(() => {});
+        }
+      }
+    } else if (gs && gs.isFailed && !gs.isComplete) {
+      // Kaybedilmiş oyundan çıkılırsa streak sıfırla
       if ((prog.streak || 0) > 0) {
         await updateProgress({ streak: 0 });
       }
     }
+
     await clearSavedGame();
     router.canGoBack() ? router.back() : router.replace("/");
-  }, [gs]);
+  }, [gs, isDaily, isTimed, levelId, level, gameLang, user, dailyDate]);
 
   const selId = selected?.card?.id;
   const selectedStackIds = selected?.stackCards ? new Set(selected.stackCards.map((c) => c.id)) : null;
@@ -1935,8 +2042,25 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
               <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 12, color: '#FFD700', marginTop: 2 }}>+{achievementPopup.pendingCoins} 🪙</Text>
             )}
           </View>
-          <TouchableOpacity onPress={() => setAchievementPopup(null)}>
-            <MaterialIcons name="close" size={20} color="#fff" />
+          {/* BUG-4 FIX: Topla butonu — coin'i hemen verir, popup'ı kapatır */}
+          {achievementPopup.pendingCoins > 0 && (
+            <TouchableOpacity
+              onPress={claimAchievement}
+              style={{ backgroundColor: '#FFD166', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 13, color: '#1a0a30' }}>
+                {t.claim || 'Topla'}
+              </Text>
+            </TouchableOpacity>
+          )}
+          {/* BUG-4 FIX: Çarpı butonu hitSlop genişletildi (eskiden tıklanmıyordu) */}
+          <TouchableOpacity
+            onPress={() => setAchievementPopup(null)}
+            hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+            style={{ padding: 4 }}
+          >
+            <MaterialIcons name="close" size={22} color="#fff" />
           </TouchableOpacity>
         </View>
       )}

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tılsım Solitaire",
     "slug": "tilsim-solitaire",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -49,6 +49,15 @@
       "expo-font",
       "expo-apple-authentication",
       "expo-tracking-transparency",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#9B7DFF",
+          "defaultChannel": "default",
+          "sounds": []
+        }
+      ],
       [
         "react-native-google-mobile-ads",
         {

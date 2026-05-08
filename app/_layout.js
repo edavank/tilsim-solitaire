@@ -1,5 +1,6 @@
+import { Video, ResizeMode } from 'expo-av';
 import React, { useEffect, useRef, useState } from 'react';
-import { View, ActivityIndicator, StyleSheet, Animated, Image, Text, TouchableOpacity } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Animated, Image, Text, TouchableOpacity , ImageBackground} from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -19,6 +20,9 @@ import {
 } from '@expo-google-fonts/fondamento';
 import { COLORS, FONTS } from '../src/constants/theme';
 import { initAds } from '../src/utils/ads';
+import { initNotifications, scheduleAllForUser } from '../src/utils/notifications';
+import { loadProgress } from '../src/utils/storage';
+import { getDailyCompletionMap } from '../src/utils/dailyChallenge';
 // ConsentDialog kaldırıldı — Apple'ın ATT sistemi zaten izin alıyor
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { setVibrationEnabled, setSoundEnabled, setBgmEnabled, loadSounds, startBgm, initSoundSettings } from '../src/utils/sounds';
@@ -28,6 +32,10 @@ import { AuthProvider } from '../src/context/AuthContext';
 import UpdatePrompt from '../src/components/UpdatePrompt';
 
 const OWL = require('../assets/bilge-happy.png');
+const BG_STARS = require('../assets/bg-stars.webp');
+const LOGO_MAIN = require('../assets/logo-main.png');
+const LOGO_GALAXY = require('../assets/logo-galaxy.png');
+const LOGO_LIGHTRAY = require('../assets/logo-lightray.png');
 
 const LANGUAGES = [
   { code: 'tr', flag: '🇹🇷', name: 'Türkçe', available: true },
@@ -86,38 +94,30 @@ const lang = StyleSheet.create({
 });
 
 function AnimatedSplash({ onFinish }) {
-  const fadeIn = useRef(new Animated.Value(1)).current;
-  const scale = useRef(new Animated.Value(0.8)).current;
-  const textFade = useRef(new Animated.Value(0)).current;
-
   useEffect(() => {
-    Animated.sequence([
-      Animated.parallel([
-        Animated.spring(scale, { toValue: 1, friction: 5, tension: 80, useNativeDriver: true }),
-        Animated.timing(textFade, { toValue: 1, duration: 400, useNativeDriver: true }),
-      ]),
-      Animated.delay(1000),
-      Animated.timing(fadeIn, { toValue: 0, duration: 400, useNativeDriver: true }),
-    ]).start(() => onFinish());
+    const t = setTimeout(() => onFinish(), 3000);
+    return () => clearTimeout(t);
   }, []);
 
   return (
-    <Animated.View style={[sp.container, { opacity: fadeIn }]}>
-      <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
-      <Animated.Image source={OWL} style={[sp.owl, { transform: [{ scale }] }]} />
-      <Animated.View style={{ opacity: textFade, alignItems: 'center' }}>
-        <Text style={sp.title}>Tılsım</Text>
-        <Text style={sp.sub}>S O L I T A I R E</Text>
-      </Animated.View>
-    </Animated.View>
+    <View style={sp.container}>
+      <Video
+        source={require('../assets/video/splash.mp4')}
+        style={StyleSheet.absoluteFillObject}
+        resizeMode={ResizeMode.CONTAIN}
+        shouldPlay
+        isLooping={false}
+        isMuted
+      />
+    </View>
   );
 }
 
 const sp = StyleSheet.create({
-  container: { ...StyleSheet.absoluteFillObject, zIndex: 9999, alignItems: 'center', justifyContent: 'center' },
-  owl: { width: 160, height: 90, resizeMode: 'contain', marginBottom: 16 },
-  title: { fontFamily: 'Fondamento_400Regular_Italic', fontSize: 48, color: '#fff' },
-  sub: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: 16, color: COLORS.primary, letterSpacing: 6, marginTop: -2 },
+  container: { ...StyleSheet.absoluteFillObject, zIndex: 9999, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' },
+  logo: { width: 240, height: 240, resizeMode: 'contain' },
+  title: { fontFamily: 'Fondamento_400Regular_Italic', fontSize: 52, color: '#fff', textShadowColor: 'rgba(155,125,255,0.6)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 14 },
+  sub: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: 14, color: '#FFD166', letterSpacing: 6, marginTop: 4 },
 });
 
 export default function RootLayout() {
@@ -141,6 +141,29 @@ export default function RootLayout() {
         if (!s.languageSelected) setShowLangPicker(true);
       }).catch(() => {});
     }).catch(() => {});
+
+    // FEAT-3: Push notifications init + schedule
+    (async () => {
+      try {
+        const ok = await initNotifications();
+        if (!ok) return;
+        const [prog, dailyMap, settings] = await Promise.all([
+          loadProgress().catch(() => ({})),
+          getDailyCompletionMap().catch(() => ({})),
+          loadSettings().catch(() => ({})),
+        ]);
+        const today = new Date();
+        const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        await scheduleAllForUser({
+          lang: settings.lang || settings.language || 'tr',
+          streak: prog.streak || 0,
+          dailyDoneToday: !!dailyMap[todayKey],
+          lastPlayedAt: prog.lastPlayedAt || Date.now(), // varsayılan şimdi (yeni install)
+        });
+      } catch (e) {
+        console.log('[Notif] schedule hatası:', e.message);
+      }
+    })();
   }, []);
 
   if (!fontsLoaded) {
@@ -157,8 +180,7 @@ export default function RootLayout() {
       <AuthProvider>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <StatusBar style="light" />
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLORS.surface }, animation: 'fade' }} />
-          {!splashDone && <AnimatedSplash onFinish={() => setSplashDone(true)} />}
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLORS.surface }, animation: 'none' }} />
           {splashDone && showLangPicker && (
             <LanguageSelectorWithContext onDone={() => setShowLangPicker(false)} />
           )}

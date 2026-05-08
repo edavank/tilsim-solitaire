@@ -93,6 +93,7 @@ const translations = {
     hintBought: '✅ İpucu eklendi!',
     hintEarned: '✅ İpucu kazanıldı!',
     movesAdded: '⚡ +20!',
+    claim: 'Topla',
     undone: '↩ Geri alındı',
     deleted: '🗑️ Silindi',
     unlocked: '🔓 Kilit açıldı!',
@@ -289,6 +290,7 @@ const translations = {
     hintBought: '✅ Hint added!',
     hintEarned: '✅ Hint earned!',
     movesAdded: '⚡ +20!',
+    claim: 'Claim',
     undone: '↩ Undone',
     deleted: '🗑️ Deleted',
     unlocked: '🔓 Unlocked!',
@@ -378,6 +380,7 @@ const translations = {
     tournamentYou: 'You',
 
     hintToEmptySlot: '💡 {word} → place in empty slot!',
+    hintNoMoves: 'No suitable move. Draw from deck or rearrange columns!',
     speedBonusLabel: '⚡ Speed Bonus!',
     moveBonusSuffix: 'moves',
     speedBonusSuffix: 'speed',
@@ -465,6 +468,7 @@ const translations = {
     hintBought: '✅ Hinweis hinzugefügt!',
     hintEarned: '✅ Hinweis verdient!',
     movesAdded: '⚡ +20!',
+    claim: 'Einsammeln',
     undone: '↩ Rückgängig',
     deleted: '🗑️ Gelöscht',
     unlocked: '🔓 Entsperrt!',
@@ -547,6 +551,7 @@ const translations = {
     tournamentYou: 'Du',
 
     hintToEmptySlot: '💡 {word} → auf leeren Slot!',
+    hintNoMoves: 'Kein passender Zug. Karte ziehen oder Spalten neu ordnen!',
     speedBonusLabel: '⚡ Geschwindigkeitsbonus!',
     moveBonusSuffix: 'Züge',
     speedBonusSuffix: 'Tempo',
@@ -557,6 +562,7 @@ const translations = {
   },
 
   fr: {
+    claim: 'Récupérer',
     appName: 'Tılsım Solitaire',
     solitaire: 'S O L I T A I R E',
     adventure: "L'AVENTURE CONTINUE",
@@ -701,6 +707,8 @@ const translations = {
     tournamentYou: 'Toi',
 
     hintToEmptySlot: '💡 {word} → emplacement vide !',
+    hintNoMoves: 'Aucun mouvement possible. Pioche ou réorganise les colonnes !',
+    hintEarned: 'Indice obtenu !',
     speedBonusLabel: '⚡ Bonus de vitesse !',
     moveBonusSuffix: 'coups',
     speedBonusSuffix: 'vitesse',
@@ -711,6 +719,7 @@ const translations = {
   },
 
   es: {
+    claim: 'Recoger',
     appName: 'Tılsım Solitaire',
     solitaire: 'S O L I T A I R E',
     adventure: 'LA AVENTURA CONTINÚA',
@@ -831,6 +840,8 @@ const translations = {
     tournamentYou: 'Tú',
 
     hintToEmptySlot: '💡 {word} → ¡ponlo en hueco vacío!',
+    hintNoMoves: 'No hay movimientos. ¡Roba del mazo o reorganiza columnas!',
+    hintEarned: '¡Pista obtenida!',
     speedBonusLabel: '⚡ ¡Bonus de velocidad!',
     moveBonusSuffix: 'movs',
     speedBonusSuffix: 'velocidad',
@@ -841,6 +852,7 @@ const translations = {
   },
 
   ar: {
+    claim: 'استلام',
     appName: 'Tılsım Solitaire',
     solitaire: 'S O L I T A I R E',
     adventure: 'المغامرة مستمرة',
@@ -961,6 +973,8 @@ const translations = {
     tournamentYou: 'أنت',
 
     hintToEmptySlot: '💡 {word} ← ضعها في خانة فارغة!',
+    hintNoMoves: 'لا توجد حركة مناسبة. اسحب من المجموعة أو أعد ترتيب الأعمدة!',
+    hintEarned: 'تم الحصول على تلميح!',
     speedBonusLabel: '⚡ مكافأة السرعة!',
     moveBonusSuffix: 'حركات',
     speedBonusSuffix: 'سرعة',
@@ -971,6 +985,7 @@ const translations = {
   },
 
   ru: {
+    claim: 'Забрать',
     appName: 'Tılsım', solitaire: 'SOLITAIRE', adventure: 'ПРИКЛЮЧЕНИЕ',
     level: 'Уровень', selectLevel: 'Выбрать уровень', timedMode: 'На время',
     dailyChallengeHome: 'Ежедневное задание', collectionAlbum: 'Коллекция',
@@ -1059,6 +1074,7 @@ const translations = {
     tournamentYourRank: 'Ваше место', tournamentPoints: '{n} очков',
     tournamentYou: 'Вы',
     hintToEmptySlot: '💡 {word} ← поставь в пустой слот!',
+    hintEarned: 'Подсказка получена!',
     speedBonusLabel: '⚡ Бонус скорости!',
     moveBonusSuffix: 'ходы', speedBonusSuffix: 'скорость',
     comboToast: '🔥 Комбо {n}x! +{bonus}', maxCombo: 'Макс комбо',
