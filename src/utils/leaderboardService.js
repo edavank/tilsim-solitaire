@@ -29,7 +29,7 @@ async function getDeviceId() {
 const AVATARS = ['🦊', '🦄', '🐼', '🦁', '🐰', '🐱', '🐶', '🦉', '🐬', '🐸', '🦅', '🐧', '🦋', '🐝', '🐨'];
 
 // ── Submit/Update Score ──
-export async function submitScore({ score, level, totalWins, displayName, language = 'tr' }) {
+export async function submitScore({ score, level, totalWins, displayName, language = 'tr', userAvatar }) {
   if (!supabase) return { error: 'Supabase not configured' };
   try {
     const deviceId = await getDeviceId();
@@ -51,6 +51,7 @@ export async function submitScore({ score, level, totalWins, displayName, langua
         updated_at: new Date().toISOString(),
       };
       if (displayName) updates.display_name = displayName;
+      if (userAvatar) updates.avatar_emoji = userAvatar;
       
       const { error } = await supabase
         .from('leaderboard')
@@ -65,7 +66,7 @@ export async function submitScore({ score, level, totalWins, displayName, langua
         .insert({
           device_id: deviceId,
           display_name: displayName || 'Player',
-          avatar_emoji: AVATARS[Math.floor(Math.random() * AVATARS.length)],
+          avatar_emoji: userAvatar || AVATARS[Math.floor(Math.random() * AVATARS.length)].id,
           score,
           level,
           total_wins: totalWins,
