@@ -191,3 +191,22 @@ export function getThemeGradient(themeId) {
 export function getThemeColors(themeId) {
   return THEME_COLORS[themeId] || THEME_COLORS.cosmic;
 }
+
+
+// ── Tool buton renkleri (her tool farklı accent) ──
+export const TOOL_COLORS = {
+  hint:    { bg: '#FFD166', glow: '#FFD166', icon: '#1a0a30' },
+  undo:    { bg: '#6ECB8B', glow: '#6ECB8B', icon: '#fff' },
+  joker:   { bg: '#9B7DFF', glow: '#9B7DFF', icon: '#fff' },
+  shuffle: { bg: '#5BC0EB', glow: '#5BC0EB', icon: '#fff' },
+  delete:  { bg: '#FF8AA7', glow: '#FF8AA7', icon: '#fff' },
+};
+
+// ── Kategori adı → deterministik renk ──
+export function getCategoryColor(name) {
+  if (!name) return CATEGORY_COLORS[0];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = ((hash << 5) - hash + name.charCodeAt(i)) | 0;
+  return CATEGORY_COLORS[Math.abs(hash) % CATEGORY_COLORS.length];
+}
+

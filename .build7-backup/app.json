@@ -1,0 +1,76 @@
+{
+  "expo": {
+    "name": "Tılsım Solitaire",
+    "slug": "tilsim-solitaire",
+    "version": "1.0.7",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "scheme": "tilsim-solitaire",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#150629"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.edavank.tilsimsolitaire",
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSUserTrackingUsageDescription": "Reklamları size özel hale getirmek için izninizi istiyoruz. İzin vermezseniz yine de uygulamamızı kullanabilirsiniz.",
+        "CFBundleLocalizations": [
+          "tr",
+          "en",
+          "de",
+          "fr",
+          "es",
+          "ar",
+          "ru"
+        ],
+        "CFBundleDevelopmentRegion": "tr"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#150629"
+      },
+      "package": "com.edavank.tilsimsolitaire"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-apple-authentication",
+      "expo-tracking-transparency",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-9511518953640494~4778986906",
+          "iosAppId": "ca-app-pub-9511518953640494~6944009450"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "798b54e7-7f2c-4de5-94cc-9d07e92662e2"
+      }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/798b54e7-7f2c-4de5-94cc-9d07e92662e2"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    }
+  }
+}

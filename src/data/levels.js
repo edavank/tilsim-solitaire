@@ -56,30 +56,30 @@ export const LEVELS = [
   },
   // Bölüm 5-6: 4 kategori
   {
-    id: 5, moves: 65, hints: 2, undos: 0,
+    id: 5, moves: 85, hints: 3, undos: 1,
     categories: [
       { name: 'Türk Mutfağı', words: ['Kebap', 'Lahmacun', 'Pide', 'Mantı'] },
       { name: 'Uzay', words: ['Ay', 'Güneş', 'Yıldız', 'Galaksi'] },
       { name: 'Kuşlar', words: ['Papağan', 'Kartal', 'Baykuş', 'Flamingo'] },
       { name: 'Hastane', words: ['Hemşire', 'İlaç', 'Ameliyat', 'Ambulans'] },
     ],
-    totalSlots: 3, lockedSlots: 0,
+    totalSlots: 4, lockedSlots: 0,
     columns: [{ depth: 3 }, { depth: 3 }, { depth: 2 }, { depth: 2 }],
   },
   {
-    id: 6, moves: 65, hints: 2, undos: 0,
+    id: 6, moves: 90, hints: 3, undos: 1,
     categories: [
       { name: 'Plaj', words: ['Kum', 'Dalga', 'Şemsiye', 'Kabuk'] },
       { name: 'Gemi', words: ['Kaptan', 'Dümen', 'Çapa', 'Pusula'] },
       { name: 'Sabah', words: ['Alarm', 'Kahve', 'Duş', 'Gazete'] },
       { name: 'Trafik', words: ['Işık', 'Tabela', 'Köprü', 'Tünel'] },
     ],
-    totalSlots: 3, lockedSlots: 0,
+    totalSlots: 4, lockedSlots: 0,
     columns: [{ depth: 3 }, { depth: 3 }, { depth: 3 }, { depth: 2 }],
   },
   // Bölüm 7-8: 5 kategori
   {
-    id: 7, moves: 85, hints: 1, undos: 0,
+    id: 7, moves: 110, hints: 2, undos: 1,
     categories: [
       { name: 'Orman', words: ['Mantar', 'Sincap', 'Geyik', 'Kurt'] },
       { name: 'Market', words: ['Sepet', 'Kasa', 'Raf', 'Poşet'] },
@@ -87,11 +87,11 @@ export const LEVELS = [
       { name: 'Bina', words: ['Kapı', 'Pencere', 'Çatı', 'Balkon'] },
       { name: 'Kış Sporları', words: ['Kayak', 'Hokey', 'Snowboard', 'Kızak'] },
     ],
-    totalSlots: 4, lockedSlots: 1,
+    totalSlots: 5, lockedSlots: 1,
     columns: [{ locked: true }, { depth: 4 }, { depth: 3 }, { depth: 3 }, { depth: 3 }],
   },
   {
-    id: 8, moves: 85, hints: 1, undos: 0,
+    id: 8, moves: 110, hints: 2, undos: 1,
     categories: [
       { name: 'Süt Ürünleri', words: ['Yoğurt', 'Peynir', 'Kaymak', 'Kefir'] },
       { name: 'Partisyon', words: ['Nota', 'Akor', 'Ritim', 'Melodi'] },
@@ -99,12 +99,12 @@ export const LEVELS = [
       { name: 'Deniz', words: ['Yunus', 'Ahtapot', 'Yengeç', 'İstakoz'] },
       { name: 'Baharat', words: ['Kimyon', 'Kekik', 'Tarçın', 'Safran'] },
     ],
-    totalSlots: 4, lockedSlots: 1,
+    totalSlots: 5, lockedSlots: 1,
     columns: [{ locked: true }, { depth: 4 }, { depth: 4 }, { depth: 3 }, { depth: 3 }],
   },
   // Bölüm 9-10: 5 kat × 5 kel
   {
-    id: 9, moves: 100, hints: 1, undos: 0,
+    id: 9, moves: 100, hints: 2, undos: 1,
     categories: [
       { name: 'Mobilya', words: ['Masa', 'Sandalye', 'Dolap', 'Koltuk', 'Ayna'] },
       { name: 'Şehirler', words: ['İstanbul', 'Ankara', 'İzmir', 'Antalya', 'Bursa'] },
@@ -116,7 +116,7 @@ export const LEVELS = [
     columns: [{ locked: true }, { depth: 4 }, { depth: 4 }, { depth: 3 }, { depth: 3 }],
   },
   {
-    id: 10, moves: 110, hints: 0, undos: 0,
+    id: 10, moves: 130, hints: 1, undos: 1,
     categories: [
       { name: 'Ağırlık Birimleri', words: ['Gram', 'Kilogram', 'Ton', 'Ons', 'Libre'] },
       { name: 'Hayvanlar', words: ['Aslan', 'Fil', 'Zürafa', 'Penguen', 'Kedi'] },
@@ -124,7 +124,7 @@ export const LEVELS = [
       { name: 'Sporlar', words: ['Futbol', 'Basketbol', 'Tenis', 'Yüzme', 'Koşu'] },
       { name: 'Takılar', words: ['Yüzük', 'Kolye', 'Bilezik', 'Küpe', 'Saat'] },
     ],
-    totalSlots: 3, lockedSlots: 1,
+    totalSlots: 4, lockedSlots: 1,
     columns: [{ locked: true }, { depth: 5 }, { depth: 4 }, { depth: 4 }, { depth: 3 }],
   },
 ];
@@ -137,7 +137,7 @@ export function generateGameState(level) {
       wordCards.push({
         id: 'w-' + ci + '-' + w,
         type: 'word', word: w, categoryIndex: ci,
-        categoryName: cat.name, emoji: WORD_EMOJIS[w] || '❓', faceUp: false,
+        categoryName: cat.name, emoji: WORD_EMOJIS[w] || CATEGORY_EMOJIS[cat.name] || '✨', faceUp: false,
       });
     });
   });

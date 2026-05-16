@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Animated , ImageBackground} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native';
@@ -11,6 +11,8 @@ import { ACHIEVEMENTS, loadAchievements, ACHIEVEMENT_I18N, claimAchievement, cou
 import { loadProgress, updateProgress } from '../src/utils/storage';
 import { getDailyCompletionMap } from '../src/utils/dailyChallenge';
 import { useLang } from '../src/context/LanguageContext';
+
+const BG_STARS = require('../assets/bg-stars.webp');
 
 export default function AchievementsScreen() {
   const router = useRouter();
@@ -83,7 +85,9 @@ export default function AchievementsScreen() {
 
   return (
     <View style={s.container}>
-      <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
+      <ImageBackground source={BG_STARS} style={StyleSheet.absoluteFillObject} resizeMode="cover">
+        <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(21, 6, 41, 0.78)' }} />
+      </ImageBackground>
       
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace("/")} style={s.backBtn}>

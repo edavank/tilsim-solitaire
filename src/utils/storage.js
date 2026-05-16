@@ -217,3 +217,46 @@ export async function loadXP() {
     return raw ? JSON.parse(raw) : { xp: 0, level: 1 };
   } catch (e) { return { xp: 0, level: 1 }; }
 }
+
+// ── Avatar Sistemi (v1.0.5) ──
+const AVATAR_KEY = '@tilsim_avatar';
+
+// 12 avatar — her belirli levelde 1 unlock
+export const AVATARS = [
+  { id: 'wizard',  image: require('../../assets/avatars/wizard.png'),  unlockLevel: 1   },
+  { id: 'fox',     image: require('../../assets/avatars/fox.png'),     unlockLevel: 5   },
+  { id: 'cat',     image: require('../../assets/avatars/cat.png'),     unlockLevel: 10  },
+  { id: 'unicorn', image: require('../../assets/avatars/unicorn.png'), unlockLevel: 15  },
+  { id: 'panda',   image: require('../../assets/avatars/panda.png'),   unlockLevel: 20  },
+  { id: 'lion',    image: require('../../assets/avatars/lion.png'),    unlockLevel: 25  },
+  { id: 'owl',     image: require('../../assets/avatars/owl.png'),     unlockLevel: 30  },
+  { id: 'dragon',  image: require('../../assets/avatars/dragon.png'),  unlockLevel: 40  },
+  { id: 'fairy',   image: require('../../assets/avatars/fairy.png'),   unlockLevel: 50  },
+  { id: 'eagle',   image: require('../../assets/avatars/eagle.png'),   unlockLevel: 70  },
+  { id: 'star',    image: require('../../assets/avatars/star.png'),    unlockLevel: 90  },
+  { id: 'crown',   image: require('../../assets/avatars/crown.png'),   unlockLevel: 110 },
+];
+
+export async function loadSelectedAvatar() {
+  // Wrapper getItem kullan: memStore fallback ile tutarlı (diğer keylerle uyumlu)
+  try {
+    const raw = await getItem(AVATAR_KEY);
+    return raw || 'wizard';
+  } catch (e) { return 'wizard'; }
+}
+
+export async function saveSelectedAvatar(avatarId) {
+  try {
+    await setItem(AVATAR_KEY, avatarId);
+  } catch (e) {}
+}
+
+export function getAvatarEmoji(avatarId) {
+  const a = AVATARS.find(av => av.id === avatarId);
+  return a ? a.image : AVATARS[0].image;
+}
+
+export function isAvatarUnlocked(avatarId, currentLevel) {
+  const a = AVATARS.find(av => av.id === avatarId);
+  return a ? currentLevel >= a.unlockLevel : false;
+}

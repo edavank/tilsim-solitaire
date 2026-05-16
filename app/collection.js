@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity , ImageBackground} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -8,6 +8,8 @@ import { COLORS, FONTS } from '../src/constants/theme';
 import { loadCollection } from '../src/utils/collection';
 import { WORD_POOLS, CATEGORY_EMOJIS } from '../src/data/wordPools';
 import { useLang } from '../src/context/LanguageContext';
+
+const BG_STARS = require('../assets/bg-stars.webp');
 
 const COLLECTION_TITLE = {
   tr: 'Koleksiyon', en: 'Collection', de: 'Sammlung',
@@ -27,7 +29,9 @@ export default function CollectionScreen() {
 
   return (
     <View style={s.container}>
-      <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
+      <ImageBackground source={BG_STARS} style={StyleSheet.absoluteFillObject} resizeMode="cover">
+        <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(21, 6, 41, 0.78)' }} />
+      </ImageBackground>
       
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace("/")} style={s.backBtn}>

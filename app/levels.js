@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image , ImageBackground} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
@@ -8,6 +8,8 @@ import BottomNav from '../src/components/BottomNav';
 import { getTotalLevels, getLevel } from '../src/data/levels';
 import { loadProgress, loadLevelStars, loadXP } from '../src/utils/storage';
 import { useLang } from '../src/context/LanguageContext';
+
+const BG_STARS = require('../assets/bg-stars.webp');
 
 
 export default function LevelsScreen() {
@@ -34,11 +36,13 @@ export default function LevelsScreen() {
   );
 
   // Show levels in chapters of 10
-  const maxVisible = Math.min(Math.max(currentLevel + 20, 30), totalLevels);
+  const maxVisible = totalLevels;
 
   return (
     <View style={s.container}>
-      <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
+      <ImageBackground source={BG_STARS} style={StyleSheet.absoluteFillObject} resizeMode="cover">
+        <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(21, 6, 41, 0.78)' }} />
+      </ImageBackground>
 
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace("/")} style={s.backBtn}>

@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.navBg, borderTopLeftRadius: 28, borderTopRightRadius: 28,
   },
   tab: { flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 8 },
-  activeTab: { backgroundColor: 'rgba(255, 138, 167, 0.12)', borderRadius: SIZES.radiusFull, paddingHorizontal: 20, paddingVertical: 8 },
+  activeTab: { backgroundColor: 'rgba(15, 4, 30, 0.92)', borderRadius: SIZES.radiusFull, paddingHorizontal: 20, paddingVertical: 8 },
   label: { fontFamily: FONTS.bodyMedium, fontSize: 9, letterSpacing: 2, color: COLORS.navInactive, marginTop: 4, textTransform: 'uppercase' },
   activeLabel: { color: COLORS.navActive },
 });

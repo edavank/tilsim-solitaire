@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions , ImageBackground} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -8,6 +8,8 @@ import { COLORS, FONTS } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
 import { getDailyCompletionMap, getDailyStreak } from '../src/utils/dailyChallenge';
 import { useLang } from '../src/context/LanguageContext';
+
+const BG_STARS = require('../assets/bg-stars.webp');
 
 const SW = Dimensions.get('window').width;
 const CELL = Math.floor((SW - 48) / 7);
@@ -144,7 +146,9 @@ export default function DailyScreen() {
 
   return (
     <View style={st.container}>
-      <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
+      <ImageBackground source={BG_STARS} style={StyleSheet.absoluteFillObject} resizeMode="cover">
+        <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(21, 6, 41, 0.78)' }} />
+      </ImageBackground>
       
       {/* Header */}
       <View style={st.header}>

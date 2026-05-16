@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions, Image, ImageBackground } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
-import { loadProgress } from '../src/utils/storage';
+import { loadProgress, loadSelectedAvatar, getAvatarEmoji } from '../src/utils/storage';
 import { useLang } from '../src/context/LanguageContext';
 import { useAuth } from '../src/context/AuthContext';
 import { isDailyChallengeCompleted } from '../src/utils/dailyChallenge';
@@ -13,7 +13,9 @@ import { checkDailyLogin, claimDailyReward, DAILY_REWARDS } from '../src/utils/d
 import { updateProgress } from '../src/utils/storage';
 
 const { width: SW } = Dimensions.get('window');
-const OWL_IMAGE = require('../assets/bilge-happy.png');
+const HALO_IMG = require('../assets/halo.png');
+const TEXT_IMG = require('../assets/text.png');
+const BG_STARS = require('../assets/bg-stars.webp');
 
 /* ── Floating Particles Background ── */
 function FloatingParticles() {
@@ -64,6 +66,7 @@ export default function HomeScreen() {
   const [coins, setCoins] = useState(0);
   const [dailyDone, setDailyDone] = useState(false);
   const [unseenAch, setUnseenAch] = useState(0);
+  const [selectedAvatar, setSelectedAvatar] = useState('wizard');
   const [dailyLoginData, setDailyLoginData] = useState(null); // { streak, reward, allDays }
   const [bilgeMsg] = useState(() => {
     const msgs = t.bilgeMessages || [];
@@ -96,6 +99,7 @@ export default function HomeScreen() {
         }
       }).catch(() => {});
       isDailyChallengeCompleted().then(setDailyDone).catch(() => {});
+      loadSelectedAvatar().then(setSelectedAvatar).catch(() => {});
       checkDailyLogin().then((result) => {
         if (result.shouldShow) setDailyLoginData(result);
       }).catch(() => {});
@@ -113,8 +117,8 @@ export default function HomeScreen() {
     ]);
     fadeAnim2.start();
     const owlLoop = Animated.loop(Animated.sequence([
-      Animated.timing(owlBounce, { toValue: -15, duration: 2000, useNativeDriver: true }),
-      Animated.timing(owlBounce, { toValue: 0, duration: 2000, useNativeDriver: true }),
+      Animated.timing(owlBounce, { toValue: 1, duration: 12000, useNativeDriver: true }),
+        Animated.timing(owlBounce, { toValue: 0, duration: 0, useNativeDriver: true }),
     ]));
     const glowLoop = Animated.loop(Animated.sequence([
       Animated.timing(glowPulse, { toValue: 1, duration: 1000, useNativeDriver: true }),
@@ -129,7 +133,9 @@ export default function HomeScreen() {
 
   return (
     <View style={s.container}>
-      <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
+      <ImageBackground source={BG_STARS} style={StyleSheet.absoluteFillObject} resizeMode="cover">
+        <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(21, 6, 41, 0.55)' }} />
+      </ImageBackground>
       <FloatingParticles />
 
       {/* Header */}
@@ -142,6 +148,9 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
         <View style={s.headerRight}>
+          <TouchableOpacity style={s.avatarBtn} onPress={() => router.push('/profile')}>
+            <Image source={getAvatarEmoji(selectedAvatar)} style={{ width: 42, height: 42, borderRadius: 21 }} />
+          </TouchableOpacity>
           <TouchableOpacity style={s.settingsBtn} onPress={() => router.push('/settings')}>
             <MaterialIcons name="settings" size={22} color={COLORS.onSurfaceVariant} />
           </TouchableOpacity>
@@ -152,18 +161,17 @@ export default function HomeScreen() {
       <Animated.View style={[s.main, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
 
         {/* Logo */}
-        <Text style={s.logoMain}>Tılsım</Text>
-        <Text style={s.logoSub}>{t.solitaire}</Text>
 
         {/* Owl */}
-        <Animated.View style={[s.owlWrap, { transform: [{ translateY: owlBounce }] }]}>
-          <Image source={OWL_IMAGE} style={s.owlImage} />
-        </Animated.View>
+        <View style={s.owlWrap}>
+              <Animated.Image source={HALO_IMG} style={[s.owlImage, { position: 'absolute', transform: [{ rotate: owlBounce.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] }]} />
+              <Image source={TEXT_IMG} style={s.owlImage} />
+            </View>
 
         {/* CTA Button — Klasik Mod */}
         <TouchableOpacity style={s.ctaOuter} activeOpacity={0.85} onPress={() => router.push({ pathname: '/game', params: { level: currentLevel } })}>
           <Animated.View style={[s.ctaGlow, { opacity: glowOpacity }]} />
-          <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.ctaBtn}>
+          <LinearGradient colors={['#5B21B6', '#4DD0FF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.ctaBtn}>
             <Text style={s.ctaTitle}>{t.level} {currentLevel}</Text>
             <Text style={s.ctaSub}>{t.adventure}</Text>
           </LinearGradient>
@@ -174,8 +182,8 @@ export default function HomeScreen() {
           <TouchableOpacity style={[s.levelSelectBtn, { borderColor: '#FF7043', borderWidth: 1.5 }]} activeOpacity={0.7}
             onPress={() => router.push({ pathname: '/game', params: { level: currentLevel, timed: '1' } })}>
             <MaterialIcons name="timer" size={20} color="#FF7043" />
-            <Text style={s.levelSelectText}>{t.timedMode}</Text>
-            <MaterialIcons name="chevron-right" size={20} color={COLORS.onSurfaceVariant} />
+            <Text style={[s.levelSelectText, { flex: 1 }]}>{t.timedMode}</Text>
+          <MaterialIcons name="chevron-right" size={20} color={COLORS.onSurfaceVariant} />
           </TouchableOpacity>
         ) : (
           <View style={[s.levelSelectBtn, { opacity: 0.4 }]}>
@@ -193,8 +201,8 @@ export default function HomeScreen() {
             onPress={() => router.push('/daily')}
           >
             <Text style={{ fontSize: 18 }}>📅</Text>
-            <Text style={s.levelSelectText}>{t.dailyChallengeHome} {dailyDone ? '✅' : ''}</Text>
-            <MaterialIcons name="chevron-right" size={20} color={COLORS.onSurfaceVariant} />
+            <Text style={[s.levelSelectText, { flex: 1 }]}>{t.dailyChallengeHome} {dailyDone ? '✅' : ''}</Text>
+          <MaterialIcons name="chevron-right" size={20} color={COLORS.onSurfaceVariant} />
           </TouchableOpacity>
         ) : (
           <View style={[s.levelSelectBtn, { opacity: 0.4 }]}>
@@ -207,21 +215,21 @@ export default function HomeScreen() {
         {/* Level select button */}
         <TouchableOpacity style={s.levelSelectBtn} activeOpacity={0.7} onPress={() => router.push('/levels')}>
           <MaterialIcons name="grid-view" size={20} color={COLORS.secondary} />
-          <Text style={s.levelSelectText}>{t.selectLevel}</Text>
+          <Text style={[s.levelSelectText, { flex: 1 }]}>{t.selectLevel}</Text>
           <MaterialIcons name="chevron-right" size={20} color={COLORS.onSurfaceVariant} />
         </TouchableOpacity>
 
         {/* Collection album */}
         <TouchableOpacity style={s.levelSelectBtn} activeOpacity={0.7} onPress={() => router.push('/collection')}>
           <MaterialIcons name="collections-bookmark" size={20} color={COLORS.primary} />
-          <Text style={s.levelSelectText}>{t.collectionAlbum}</Text>
+          <Text style={[s.levelSelectText, { flex: 1 }]}>{t.collectionAlbum}</Text>
           <MaterialIcons name="chevron-right" size={20} color={COLORS.onSurfaceVariant} />
         </TouchableOpacity>
 
         {/* Weekly Tournament */}
         <TouchableOpacity style={[s.levelSelectBtn, { borderColor: COLORS.coin, borderWidth: 1 }]} activeOpacity={0.7} onPress={() => router.push('/tournament')}>
           <MaterialIcons name="emoji-events" size={20} color={COLORS.coin} />
-          <Text style={s.levelSelectText}>{t.weeklyTournament}</Text>
+          <Text style={[s.levelSelectText, { flex: 1 }]}>{t.weeklyTournament}</Text>
           <MaterialIcons name="chevron-right" size={20} color={COLORS.onSurfaceVariant} />
         </TouchableOpacity>
 
@@ -296,6 +304,13 @@ const s = StyleSheet.create({
   headerAvatar: { width: 36, height: 36, borderRadius: 18 },
   headerTitle: { fontFamily: FONTS.headlineBlack, fontSize: 16, color: '#fff', fontStyle: 'italic' },
   settingsBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.panelBg, alignItems: 'center', justifyContent: 'center' },
+  avatarBtn: { 
+    width: 46, height: 46, borderRadius: 23, 
+    backgroundColor: 'rgba(255,138,167,0.15)', 
+    alignItems: 'center', justifyContent: 'center', 
+    borderWidth: 2.5, borderColor: COLORS.primary,
+    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 12, elevation: 8,
+  },
   coinBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: COLORS.panelBg, paddingHorizontal: 14, paddingVertical: 6,
@@ -328,10 +343,10 @@ const s = StyleSheet.create({
     borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: 'rgba(255,255,255,0.1)',
   },
 
-  owlWrap: { width: SW * 0.6, height: SW * 0.35, marginBottom: 16 },
+  owlWrap: { width: SW * 0.62, height: SW * 0.62, marginTop: -50, marginBottom: 0, alignSelf: 'center' },
   owlImage: { width: '100%', height: '100%', resizeMode: 'contain' },
 
-  ctaOuter: { width: '100%', maxWidth: 340, marginBottom: 16 },
+  ctaOuter: { width: '100%', maxWidth: 340, marginTop: 30, marginBottom: 16 },
   ctaGlow: {
     position: 'absolute', top: -4, left: -4, right: -4, bottom: -4,
     borderRadius: SIZES.radiusFull, backgroundColor: COLORS.primary,
@@ -341,15 +356,16 @@ const s = StyleSheet.create({
     borderRadius: SIZES.radiusFull,
     shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.7, shadowRadius: 20, elevation: 12,
   },
-  ctaTitle: { fontFamily: FONTS.headlineBlack, fontSize: 26, color: '#fff', letterSpacing: 2 },
-  ctaSub: { fontFamily: FONTS.bodyMedium, fontSize: 11, color: 'rgba(255,255,255,0.7)', letterSpacing: 2, marginTop: 2 },
+  ctaTitle: { fontFamily: FONTS.headlineBlack, fontSize: 12, color: '#fff', letterSpacing: 2 },
+  ctaSub: { fontFamily: FONTS.bodyMedium, fontSize: 9, color: 'rgba(255,255,255,0.7)', letterSpacing: 2, marginTop: 2 },
 
   levelSelectBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    width: '100%', maxWidth: 340, paddingVertical: 12, marginBottom: 12,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: 14,
+    width: '100%', maxWidth: 340, paddingVertical: 14, paddingHorizontal: 20, marginBottom: 12,
     backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 16,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
     shadowColor: '#9B7DFF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.15, shadowRadius: 10,
   },
+  levelSelectTextWrap: { flex: 1 },
   levelSelectText: { fontFamily: FONTS.headline, fontSize: 14, color: COLORS.onSurface },
 });

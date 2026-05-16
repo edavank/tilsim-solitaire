@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, ActivityIndicator , ImageBackground} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SIZES  } from '../src/constants/theme';
@@ -8,6 +8,8 @@ import { loadProgress } from '../src/utils/storage';
 import { useLang } from '../src/context/LanguageContext';
 import { router } from 'expo-router';
 import { fetchLeaderboard, getUserRank } from '../src/utils/leaderboardService';
+
+const BG_STARS = require('../assets/bg-stars.webp');
 
 
 const LB_TEXT = {
@@ -84,7 +86,9 @@ export default function LeaderboardScreen() {
 
   return (
     <View style={s.container}>
-      <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
+      <ImageBackground source={BG_STARS} style={StyleSheet.absoluteFillObject} resizeMode="cover">
+        <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(21, 6, 41, 0.78)' }} />
+      </ImageBackground>
 
       {/* Header */}
       <View style={s.header}>

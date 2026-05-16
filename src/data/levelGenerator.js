@@ -74,15 +74,17 @@ export function generateLevels(startId, count, language = 'tr', initialBlockedCa
     // Kategoriler: 3-8 arası, bölüme göre değişen çeşitlilik
     const baseNumCats = 3 + Math.floor(tier / 3);
     const variation = [0, 1, -1, 2, 0, -1, 1, 0, 2, 1][id % 10]; // Her bölüm farklı
-    const numCats = Math.min(Math.max((isBoss ? baseNumCats + 2 : baseNumCats + variation), 3), 8);
+    const numCats = Math.min(Math.max((isBoss ? baseNumCats + 2 : baseNumCats + variation), 3), 6);
     
     // Kelime/kategori BASE (varyasyon categories map'te uygulanır)
     const wordsPerCat = Math.min((isBoss ? 4 : 3) + Math.floor(tier / 3), 6);
     
-    // KRİTİK: Slot sayısı < kategori sayısı (zorluk burada!)
-    // tier arttıkça fark ARTAR (oyun zorlaşır)
-    const slotDeficit = isBoss ? (tier < 10 ? 2 : 3) : (tier < 5 ? 1 : 2);
-    const totalSlots = Math.min(Math.max(numCats - slotDeficit, 2), 5);
+    // v1.0.6 (test sonucu sonrası): Slot deficit kaldırıldı
+    // Solver 214 bölümde 3-5x recycle gerekti, bu çok zor
+    // Yeni kural: slot >= numCats (her kategori için 1 slot, max 6)
+    // Boss seviyelerde 1 deficit (challenge için)
+    const slotDeficit = isBoss ? 1 : 0;
+    const totalSlots = Math.min(Math.max(numCats - slotDeficit, 3), 6);
     // Kilitli slotlar — HER ZAMAN en az 2 açık slot kalmalı
     const rawLocked = isBoss ? 2 : (tier < 5 ? 0 : tier < 10 ? 1 : 2);
     const lockedSlots = Math.min(rawLocked, totalSlots - 2);
@@ -170,14 +172,18 @@ export function generateLevels(startId, count, language = 'tr', initialBlockedCa
     }
 
     // Hamle bütçesi: kategori > slot olduğu için daha fazla hamle gerekli
-    // Ama çok fazla vermemeliyiz — sıkı ama adil
+    // v1.0.6: bütçe %17 artırıldı, buffer 2 katına çıktı (testçi geri bildirimi)
     const slotRecycleOverhead = Math.max(0, numCats - totalSlots) * wordsPerCat;
-    const columnMoveBudget = Math.floor(totalCards * 1.2);
-    const buffer = Math.max(6 - Math.floor(tier / 4), 1);
+    const columnMoveBudget = Math.floor(totalCards * 1.4);
+    const buffer = Math.max(12 - Math.floor(tier / 5), 4);
     const moves = totalCards + columnMoveBudget + slotRecycleOverhead + buffer;
 
     levels.push({
-      id, moves, hints, undos: 0, categories,
+      id, moves, 
+      // v1.0.6: Boss'a da 1 hint + 1 undo (recycle gerekiyor, yardım lazım)
+      hints: isBoss ? 1 : Math.max(hints, 1),
+      undos: 1,
+      categories,
       totalSlots: Math.max(totalSlots, 2), lockedSlots: Math.min(lockedSlots, totalSlots - 1),
       columns,
     });

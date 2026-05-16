@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView, Image, Alert, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView, Image, Alert, Linking , ImageBackground} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -10,6 +10,8 @@ import { setVibrationEnabled, setSoundEnabled, setBgmEnabled, getBgmEnabled } fr
 import { useLang } from '../src/context/LanguageContext';
 import { useAuth } from '../src/context/AuthContext';
 import Constants from 'expo-constants';
+
+const BG_STARS = require('../assets/bg-stars.webp');
 
 const APP_VERSION = Constants?.expoConfig?.version || '1.0.0';
 
@@ -35,9 +37,16 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     loadSettings().then((s) => {
-      setVibration(s.vibration !== false);
-      setSound(s.sound !== false);
-      setBgm(s.bgm !== false);
+      const v = s.vibration !== false;
+      const so = s.sound !== false;
+      const bg = s.bgm !== false;
+      setVibration(v);
+      setSound(so);
+      setBgm(bg);
+      // Engine'e de uygula (UI state senkronize, motor de gerçekten ayara uysun)
+      setVibrationEnabled(v);
+      setSoundEnabled(so);
+      setBgmEnabled(bg);
     }).catch(() => {});
     loadProgress().then((p) => setCoins(p.coins)).catch(() => {});
   }, []);
@@ -54,9 +63,9 @@ export default function SettingsScreen() {
     saveSettings({ sound, vibration: v, bgm });
   };
 
-  const toggleBgm = (v) => {
+  const toggleBgm = async (v) => {
     setBgm(v);
-    setBgmEnabled(v);
+    await setBgmEnabled(v);
     saveSettings({ sound, vibration, bgm: v });
   };
 
@@ -77,7 +86,9 @@ export default function SettingsScreen() {
 
   return (
     <View style={s.container}>
-      <LinearGradient colors={[COLORS.gradientTop, COLORS.gradientBottom]} style={StyleSheet.absoluteFillObject} />
+      <ImageBackground source={BG_STARS} style={StyleSheet.absoluteFillObject} resizeMode="cover">
+        <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(21, 6, 41, 0.78)' }} />
+      </ImageBackground>
 
       {/* Header */}
       <View style={s.header}>
