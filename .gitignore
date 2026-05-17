@@ -49,3 +49,9 @@ credentials.json
 build*.apk
 build.log
 *.bak
+
+# Asset backups - never commit
+assets/.bak-*
+assets/*-old-*
+assets/*.bak
+assets/*.rgb-orig*
