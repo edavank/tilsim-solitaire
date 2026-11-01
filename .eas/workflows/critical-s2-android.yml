@@ -16,4 +16,6 @@ jobs:
     hooks:
       after_install_node_modules:
         - name: Check shared critical behavior
-          run: node --test scripts/test-critical.cjs
+          run: |
+            node --test scripts/test-critical.cjs scripts/test-ad-recovery.cjs
+            node --test scripts/test-update-recovery.cjs

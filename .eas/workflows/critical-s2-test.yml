@@ -17,7 +17,8 @@ jobs:
       after_install_node_modules:
         - name: Check critical behavior before building
           run: |
-            node --test scripts/test-critical.cjs
+            node --test scripts/test-critical.cjs scripts/test-ad-recovery.cjs
+            node --test scripts/test-update-recovery.cjs
             node scripts/verify-screen.cjs
   upload_testflight:
     name: Upload to TestFlight only

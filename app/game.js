@@ -1164,7 +1164,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         setAdLoadingTool(loading ? 'undo' : null);
       });
       setAdLoadingTool(null);
-      if (!result.success) { setToolModal(null); setFeedback(t.adFailed || 'Reklam yuklenemedi'); return; }
+      if (!result.success) { setToolModal(null); if (!result.handled && result.reason !== 'dismissed') setFeedback(t.adFailed || 'Reklam yüklenemedi'); return; }
     }
     const newCredits = { ...toolCredits, undo: toolCredits.undo + 1 };
     setToolCredits(newCredits);
@@ -1207,7 +1207,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         setAdLoadingTool(loading ? 'delete' : null);
       });
       setAdLoadingTool(null);
-      if (!result.success) { setToolModal(null); setFeedback(t.adFailed || 'Reklam yuklenemedi'); return; }
+      if (!result.success) { setToolModal(null); if (!result.handled && result.reason !== 'dismissed') setFeedback(t.adFailed || 'Reklam yüklenemedi'); return; }
     }
     const newCredits = { ...toolCredits, delete: toolCredits.delete + 1 };
     setToolCredits(newCredits);
@@ -1255,7 +1255,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         setAdLoadingTool(loading ? 'joker' : null);
       });
       setAdLoadingTool(null);
-      if (!result.success) { setToolModal(null); setFeedback(t.adFailed || 'Reklam yuklenemedi'); return; }
+      if (!result.success) { setToolModal(null); if (!result.handled && result.reason !== 'dismissed') setFeedback(t.adFailed || 'Reklam yüklenemedi'); return; }
     }
     const newCredits = { ...toolCredits, joker: toolCredits.joker + 1 };
     setToolCredits(newCredits);
@@ -1339,7 +1339,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         setAdLoadingTool(loading ? 'hint' : null);
       });
       setAdLoadingTool(null);
-      if (!result.success) { setToolModal(null); setFeedback(t.adFailed || 'Reklam yuklenemedi'); return; }
+      if (!result.success) { setToolModal(null); if (!result.handled && result.reason !== 'dismissed') setFeedback(t.adFailed || 'Reklam yüklenemedi'); return; }
       setFeedback(t.hintEarned);
     }
     setToolModal(null);
@@ -1406,7 +1406,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
     });
     setAdLoadingTool(null);
     if (!result.success) {
-      setFeedback(t.adFailed || 'Reklam yuklenemedi');
+      if (!result.handled && result.reason !== 'dismissed') setFeedback(t.adFailed || 'Reklam yüklenemedi');
       return;
     }
     setGs((p) => ({ ...p, moves: p.moves + 20, extraMovesGranted: (p.extraMovesGranted || 0) + 20, isFailed: false }));
@@ -1560,7 +1560,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         setAdLoadingTool(loading ? 'shuffle' : null);
       });
       setAdLoadingTool(null);
-      if (!result.success) { setToolModal(null); setFeedback(t.adFailed || 'Reklam yuklenemedi'); return; }
+      if (!result.success) { setToolModal(null); if (!result.handled && result.reason !== 'dismissed') setFeedback(t.adFailed || 'Reklam yüklenemedi'); return; }
     }
     const newCredits = { ...toolCredits, shuffle: toolCredits.shuffle + 1 };
     setToolCredits(newCredits);
@@ -1656,7 +1656,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       setFeedback(t.unlocked);
       playSound('correct');
     } else {
-      setFeedback(t.adFailed || 'Reklam yuklenemedi');
+      if (!result.handled && result.reason !== 'dismissed') setFeedback(t.adFailed || 'Reklam yüklenemedi');
     }
   }, [adLoadingTool, t]);
 

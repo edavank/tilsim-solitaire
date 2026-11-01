@@ -1,7 +1,8 @@
 // AdMob entegrasyonu — react-native-google-mobile-ads
 // Expo Go'da güvenli: modül yoksa stub olarak çalışır
 
-import { Platform } from 'react-native';
+import { Platform, AppState, Alert } from 'react-native';
+import { loadSettings } from './storage';
 
 const AD_IDS = {
   test: {
@@ -80,7 +81,7 @@ export function getAdDiagnostics() {
     };
   } catch (e) {}
   return {
-    revision: 'ads-20261101-r2',
+    revision: 'ads-20261101-r3',
     ...update,
     adsReady,
     rewardedLoaded,
@@ -132,19 +133,59 @@ async function requestTrackingPermission() {
   }
 }
 
-export async function initAds() {
-  if (!loadAdModules()) return;
-  try {
-    await requestTrackingPermission();
-    await MobileAds().initialize();
-    adsReady = true;
-    console.log('[Ads] AdMob hazir');
-    preloadInterstitial();
-    preloadRewarded();
-    preloadRewardedInterstitial();
-  } catch (e) {
-    console.log('[Ads] init hatasi:', e.message);
-  }
+let initPromise = null;
+let initRetryTimer = null;
+let lifecycleSubscription = null;
+let appState = AppState.currentState || 'active';
+const isActive = () => appState === 'active';
+
+function installAdLifecycle() {
+  if (lifecycleSubscription) return;
+  lifecycleSubscription = AppState.addEventListener('change', (state) => {
+    const previous = appState;
+    appState = state;
+    // iOS briefly becomes inactive while opening native consent/advertising UI.
+    if (state === 'background') {
+      clearTimeout(rewardedRetryTimer);
+      clearTimeout(initRetryTimer);
+      if (rewardedLoading) resetRewarded();
+      finishPending({ success: false, reward: null, reason: 'background', handled: true });
+      cancelRetryPrompt?.();
+    } else if (state === 'active' && previous !== 'active') {
+      if (!adsReady) initAds();
+      else { preloadRewarded(); drainPending(); }
+    }
+  });
+}
+
+export function initAds() {
+  installAdLifecycle();
+  if (adsReady) { preloadRewarded(); return Promise.resolve(); }
+  if (initPromise) return initPromise;
+  if (!loadAdModules()) return Promise.resolve();
+  clearTimeout(initRetryTimer);
+  initPromise = (async () => {
+    let timer;
+    try {
+      await Promise.race([
+        (async () => { await requestTrackingPermission(); await MobileAds().initialize(); })(),
+        new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error('Ad initialization timed out')), 20000);
+        }),
+      ]);
+      adsReady = true;
+      preloadInterstitial();
+      preloadRewarded();
+      preloadRewardedInterstitial();
+    } catch (error) {
+      recordRewardedError(error);
+      if (isActive()) initRetryTimer = setTimeout(initAds, 10000);
+    } finally {
+      clearTimeout(timer);
+      initPromise = null;
+    }
+  })();
+  return initPromise;
 }
 
 let interstitialAd = null;
@@ -188,192 +229,194 @@ export async function showInterstitial() {
 let rewardedAd = null;
 let rewardedLoaded = false;
 let rewardedLoading = false;
+let rewardedShowing = false;
+let rewardedLoadedAt = 0;
 let rewardedLoadAttempts = 0;
-const REWARDED_MAX_RETRIES = 3;
+let rewardedRetryTimer = null;
+let rewardedLoadTimer = null;
 let preloadListenerUnsubs = [];
-
 let pendingShowRequest = null;
+let rewardFlowBusy = false;
+let cancelRetryPrompt = null;
+const REWARDED_TTL = 50 * 60 * 1000;
 
 function cleanupPreloadListeners() {
-  preloadListenerUnsubs.forEach((unsub) => {
-    try { unsub?.(); } catch (e) {}
-  });
+  preloadListenerUnsubs.forEach((unsub) => { try { unsub?.(); } catch (e) {} });
   preloadListenerUnsubs = [];
+  clearTimeout(rewardedLoadTimer);
+}
+
+function resetRewarded() {
+  cleanupPreloadListeners();
+  rewardedAd = null;
+  rewardedLoaded = false;
+  rewardedLoading = false;
+}
+
+function scheduleRewarded(delay) {
+  clearTimeout(rewardedRetryTimer);
+  if (isActive()) rewardedRetryTimer = setTimeout(preloadRewarded, delay);
+}
+
+function finishPending(result) {
+  const request = pendingShowRequest;
+  if (!request) return;
+  pendingShowRequest = null;
+  clearTimeout(request.timeoutId);
+  try { request.onLoadingChange?.(false); } catch (e) {}
+  request.resolve(result);
 }
 
 function attachShowListenersAndShow(resolve, onLoadingChange) {
-  if (!rewardedAd) {
+  const ad = rewardedAd;
+  if (!ad || rewardedShowing || !isActive()) {
     try { onLoadingChange?.(false); } catch (e) {}
-    resolve({ success: false, reward: null });
+    resolve({ success: false, reward: null, reason: 'unavailable' });
     return;
   }
-
+  rewardedShowing = true;
+  rewardedLoaded = false;
   let earned = false;
   let rewardData = { amount: 1 };
-  let unsubs = [];
-
-  const cleanup = () => {
-    unsubs.forEach((u) => { try { u?.(); } catch (e) {} });
-    unsubs = [];
+  let settled = false;
+  const unsubs = [];
+  const finish = (error) => {
+    if (settled) return;
+    settled = true;
+    unsubs.forEach((unsub) => { try { unsub?.(); } catch (e) {} });
+    rewardedShowing = false;
+    resetRewarded();
+    scheduleRewarded(1000);
+    try { onLoadingChange?.(false); } catch (e) {}
+    if (error) recordRewardedError(error);
+    resolve({ success: earned, reward: earned ? rewardData : null,
+      reason: earned ? 'earned' : error ? 'unavailable' : 'dismissed' });
   };
-
-  const earnUnsub = rewardedAd.addAdEventListener(
-    RewardedAdEventType.EARNED_REWARD,
-    (reward) => {
+  try {
+    unsubs.push(ad.addAdEventListener(RewardedAdEventType.EARNED_REWARD, (reward) => {
       earned = true;
       rewardData = { amount: reward.amount || 1 };
-    }
-  );
-  unsubs.push(earnUnsub);
-
-  const closeUnsub = rewardedAd.addAdEventListener(AdEventType.CLOSED, () => {
-    cleanup();
-    rewardedLoaded = false;
-    rewardedAd = null;
-    setTimeout(preloadRewarded, 1000);
+    }));
+    unsubs.push(ad.addAdEventListener(AdEventType.CLOSED, () => finish()));
+    unsubs.push(ad.addAdEventListener(AdEventType.ERROR, finish));
     try { onLoadingChange?.(false); } catch (e) {}
-    resolve({ success: earned, reward: earned ? rewardData : null });
-  });
-  unsubs.push(closeUnsub);
+    Promise.resolve(ad.show()).catch(finish);
+  } catch (error) { finish(error); }
+}
 
-  const errUnsub = rewardedAd.addAdEventListener(AdEventType.ERROR, (error) => {
-    recordRewardedError(error);
-    console.log('[Ads] rewarded show hatasi:', error.message);
-    cleanup();
-    rewardedLoaded = false;
-    rewardedAd = null;
-    setTimeout(preloadRewarded, 1000);
-    try { onLoadingChange?.(false); } catch (e) {}
-    resolve({ success: false, reward: null });
-  });
-  unsubs.push(errUnsub);
-
-  try {
-    try { onLoadingChange?.(false); } catch (e) {}
-    Promise.resolve(rewardedAd.show()).catch((error) => {
-      recordRewardedError(error);
-      console.log('[Ads] rewarded show promise hatasi:', error.message);
-      cleanup();
-      rewardedLoaded = false;
-      rewardedAd = null;
-      setTimeout(preloadRewarded, 1000);
-      try { onLoadingChange?.(false); } catch (e) {}
-      resolve({ success: false, reward: null });
-    });
-  } catch (e) {
-    recordRewardedError(e);
-    console.log('[Ads] rewarded show cagri hatasi:', e.message);
-    cleanup();
-    rewardedLoaded = false;
-    rewardedAd = null;
-    setTimeout(preloadRewarded, 1000);
-    try { onLoadingChange?.(false); } catch (err) {}  // BUG-2 FIX: show patlarsa overlay kapansın
-    resolve({ success: false, reward: null });
-  }
+function drainPending() {
+  if (!pendingShowRequest || !rewardedLoaded || !isActive()) return;
+  const request = pendingShowRequest;
+  pendingShowRequest = null;
+  clearTimeout(request.timeoutId);
+  attachShowListenersAndShow(request.resolve, request.onLoadingChange);
 }
 
 function preloadRewarded() {
-  if (!adsReady || !RewardedAd) return;
+  if (!adsReady || !RewardedAd || !isActive() || rewardedShowing) return;
+  if (rewardedLoaded && Date.now() - rewardedLoadedAt >= REWARDED_TTL) resetRewarded();
   if (rewardedLoading || rewardedLoaded) return;
-
+  clearTimeout(rewardedRetryTimer);
+  resetRewarded();
+  rewardedLoading = true;
+  let ad = null;
+  const fail = (error) => {
+    // Ignore events/promises from a discarded load or from the presentation phase.
+    if (rewardedAd !== ad || !rewardedLoading) return;
+    recordRewardedError(error);
+    resetRewarded();
+    rewardedLoadAttempts++;
+    scheduleRewarded([5000, 10000, 30000, 60000][Math.min(rewardedLoadAttempts - 1, 3)]);
+    // A waiting user stays within the original 15s deadline while retrying.
+  };
   try {
-    rewardedLoading = true;
-    cleanupPreloadListeners();
-
-    rewardedAd = RewardedAd.createForAdRequest(ids.rewarded, {
-      requestNonPersonalizedAdsOnly: false,
-    });
-
-    const loadUnsub = rewardedAd.addAdEventListener(RewardedAdEventType.LOADED, () => {
+    ad = RewardedAd.createForAdRequest(ids.rewarded, { requestNonPersonalizedAdsOnly: false });
+    rewardedAd = ad;
+    preloadListenerUnsubs.push(ad.addAdEventListener(RewardedAdEventType.LOADED, () => {
+      if (rewardedAd !== ad || !rewardedLoading) return;
+      cleanupPreloadListeners();
       rewardedLoaded = true;
       rewardedLoading = false;
+      rewardedLoadedAt = Date.now();
       rewardedLoadAttempts = 0;
       lastRewardedError = null;
-      console.log('[Ads] rewarded preload OK');
-      cleanupPreloadListeners();
-
-      if (pendingShowRequest) {
-        const req = pendingShowRequest;
-        pendingShowRequest = null;
-        if (req.timeoutId) clearTimeout(req.timeoutId);
-        attachShowListenersAndShow(req.resolve, req.onLoadingChange);
-      }
-    });
-    preloadListenerUnsubs.push(loadUnsub);
-
-    const errorUnsub = rewardedAd.addAdEventListener(AdEventType.ERROR, (error) => {
-      recordRewardedError(error);
-      console.log('[Ads] rewarded yukleme hatasi:', error.message);
-      rewardedLoaded = false;
-      rewardedLoading = false;
-      rewardedLoadAttempts++;
-      cleanupPreloadListeners();
-      rewardedAd = null;
-
-      if (pendingShowRequest) {
-        const req = pendingShowRequest;
-        pendingShowRequest = null;
-        if (req.timeoutId) clearTimeout(req.timeoutId);
-        try { req.onLoadingChange?.(false); } catch (e) {}
-        req.resolve({ success: false, reward: null });
-      }
-
-      if (rewardedLoadAttempts < REWARDED_MAX_RETRIES) {
-        setTimeout(preloadRewarded, 5000 * rewardedLoadAttempts);
-      } else {
-        setTimeout(() => { rewardedLoadAttempts = 0; preloadRewarded(); }, 60000);
-      }
-    });
-    preloadListenerUnsubs.push(errorUnsub);
-
-    rewardedAd.load();
-  } catch (e) {
-    recordRewardedError(e);
-    console.log('[Ads] preloadRewarded hatasi:', e.message);
-    rewardedLoading = false;
-  }
+      drainPending();
+    }));
+    preloadListenerUnsubs.push(ad.addAdEventListener(AdEventType.ERROR, fail));
+    rewardedLoadTimer = setTimeout(() => fail({ code: 'load-timeout', message: 'Ad load timed out' }), 20000);
+    Promise.resolve(ad.load()).catch(fail);
+  } catch (error) { fail(error); }
 }
 
-export function showRewarded(onLoadingChange) {
+function requestRewarded(onLoadingChange) {
   return new Promise((resolve) => {
-    if (!adsReady || !RewardedAd) {
-      if (__DEV__) {
-        try { onLoadingChange?.(false); } catch (e) {}
-        resolve({ success: true, reward: { amount: 1 } });
-      } else {
-        try { onLoadingChange?.(false); } catch (e) {}
-        resolve({ success: false, reward: null });
-      }
+    if (__DEV__ && !RewardedAd) {
+      resolve({ success: true, reward: { amount: 1 } });
       return;
     }
-
-    if (pendingShowRequest) {
-      console.log('[Ads] baska bir reklam istegi zaten bekliyor');
-      try { onLoadingChange?.(false); } catch (e) {}
-      resolve({ success: false, reward: null });
+    if (!isActive()) {
+      resolve({ success: false, reward: null, reason: 'background', handled: true });
       return;
     }
-
+    if (rewardedLoaded && Date.now() - rewardedLoadedAt >= REWARDED_TTL) resetRewarded();
     if (rewardedLoaded && rewardedAd) {
       attachShowListenersAndShow(resolve, onLoadingChange);
       return;
     }
-
     try { onLoadingChange?.(true); } catch (e) {}
-
-    const timeoutId = setTimeout(() => {
-      console.log('[Ads] rewarded timeout — 15s boyunca yuklenmedi');
-      pendingShowRequest = null;
-      try { onLoadingChange?.(false); } catch (e) {}
-      resolve({ success: false, reward: null });
-    }, 15000);
-
-    pendingShowRequest = { resolve, onLoadingChange, timeoutId };
-
-    if (!rewardedLoading) {
-      preloadRewarded();
-    }
+    pendingShowRequest = { resolve, onLoadingChange, timeoutId: setTimeout(() => {
+      finishPending({ success: false, reward: null, reason: 'unavailable' });
+    }, 15000) };
+    if (!adsReady) initAds();
+    else preloadRewarded();
   });
+}
+
+const RETRY_TEXT = {
+  tr: ['Reklam şu an hazır değil', 'Reklam arka planda yeniden hazırlanıyor. Oyundan çıkmadan tekrar deneyebilirsin.', 'Tekrar dene', 'Vazgeç'],
+  en: ['Ad not ready yet', 'We are preparing another ad. You can retry without leaving the game.', 'Try again', 'Cancel'],
+  de: ['Werbung noch nicht bereit', 'Eine neue Werbung wird vorbereitet. Du kannst es erneut versuchen, ohne das Spiel zu verlassen.', 'Erneut versuchen', 'Abbrechen'],
+  fr: ['Publicité pas encore prête', 'Une autre publicité est en préparation. Réessayez sans quitter le jeu.', 'Réessayer', 'Annuler'],
+  es: ['Anuncio aún no disponible', 'Estamos preparando otro anuncio. Puedes reintentar sin salir del juego.', 'Reintentar', 'Cancelar'],
+  ar: ['الإعلان غير جاهز بعد', 'نجهّز إعلانًا آخر. يمكنك المحاولة مجددًا دون مغادرة اللعبة.', 'حاول مجددًا', 'إلغاء'],
+  ru: ['Реклама пока не готова', 'Готовим другую рекламу. Попробуйте ещё раз, не выходя из игры.', 'Повторить', 'Отмена'],
+};
+
+async function askRetry() {
+  let lang = 'tr';
+  try { lang = (await loadSettings()).language || 'tr'; } catch (e) {}
+  if (!isActive()) return false;
+  const text = RETRY_TEXT[lang] || RETRY_TEXT.en;
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (retry) => {
+      if (done) return;
+      done = true;
+      cancelRetryPrompt = null;
+      resolve(retry && isActive());
+    };
+    cancelRetryPrompt = () => finish(false);
+    Alert.alert(text[0], text[1], [
+      { text: text[3], style: 'cancel', onPress: () => finish(false) },
+      { text: text[2], onPress: () => finish(true) },
+    ], { cancelable: true, onDismiss: () => finish(false) });
+  });
+}
+
+export async function showRewarded(onLoadingChange) {
+  // Covers native presentation, load waits and retry dialog, not just preloading.
+  if (rewardFlowBusy) return { success: false, reward: null, reason: 'busy', handled: true };
+  rewardFlowBusy = true;
+  try {
+    while (true) {
+      const result = await requestRewarded(onLoadingChange);
+      if (result.success || result.reason !== 'unavailable') return result;
+      if (!await askRetry()) return { ...result, handled: true };
+    }
+  } finally {
+    rewardFlowBusy = false;
+    try { onLoadingChange?.(false); } catch (e) {}
+  }
 }
 
 export function getBannerComponent() {
@@ -385,8 +428,12 @@ export function isAdsAvailable() {
   return adsReady;
 }
 
+export function isAdFlowActive() {
+  return rewardFlowBusy || rewardedShowing;
+}
+
 export function isRewardedReady() {
-  return rewardedLoaded;
+  return rewardedLoaded && Date.now() - rewardedLoadedAt < REWARDED_TTL;
 }
 
 export function resetAdFrequency() {

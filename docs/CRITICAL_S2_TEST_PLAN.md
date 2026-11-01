@@ -30,3 +30,14 @@ Bu sürüm test içindir. Ayarlar'ın altında **S2 TEST** yazmalıdır. Güncel
 ## Yayın öncesi
 
 TestFlight erişimi, telefon kontrolü ve eşitleme sonucu doğrulanmadan production kanalına yayın yapılmaz. Beta test yayını, App Store'daki canlı sürümün yayınlanması değildir. Apple dış test grubu için beta incelemesi isteyebilir; bunun sonucu ayrıca doğrulanmalıdır.
+
+
+## R3: reklam toparlanması ve güncellemenin uygulanması
+
+- Android ve iOS aynı `ads-20261101-r3` kodunu kullanır. Başlatma hatası 10 saniye sonra yeniden denenir; yükleme hataları 5/10/30/60 saniyelik aralıklarla toparlanır. Yanıtsız bir yükleme 20 saniyede temizlenir.
+- Oyuncunun beklemesi deneme başına en fazla 15 saniyedir; ardından yerelleştirilmiş Tekrar dene / Vazgeç seçimi sunulur. Başarısızlık veya vazgeçme ödül vermez. Aynı reklam işlemi sırasında çift dokunma ikinci gösterim/ödül üretmez.
+- Arka plana geçildiğinde bekleyen gösterim iptal edilir. Geri dönüşte yalnızca ön yükleme yapılır; sonradan habersiz reklam açılmaz. 50 dakikalık reklam önbelleği yenilenir.
+- İndirilen güncelleme, başlangıçta Expo tarafından zaten indirilmiş olsa da ana sayfada gösterilir. Bölüm, ödeme, giriş ve reklam sırasında yeniden yükleme yapılmaz. Oyuncu Güncellemeyi Uygula düğmesiyle uygulamadan çıkmadan geçer; Sonra seçimi oturum boyunca korunur.
+- Yeni adayın uygulama sürümü 1.0.9, runtime sürümü appVersion politikasıyla 1.0.9 olur. Apple 1.0.8 test yüklemesini sürüm treni kapalı olduğu için reddetti. 1.0.8 üretim OTA kanalı bu değişiklikle yayımlanmaz.
+- 18 reklam davranış testi (iki platformun ayrı senaryoları), 4 güncelleme bileşeni testi ve önceki 26 kritik davranış testi yerel olarak geçiyor. Bunlar yerel/mocked testlerdir; fiziksel cihazda gerçek reklam talebi, uçak modundan dönüş ve TestFlight güncellemesi ayrıca kontrol edilmelidir.
+- Bilinen ayrı eksik: üretimdeki ödüllü geçiş reklamı birimleri hâlâ normal ödüllü reklam kimliklerini kullanıyor; R3 bu birimlerin AdMob yapılandırmasını değiştirmez.

@@ -81,7 +81,7 @@ export default function StoreScreen() {
             deficit: insufficientModal.booster.coinCost - next.coins,
           });
         }
-      } else {
+      } else if (!result?.handled && result?.reason !== 'dismissed') {
         Alert.alert(st.adFail);
       }
     } catch (e) {
@@ -99,7 +99,7 @@ export default function StoreScreen() {
         const next = await updateProgress((cur) => ({ coins: (cur.coins || 0) + 50 }), {kind:'reward',source:'ad',description:'Reklam ödülü'});
         setCoins(next.coins);
         Alert.alert(st.earned, st.earnedMsg);
-      } else {
+      } else if (!result?.handled && result?.reason !== 'dismissed') {
         Alert.alert(st.adFail);
       }
     } catch (e) {
