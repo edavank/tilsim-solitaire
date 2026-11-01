@@ -10,6 +10,7 @@ import { setVibrationEnabled, setSoundEnabled, setBgmEnabled, getBgmEnabled } fr
 import { useLang } from '../src/context/LanguageContext';
 import { useAuth } from '../src/context/AuthContext';
 import Constants from 'expo-constants';
+import { getAdDiagnostics } from '../src/utils/ads';
 
 const BG_STARS = require('../assets/bg-stars.webp');
 
@@ -226,7 +227,11 @@ export default function SettingsScreen() {
           <View style={s.footerBrand}>
             <Text style={s.footerName}>TILSIM SOLITAIRE</Text>
           </View>
-          <Text style={s.footerVersion}>VERSION V{APP_VERSION}</Text>
+          <Text
+            style={s.footerVersion}
+            onLongPress={() => Alert.alert('Destek / Support', JSON.stringify(getAdDiagnostics(), null, 2))}
+            accessibilityHint="Support information"
+          >VERSION V{APP_VERSION} · R2</Text>
         </View>
 
         <View style={{ height: 120 }} />

@@ -2,6 +2,8 @@ name: Rewarded ad hotfix - Android and iOS
 
 on:
   workflow_dispatch: {}
+  push:
+    branches: ['release/rewarded-ad-hotfix-1-0-8']
 
 jobs:
   publish_hotfix:
