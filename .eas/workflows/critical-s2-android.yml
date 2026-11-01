@@ -2,8 +2,6 @@ name: Tilsim S2 - Android compatibility build
 
 on:
   workflow_dispatch: {}
-  push:
-    branches: ['release/critical-s2-android']
 
 jobs:
   build_android:
@@ -17,5 +15,4 @@ jobs:
       after_install_node_modules:
         - name: Check shared critical behavior
           run: |
-            node --test scripts/test-critical.cjs scripts/test-ad-recovery.cjs
-            node --test scripts/test-update-recovery.cjs
+            node --test scripts/test-*.cjs

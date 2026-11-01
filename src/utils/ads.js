@@ -37,14 +37,9 @@ const AD_IDS = {
       ios: 'ca-app-pub-9511518953640494/3002870807',
       android: 'ca-app-pub-9511518953640494/8526660229',
     }),
-    // TODO: AdMob'da yeni Rewarded Interstitial ad unit oluştur ve ID'yi yapıştır
-    // İkisi de production rewarded ID'sine düşürdük (geçici fallback)
-    // YENİ AD UNIT İÇİN: https://apps.admob.com → Apps → Tılsım Solitaire iOS/Android
-    //   → Reklam Birimleri → Reklam Birimi Ekleyin → Ödüllü Geçiş
-    rewardedInterstitial: Platform.select({
-      ios: 'ca-app-pub-9511518953640494/3002870807',     // FIXME: gerçek ID gerek
-      android: 'ca-app-pub-9511518953640494/8526660229', // FIXME: gerçek ID gerek
-    }),
+    // No rewarded-interstitial units are configured. Never send a regular
+    // rewarded unit to the incompatible format or block the level transition.
+    rewardedInterstitial: null,
   },
 };
 
@@ -61,6 +56,15 @@ let RewardedAdEventType = null;
 
 let adsReady = false;
 let lastRewardedError = null;
+const availabilityListeners = new Set();
+export function subscribeAdAvailability(listener) {
+  availabilityListeners.add(listener);
+  listener(adsReady);
+  return () => availabilityListeners.delete(listener);
+}
+function notifyAdAvailability() {
+  for (const listener of availabilityListeners) { try { listener(adsReady); } catch (error) {} }
+}
 
 function recordRewardedError(error) {
   lastRewardedError = {
@@ -81,7 +85,7 @@ export function getAdDiagnostics() {
     };
   } catch (e) {}
   return {
-    revision: 'ads-20261101-r3',
+    revision: 'ads-20261101-r4-audit',
     ...update,
     adsReady,
     rewardedLoaded,
@@ -174,6 +178,7 @@ export function initAds() {
         }),
       ]);
       adsReady = true;
+      notifyAdAvailability();
       preloadInterstitial();
       preloadRewarded();
       preloadRewardedInterstitial();
@@ -405,7 +410,7 @@ async function askRetry() {
 
 export async function showRewarded(onLoadingChange) {
   // Covers native presentation, load waits and retry dialog, not just preloading.
-  if (rewardFlowBusy) return { success: false, reward: null, reason: 'busy', handled: true };
+  if (rewardFlowBusy || rewardedInterstitialShowing) return { success: false, reward: null, reason: 'busy', handled: true };
   rewardFlowBusy = true;
   try {
     while (true) {
@@ -429,7 +434,7 @@ export function isAdsAvailable() {
 }
 
 export function isAdFlowActive() {
-  return rewardFlowBusy || rewardedShowing;
+  return rewardFlowBusy || rewardedShowing || rewardedInterstitialShowing;
 }
 
 export function isRewardedReady() {
@@ -444,9 +449,10 @@ export function resetAdFrequency() {
 let rewardedInterstitialAd = null;
 let rewardedInterstitialLoaded = false;
 let rewardedInterstitialLoading = false;
+let rewardedInterstitialShowing = false;
 
 function preloadRewardedInterstitial() {
-  if (!adsReady || !RewardedInterstitialAd) return;
+  if (!adsReady || !RewardedInterstitialAd || !ids.rewardedInterstitial) return;
   if (rewardedInterstitialLoading || rewardedInterstitialLoaded) return;
   try {
     rewardedInterstitialLoading = true;
@@ -483,79 +489,36 @@ function preloadRewardedInterstitial() {
  * Süre: kullanıcı bekliyorsa 5sn timeout (interstitial'e benzer hızlı), yoksa atlanır.
  */
 export function showRewardedInterstitial() {
-  return new Promise((resolve) => {
-    if (!adsReady || !RewardedInterstitialAd) {
-      if (__DEV__) {
-        resolve({ success: true, reward: { amount: 1 } });
-      } else {
-        resolve({ success: false, reward: null });
-      }
-      return;
-    }
-    if (!rewardedInterstitialLoaded || !rewardedInterstitialAd) {
-      // Hazır değil → gösterme, 5sn bekle (atlanır)
-      const waitMs = 5000;
-      const t0 = Date.now();
-      const checkLoaded = setInterval(() => {
-        if (rewardedInterstitialLoaded && rewardedInterstitialAd) {
-          clearInterval(checkLoaded);
-          attachRIShowAndResolve(resolve);
-        } else if (Date.now() - t0 > waitMs) {
-          clearInterval(checkLoaded);
-          // Yüklenmedi, atla
-          resolve({ success: false, reward: null });
-        }
-      }, 200);
-      // Tetikle yükleme
-      if (!rewardedInterstitialLoading) preloadRewardedInterstitial();
-      return;
-    }
-    attachRIShowAndResolve(resolve);
-  });
+  if (!ids.rewardedInterstitial || !adsReady || !RewardedInterstitialAd
+    || rewardFlowBusy || rewardedShowing || rewardedInterstitialShowing || !isActive()) {
+    return Promise.resolve({success:false,reward:null});
+  }
+  if (!rewardedInterstitialLoaded || !rewardedInterstitialAd) {
+    preloadRewardedInterstitial();
+    return Promise.resolve({success:false,reward:null});
+  }
+  rewardedInterstitialShowing = true;
+  return new Promise(resolve => attachRIShowAndResolve(resolve));
 }
 
 function attachRIShowAndResolve(resolve) {
-  if (!rewardedInterstitialAd) {
-    resolve({ success: false, reward: null });
-    return;
-  }
-  let earned = false;
-  let rewardData = { amount: 1 };
-  let unsubs = [];
-  const cleanup = () => { unsubs.forEach((u) => { try { u?.(); } catch (e) {} }); unsubs = []; };
-
-  const earnUnsub = rewardedInterstitialAd.addAdEventListener(
-    RewardedAdEventType.EARNED_REWARD,
-    (reward) => { earned = true; rewardData = { amount: reward.amount || 1 }; }
-  );
-  unsubs.push(earnUnsub);
-
-  const closeUnsub = rewardedInterstitialAd.addAdEventListener(AdEventType.CLOSED, () => {
-    cleanup();
-    rewardedInterstitialLoaded = false;
-    rewardedInterstitialAd = null;
-    setTimeout(preloadRewardedInterstitial, 1000);
-    resolve({ success: earned, reward: earned ? rewardData : null });
-  });
-  unsubs.push(closeUnsub);
-
-  const errUnsub = rewardedInterstitialAd.addAdEventListener(AdEventType.ERROR, (error) => {
-    console.log('[Ads] rewardedInterstitial show hatasi:', error.message);
-    cleanup();
-    rewardedInterstitialLoaded = false;
-    rewardedInterstitialAd = null;
-    setTimeout(preloadRewardedInterstitial, 1000);
-    resolve({ success: false, reward: null });
-  });
-  unsubs.push(errUnsub);
-
+  const ad = rewardedInterstitialAd;
+  if (!ad) { rewardedInterstitialShowing=false; resolve({success:false,reward:null}); return; }
+  let earned=false, rewardData={amount:1}, finished=false;
+  const unsubs=[];
+  const finish = error => {
+    if (finished) return;
+    finished=true;
+    unsubs.forEach(unsub=>{try{unsub?.();}catch(e){}});
+    rewardedInterstitialLoaded=false; rewardedInterstitialShowing=false; rewardedInterstitialAd=null;
+    if (error) console.log('[Ads] optional transition ad unavailable');
+    setTimeout(preloadRewardedInterstitial,1000);
+    resolve({success:earned,reward:earned?rewardData:null});
+  };
   try {
-    rewardedInterstitialAd.show();
-  } catch (e) {
-    cleanup();
-    rewardedInterstitialLoaded = false;
-    rewardedInterstitialAd = null;
-    setTimeout(preloadRewardedInterstitial, 1000);
-    resolve({ success: false, reward: null });
-  }
+    unsubs.push(ad.addAdEventListener(RewardedAdEventType.EARNED_REWARD,reward=>{earned=true;rewardData={amount:reward.amount||1};}));
+    unsubs.push(ad.addAdEventListener(AdEventType.CLOSED,()=>finish()));
+    unsubs.push(ad.addAdEventListener(AdEventType.ERROR,finish));
+    Promise.resolve(ad.show()).catch(finish);
+  } catch(error) {finish(error);}
 }

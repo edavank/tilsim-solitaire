@@ -69,3 +69,7 @@ for(const platform of ['android','ios']) {
   const h=harness(platform);await h.context.initAds();const old=h.latest();old.emit(h.rewards.LOADED);await h.tick(50*60*1000);assert.equal(h.context.isRewardedReady(),false);const p=h.context.showRewarded();const ad=h.latest();assert.notEqual(ad,old);ad.emit(h.rewards.LOADED);assert.equal(old.shows,0);ad.emit(h.events.CLOSED);await p;
  });
 }
+
+for (const platform of ['android','ios']) test(`${platform}: unconfigured transition units never request ads or block Next`,async()=>{
+ const h=harness(platform);await h.context.initAds();assert.equal(h.ads.filter(ad=>ad.kind==='ri').length,0);assert.equal((await h.context.showRewardedInterstitial()).success,false);
+});

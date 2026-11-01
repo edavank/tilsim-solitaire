@@ -3,7 +3,7 @@ const object = value => value && typeof value === 'object' && !Array.isArray(val
 const union = (a = [], b = []) => [...new Set([...(Array.isArray(a)?a:[]), ...(Array.isArray(b)?b:[])])];
 const number = value => Number.isFinite(value) ? value : 0;
 export function cleanSnapshot(value) {
-  return Object.fromEntries(Object.entries(object(value)).filter(([key]) => !key.startsWith('_cloud') && key !== 'walletHistory'));
+  return Object.fromEntries(Object.entries(object(value)).filter(([key]) => !key.startsWith('_cloud') && !key.startsWith('_local') && key !== 'walletHistory'));
 }
 function maximumMap(a, b) {
   const out = { ...object(a) };
@@ -47,10 +47,23 @@ export function mergeProgress(baseValue, localValue, remoteValue) {
 }
 
 function meaningful(p) {
-  return number(p.currentLevel) > 1 || number(p.totalGames) > 0 || number(p.coins) !== 500;
+  return number(p.currentLevel) > 1 || number(p.totalGames) > 0 || number(p.totalWins) > 0
+    || number(p.coins) !== 500 || number(p.xp) > 0
+    || Object.values(object(p.toolCredits)).some(value => number(value) > 0)
+    || Object.values(object(p.levelStars)).some(value => number(value) > 0)
+    || ['completionReceipts','achievementPayouts','dailyCompletions','dailyLoginReceipts'].some(key => Object.keys(object(p[key])).length > 0);
 }
 function sameLegacyBalance(a,b) {
-  return ['coins','currentLevel','totalGames','totalWins','bestScore','streak'].every(k=>number(a[k])===number(b[k]));
+  if (!['coins','currentLevel','totalGames','totalWins','bestScore','streak','xp'].every(key=>number(a[key])===number(b[key]))) return false;
+  for (const key of ['toolCredits','levelStars']) {
+    const keys = union(Object.keys(object(a[key])),Object.keys(object(b[key])));
+    if (!keys.every(id => number(a[key]?.[id]) === number(b[key]?.[id]))) return false;
+  }
+  for (const key of ['completionReceipts','achievementPayouts','dailyCompletions','dailyLoginReceipts']) {
+    const keys = union(Object.keys(object(a[key])),Object.keys(object(b[key])));
+    if (!keys.every(id=>JSON.stringify(a[key]?.[id])===JSON.stringify(b[key]?.[id]))) return false;
+  }
+  return true;
 }
 export function createCloudSync(deps) {
   let queue = Promise.resolve();
@@ -67,13 +80,21 @@ export function createCloudSync(deps) {
     journal = { ...journal, backup: local }; await deps.writeJournal(id,journal);
     let remote = await deps.readRemote(id); guard(id);
     if (!journal.baseline && !journal.pending) {
+      // A reward/purchase may have happened while the network read was pending.
+      local = await deps.loadLocal(); guard(id);
       journal = { ...journal, bootstrapLocal:journal.bootstrapLocal || cleanSnapshot(local), bootstrapRemote:remote.state };
       await deps.writeJournal(id,journal);
       if (remote.state && meaningful(local) && !sameLegacyBalance(local,remote.state) && !choice) {
         throw Object.assign(new Error('Choose the device or cloud save'), {code:'BOOTSTRAP_CONFLICT', local:cleanSnapshot(local), remote:remote.state});
       }
       if (remote.state && (choice === 'cloud' || (!meaningful(local) && choice !== 'device'))) {
-        const restored = await deps.applyLocal(cur => { guard(id); return { ...cur, ...remote.state, _cloudOwner:id }; }); guard(id);
+        const restored = await deps.applyLocal(cur => {
+          guard(id);
+          if (choice !== 'cloud' && JSON.stringify(cleanSnapshot(cur)) !== JSON.stringify(cleanSnapshot(local))) {
+            throw Object.assign(new Error('Local save changed during restore'), {code:'BOOTSTRAP_CONFLICT',local:cleanSnapshot(cur),remote:remote.state});
+          }
+          return { ...cur, ...cleanSnapshot(remote.state), _cloudOwner:id };
+        }); guard(id);
         journal = { ...journal, baseline:cleanSnapshot(restored), backup:restored };
         await deps.writeJournal(id,journal);
         return restored;

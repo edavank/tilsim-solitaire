@@ -37,99 +37,149 @@ function userFromSession(session) {
 }
 
 let _authSubscribed = false;
+let authInitPromise = null;
+let googleLoginPromise = null;
+let sessionRevision = 0;
+let lastAuthEvent = null;
+let authPhase = 'idle';
+let lastAuthError = null;
+let refreshSubscription = null;
 
-// ─── Init ────────────────────────────────────────────────────
-export async function initAuth() {
-  try {
-    supabase = require('./supabase').default;
-    if (!supabase) return null;
-
-    const { data } = await supabase.auth.getSession();
-    if (data?.session) {
-      currentUser = userFromSession(data.session);
-      notifyListeners();
-    }
-
-    // Tek subscription yeterli — multiple initAuth çağrılarında duplicate listener olmasın
-    if (!_authSubscribed) {
-      _authSubscribed = true;
-      supabase.auth.onAuthStateChange((_event, session) => {
-        currentUser = userFromSession(session);
-        notifyListeners();
-      });
-    }
-  } catch (e) {
-    console.log('[Auth] init skipped:', e.message);
-  }
-  return currentUser;
+function authFailure(code, error) {
+  const message = String(error?.message || error || code)
+    .replace(/([?&#](?:access_token|refresh_token|code)=)[^&\s]+/gi,'$1[redacted]')
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,'[email]');
+  lastAuthError = {code,message};
+  return {error:message,code};
 }
 
-// ─── Google Sign-In (Supabase OAuth) ────────
-export async function signInWithGoogle() {
+export function getAuthDiagnostics() {
+  return {revision:'auth-20261101-audit',phase:authPhase,lastEvent:lastAuthEvent,
+    hasSession:!!currentUser,lastError:lastAuthError};
+}
+
+function installRefreshLifecycle() {
+  if (refreshSubscription) return;
   try {
-    if (!supabase) return { error: 'Supabase connection unavailable', code: 'no_supabase' };
+    const { AppState, Platform } = require('react-native');
+    if (Platform.OS === 'web' || !supabase.auth.startAutoRefresh) return;
+    const refresh = state => {
+      const action = state === 'active' ? supabase.auth.startAutoRefresh() : supabase.auth.stopAutoRefresh();
+      Promise.resolve(action).catch(() => {});
+    };
+    refreshSubscription = AppState.addEventListener('change',refresh);
+    refresh(AppState.currentState || 'active');
+  } catch (error) {}
+}
 
-    const { makeRedirectUri } = require('expo-auth-session');
-    const WebBrowser = require('expo-web-browser');
-    const Constants = require('expo-constants');
-    WebBrowser.maybeCompleteAuthSession();
-
-    // Build redirect URL
-    const isExpoGo = Constants.default?.appOwnership === 'expo';
-    const hostUri = Constants.default?.expoConfig?.hostUri;
-    const redirectUrl = isExpoGo && hostUri
-      ? `exp://${hostUri}/--/`
-      : makeRedirectUri({ scheme: 'tilsim-solitaire' });
-
-    console.log('[Auth] redirectUrl:', redirectUrl);
-
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: redirectUrl, skipBrowserRedirect: true },
-    });
-
-    if (error) return { error: error.message };
-    if (!data?.url) return { error: 'OAuth URL unavailable', code: 'no_oauth_url' };
-
-    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
-    console.log('[Auth] result type:', result.type);
-
-    if (result.type === 'success' && result.url) {
-      console.log('[Auth] result url:', result.url.substring(0, 80));
-      // Tokens come in hash fragment: #access_token=...&refresh_token=...
-      const hashPart = result.url.split('#')[1];
-      if (hashPart) {
-        const params = new URLSearchParams(hashPart);
-        const access_token = params.get('access_token');
-        const refresh_token = params.get('refresh_token');
-
-        if (access_token) {
-          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-            access_token,
-            refresh_token,
-          });
-          if (sessionError) return { error: sessionError.message };
-          // Listener'ın currentUser'ı güncellemesini bekle (race fix)
-          const sessionUser = userFromSession(sessionData?.session);
-          if (sessionUser) {
-            currentUser = sessionUser;
-            notifyListeners();
-          }
-          return { user: currentUser };
-        }
+// Subscribe before the initial read. A late cached read cannot replace a newer login.
+export function initAuth() {
+  if (authInitPromise) return authInitPromise;
+  authInitPromise = (async () => {
+    try {
+      supabase = require('./supabase').default;
+      if (!supabase) return null;
+      if (!_authSubscribed) {
+        supabase.auth.onAuthStateChange((event, session) => {
+          sessionRevision++;
+          lastAuthEvent = event;
+          // Do not show Connected for an OAuth session that has not passed persistence checks.
+          if (googleLoginPromise && authPhase === 'saving_session' && event !== 'SIGNED_OUT') return;
+          currentUser = userFromSession(session);
+          notifyListeners();
+        });
+        _authSubscribed = true;
       }
-      return { error: 'Could not retrieve token', code: 'no_token' };
-    }
+      installRefreshLifecycle();
+      const revision = sessionRevision;
+      const {data,error} = await cloudRequest(supabase.auth.getSession());
+      if (error) throw error;
+      if (revision === sessionRevision) { currentUser = userFromSession(data?.session); notifyListeners(); }
+    } catch (error) { authFailure('init_failed',error); }
+    return currentUser;
+  })().finally(() => { authInitPromise = null; });
+  return authInitPromise;
+}
 
-    return { error: 'Sign-in cancelled', code: 'cancelled' };
-  } catch (e) {
-    return { error: e.message || 'Google sign-in failed', code: 'google_fail' };
+function matchesRedirect(url, expected) {
+  const base = value => String(value || '').split(/[?#]/)[0].replace(/\/+$/,'');
+  return !!url && base(url) === base(expected);
+}
+
+async function sessionFromCallback(url, redirectUrl) {
+  if (!matchesRedirect(url,redirectUrl)) return authFailure('wrong_redirect','Google dönüş adresi doğrulanamadı.');
+  const query = new URLSearchParams((url.split('?')[1] || '').split('#')[0]);
+  const fragment = new URLSearchParams(url.split('#')[1] || '');
+  const value = key => fragment.get(key) || query.get(key);
+  if (value('error') || value('error_code')) return authFailure(value('error_code') || value('error'),value('error_description') || 'Google girişi tamamlanamadı.');
+  authPhase = 'saving_session';
+  let response;
+  if (value('code')) response = await cloudRequest(supabase.auth.exchangeCodeForSession(value('code')));
+  else if (value('access_token') && value('refresh_token')) {
+    response = await cloudRequest(supabase.auth.setSession({access_token:value('access_token'),refresh_token:value('refresh_token')}));
+  } else return authFailure('no_token','Google oturum bilgisi oyuna ulaşmadı. Lütfen tekrar dene.');
+  if (response.error) return authFailure('session_save_failed',response.error);
+  const sessionUser = userFromSession(response.data?.session);
+  if (!sessionUser) return authFailure('no_session','Google oturumu doğrulanamadı. Lütfen tekrar dene.');
+  // A successful browser return alone is not a successful game login.
+  const persisted = await cloudRequest(supabase.auth.getSession());
+  if (persisted.error || persisted.data?.session?.user?.id !== sessionUser.id) {
+    return authFailure('session_not_persisted',persisted.error || 'Oturum kaydedilemedi. Lütfen tekrar dene.');
   }
+  sessionRevision++;
+  currentUser = sessionUser;
+  notifyListeners();
+  lastAuthError = null;
+  authPhase = 'signed_in';
+  return {user:sessionUser};
+}
+
+async function runGoogleLogin() {
+  let sub, timer;
+  try {
+    authPhase = 'initializing';
+    await initAuth();
+    if (!supabase) return authFailure('no_supabase','Hesap bağlantısı hazırlanamadı. Lütfen tekrar dene.');
+    const {makeRedirectUri} = require('expo-auth-session');
+    const WebBrowser = require('expo-web-browser');
+    const Constants = require('expo-constants').default;
+    WebBrowser.maybeCompleteAuthSession();
+    const redirectUrl = Constants?.appOwnership === 'expo' && Constants?.expoConfig?.hostUri
+      ? `exp://${Constants.expoConfig.hostUri}/--/` : makeRedirectUri({scheme:'tilsim-solitaire'});
+    authPhase = 'requesting_google';
+    const {data,error} = await cloudRequest(supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:redirectUrl,skipBrowserRedirect:true}}));
+    if (error) return authFailure('oauth_failed',error);
+    if (!data?.url) return authFailure('no_oauth_url','Google giriş sayfası hazırlanamadı.');
+    let callbackUrl = null, resolveCallback;
+    const callback = new Promise(resolve => { resolveCallback = resolve; });
+    try {
+      sub = require('expo-linking').addEventListener('url',({url}) => {
+        if (matchesRedirect(url,redirectUrl)) { callbackUrl = url; resolveCallback(url); }
+      });
+    } catch (error) {}
+    authPhase = 'browser';
+    const result = await WebBrowser.openAuthSessionAsync(data.url,redirectUrl);
+    let url = result.type === 'success' ? result.url : callbackUrl;
+    // Android can report dismissal just before delivering the return link.
+    // This bounded grace period never opens a new browser or retries cancellation.
+    if (!url && result.type === 'dismiss' && sub) {
+      url = await Promise.race([callback,new Promise(resolve => { timer=setTimeout(()=>resolve(null),1000); })]);
+    }
+    if (!url) { authPhase='cancelled'; return {error:'Sign-in cancelled',code:'cancelled'}; }
+    return await sessionFromCallback(url,redirectUrl);
+  } catch (error) { authPhase='error'; return authFailure(error.code || 'google_fail',error); }
+  finally { sub?.remove(); clearTimeout(timer); }
+}
+
+export function signInWithGoogle() {
+  if (!googleLoginPromise) googleLoginPromise = runGoogleLogin().finally(() => { googleLoginPromise = null; });
+  return googleLoginPromise;
 }
 
 // ─── Apple Sign-In (iOS native — expo-apple-authentication) ──
 export async function signInWithApple() {
   try {
+    await initAuth();
     if (!supabase) return { error: 'Supabase connection unavailable', code: 'no_supabase' };
 
     let AppleAuthentication;
@@ -188,10 +238,9 @@ export async function signInWithApple() {
 
 // ─── Sign Out ────────────────────────────────────────────────
 export async function signOut() {
-  try {
-    if (supabase) await supabase.auth.signOut();
-  } catch (e) {
-    console.log('[Auth] signOut error:', e.message);
+  if (supabase) {
+    const result = await supabase.auth.signOut();
+    if (result?.error) throw result.error;
   }
   currentUser = null;
   notifyListeners();
@@ -276,7 +325,8 @@ const syncEngine = createCloudSync({
     const current = await loadProgress();
     if (Number.isFinite(current.xp) && current.levelStars) return current;
     const [xp,stars] = await Promise.all([loadXP(),loadLevelStars()]);
-    return updateProgress(cur => ({ xp:Number.isFinite(cur.xp) ? cur.xp : xp.xp, levelStars:cur.levelStars || stars }));
+    // Reading must not write a migration into a different account after an await.
+    return { ...current, xp:Number.isFinite(current.xp) ? current.xp : xp.xp, levelStars:current.levelStars || stars };
   },
   applyLocal: patch => updateProgress(patch,{kind:'sync',source:'cloud',description:'Bulut kaydıyla eşitleme'}),
   createRequestId: () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`,

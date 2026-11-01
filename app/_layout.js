@@ -127,19 +127,21 @@ export default function RootLayout() {
     Fondamento_400Regular, Fondamento_400Regular_Italic,
   });
 
-  const [splashDone, setSplashDone] = useState(false);
+  const [settingsReady, setSettingsReady] = useState(false);
   const [showLangPicker, setShowLangPicker] = useState(false);
 
   useEffect(() => {
     initAds();
-    loadSounds().then(() => {
-      loadSettings().then((s) => {
-        setVibrationEnabled(s.vibration !== false);
-        setSoundEnabled(s.sound !== false);
-        setBgmEnabled(s.bgm !== false);
-        if (s.bgm !== false) startBgm();
-        if (!s.languageSelected) setShowLangPicker(true);
-      }).catch(() => {});
+    const settingsPromise = loadSettings();
+    settingsPromise.then((settings) => {
+      setVibrationEnabled(settings.vibration !== false);
+      setSoundEnabled(settings.sound !== false);
+      setBgmEnabled(settings.bgm !== false);
+      if (!settings.languageSelected) setShowLangPicker(true);
+    }).catch(() => {}).finally(() => setSettingsReady(true));
+    // A sound-loading failure must not disable language selection or updates.
+    Promise.all([loadSounds(), settingsPromise]).then(([, settings]) => {
+      if (settings.bgm !== false) startBgm();
     }).catch(() => {});
 
     // FEAT-3: Push notifications init + schedule
@@ -181,12 +183,12 @@ export default function RootLayout() {
         <GestureHandlerRootView style={{ flex: 1 }}>
           <StatusBar style="light" />
           <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLORS.surface }, animation: 'none' }} />
-          {splashDone && showLangPicker && (
+          {settingsReady && showLangPicker && (
             <LanguageSelectorWithContext onDone={() => setShowLangPicker(false)} />
           )}
           {/* ConsentDialog kaldırıldı — ATT yeterli */}
           {/* OTA Update prompt — en üst katmanda, splash ve dil seçici kapandıktan sonra görünür */}
-          {splashDone && !showLangPicker && <UpdatePrompt />}
+          {settingsReady && !showLangPicker && <UpdatePrompt />}
         </GestureHandlerRootView>
       </AuthProvider>
     </LanguageProvider>
@@ -207,3 +209,4 @@ function LanguageSelectorWithContext({ onDone }) {
 const styles = StyleSheet.create({
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.surface },
 });
+

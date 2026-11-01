@@ -34,31 +34,22 @@ export function AuthProvider({ children }) {
   const [cloudStatus, setCloudStatus] = useState('idle');
   const [cloudError, setCloudError] = useState(null);
   const [lastSyncedAt, setLastSyncedAt] = useState(null);
-  const initDone = useRef(false);
+  const initTask = useRef(null);
+  const loginTask = useRef(null);
 
-  // Init auth + check if login screen was seen before
-  // StrictMode / hot-reload safe: initDone guard'ı only init işini tekilleştirir,
-  // listener her mount'ta yeniden bağlanır ve cleanup'ta temizlenir.
   useEffect(() => {
     let cancelled = false;
-
-    const runInit = async () => {
-      if (initDone.current) return;
-      initDone.current = true;
-      try {
-        const seen = await AsyncStorage?.getItem(HAS_SEEN_LOGIN_KEY);
-        if (!cancelled) setHasSeenLogin(seen === 'true');
-      } catch (e) {
-        if (!cancelled) setHasSeenLogin(false);
-      }
+    if (!initTask.current) initTask.current = (async () => {
+      let seen = false;
+      try { seen = (await AsyncStorage?.getItem(HAS_SEEN_LOGIN_KEY)) === 'true'; } catch (e) {}
       await authModule.initAuth();
-      if (!cancelled) setAuthReady(true);
-    };
-    runInit();
-
-    // Listener her mount'ta yenilenir — initDone guard'ının dışında
-    const unsub = authModule.onAuthChange((u) => { if (!cancelled) setUser(u); });
-    return () => { cancelled = true; unsub && unsub(); };
+      return seen;
+    })();
+    initTask.current.then(seen => {
+      if (!cancelled) { setHasSeenLogin(seen); setAuthReady(true); }
+    }).catch(() => { if (!cancelled) setAuthReady(true); });
+    const unsub = authModule.onAuthChange(u => { if (!cancelled) setUser(u); });
+    return () => { cancelled = true; unsub?.(); };
   }, []);
 
   const markLoginSeen = useCallback(async () => {
@@ -66,23 +57,24 @@ export function AuthProvider({ children }) {
     try { await AsyncStorage?.setItem(HAS_SEEN_LOGIN_KEY, 'true'); } catch (e) {}
   }, []);
 
-  const handleGoogleLogin = useCallback(async () => {
-    setLoading(true);
-    const result = await authModule.signInWithGoogle();
-    setLoading(false);
-    if (result.error) return { error: result.error, code: result.code };
-    await markLoginSeen();
-    return { user: result.user };
+  const loginWith = useCallback((provider) => {
+    if (loginTask.current) return loginTask.current;
+    loginTask.current = Promise.resolve().then(async () => {
+      setLoading(true);
+      try {
+        const result = provider === 'google' ? await authModule.signInWithGoogle() : await authModule.signInWithApple();
+        if (result?.error) return {error:result.error,code:result.code};
+        if (!result?.user?.id) return {error:'Oturum doğrulanamadı. Lütfen tekrar dene.',code:'no_session'};
+        setUser(result.user);
+        await markLoginSeen();
+        return {user:result.user};
+      } catch (error) { return {error:error.message || 'Giriş tamamlanamadı.',code:'login_failed'}; }
+      finally { setLoading(false); loginTask.current = null; }
+    });
+    return loginTask.current;
   }, [markLoginSeen]);
-
-  const handleAppleLogin = useCallback(async () => {
-    setLoading(true);
-    const result = await authModule.signInWithApple();
-    setLoading(false);
-    if (result.error) return { error: result.error, code: result.code };
-    await markLoginSeen();
-    return { user: result.user };
-  }, [markLoginSeen]);
+  const handleGoogleLogin = useCallback(() => loginWith('google'),[loginWith]);
+  const handleAppleLogin = useCallback(() => loginWith('apple'),[loginWith]);
 
   const handleSkipLogin = useCallback(async () => {
     await markLoginSeen();
@@ -116,7 +108,8 @@ export function AuthProvider({ children }) {
       try { await authModule.preserveLocalAccountBackup(); }
       catch (backupError) { return { success:false, error:'Yerel kayıt korunamadı. Lütfen yeniden dene.' }; }
     }
-    await authModule.signOut();
+    try { await authModule.signOut(); }
+    catch (error) { return {success:false,error:'Hesaptan çıkış tamamlanamadı. İlerlemen korunuyor. Lütfen yeniden dene.'}; }
     // Hesaplar arası veri sızıntısını önle: Kullanıcı A çıkış yapıp B'ye
     // girerse, A'nın local coin/level'i Math.max merge ile B'nin cloud'una
     // geçerdi. Local ilerlemeyi varsayılana döndür (settings/device_id korunur).

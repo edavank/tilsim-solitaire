@@ -1,3 +1,4 @@
+import { getAuthDiagnostics } from '../src/utils/auth';
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView, Image, Alert, Linking , ImageBackground} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -246,7 +247,7 @@ export default function SettingsScreen() {
           </View>
           <Text
             style={s.footerVersion}
-            onLongPress={() => Alert.alert('Destek / Support', JSON.stringify(getAdDiagnostics(), null, 2))}
+            onLongPress={() => Alert.alert('Destek / Support', JSON.stringify({ads:getAdDiagnostics(),auth:getAuthDiagnostics()}, null, 2))}
             accessibilityHint="Support information"
           >VERSION V{APP_VERSION} · S2 TEST</Text>
         </View>

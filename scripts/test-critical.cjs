@@ -64,7 +64,7 @@ test('Saved game writes and clearing are serialized',async()=>{
 test('Autosave flush uses the latest move, preserves mode/time, and cannot resurrect an exited game',async()=>{
   const game=read('app/game.js');const start=game.indexOf('  latestSaveRef.current = saveReady');const end=game.indexOf('\n  useEffect(() => { if (feedback.msg)',start);
   const writes=[],effects=[],timers=[];
-  const box={saveReady:true,gs:{moves:10,isComplete:false,isFailed:false},isDaily:false,levelId:27,gameLang:'tr',isTimed:true,timeRemaining:42,elapsedTime:20,latestSaveRef:{current:null},skipSaveRef:{current:false},saveTimerRef:{current:null},saveSavedGame:async s=>writes.push(s),useCallback:f=>f,useEffect:f=>effects.push(f),AppState:{addEventListener:()=>({remove:()=>{}})},setTimeout:f=>{timers.push(f);return timers.length},clearTimeout:()=>{},console};
+  const box={setFeedback:()=>{},t:{},saveReady:true,gs:{moves:10,isComplete:false,isFailed:false},isDaily:false,levelId:27,gameLang:'tr',isTimed:true,timeRemaining:42,elapsedTime:20,latestSaveRef:{current:null},skipSaveRef:{current:false},saveTimerRef:{current:null},saveSavedGame:async s=>writes.push(s),useCallback:f=>f,useEffect:f=>effects.push(f),AppState:{addEventListener:()=>({remove:()=>{}})},setTimeout:f=>{timers.push(f);return timers.length},clearTimeout:()=>{},console};
   const source='(()=>{'+game.slice(start,end)+'\nreturn flushGameSave;})()';
   vm.runInNewContext(source,box);box.gs={...box.gs,moves:8};box.timeRemaining=39;
   const flush=vm.runInNewContext(source,box);effects[0]();timers[0]();await Promise.resolve();
@@ -155,7 +155,7 @@ test('Replay on the win screen settles the reward before resetting the game',asy
   const {storage:s}=services();const c=completionService(s);const gameSource=read('app/game.js');const input=finish();let reset=false;
   const noop=()=>{};const box={...s,gs:input.game,level:input.level,isDaily:false,isTimed:false,gameLang:'tr',levelId:1,dailyDate:null,elapsedTime:100,timeRemaining:100,getTimedSeconds:()=>180,
     useCallback:f=>f,settleCompletion:c.settleCompletion,isDailyChallengeCompleted:async()=>false,getDailyCompletionMap:async()=>({}),checkAchievements:async()=>[],submitScore:()=>new Promise(()=>{}),
-    completionPromiseRef:{current:null},navigationRef:{current:false},skipSaveRef:{current:false},latestSaveRef:{current:null},wrongMovesRef:{current:0},maxComboRef:{current:0},
+    completionPromiseRef:{current:null},navigationRef:{current:false},toolActionRef:{current:false},skipSaveRef:{current:false},latestSaveRef:{current:null},wrongMovesRef:{current:0},maxComboRef:{current:0},
     setRewardStatus:noop,setCoins:noop,setToolCredits:noop,setUnlockedTools:noop,setCompletionReceipt:noop,setFeedback:noop,setAchievementPopup:noop,user:null,syncToCloud:noop,t:{},resetGame:()=>{reset=true},console};
   const a=gameSource.indexOf('  const ensureCompletion =');const b=gameSource.indexOf('\n  useEffect(() => {\n    if (gs.isComplete)',a);
   box.ensureCompletion=vm.runInNewContext('(()=>{'+gameSource.slice(a,b)+'\nreturn ensureCompletion;})()',box);
@@ -169,7 +169,7 @@ test('Wallet history starts at the real inherited balance, then records a reward
   const p=await s.loadProgress();assert.equal(p.coins,2399);assert.equal(p.walletHistory.length,2);assert.equal(p.walletHistory[0].amount,2353);assert.equal(p.walletHistory[1].amount,46);assert.equal(p.walletHistory[1].source,'level');
 });
 test('Daily visit reward and its receipt are atomic even under repeated tapping',async()=>{
-  const {storage:s,asyncStore}=services();const daily=vm.runInNewContext(strip(read('src/utils/dailyLogin.js'))+'\n;({grantDailyLoginReward,checkDailyLogin})',{AsyncStorage:asyncStore,loadProgress:s.loadProgress,updateProgress:s.updateProgress});
+  const {storage:s,asyncStore,memory}=services();const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);const key=`${yesterday.getFullYear()}-${String(yesterday.getMonth()+1).padStart(2,'0')}-${String(yesterday.getDate()).padStart(2,'0')}`;memory['tilsim_daily_login']=JSON.stringify({lastDate:key,streak:1});const daily=vm.runInNewContext(strip(read('src/utils/dailyLogin.js'))+'\n;({grantDailyLoginReward,checkDailyLogin})',{AsyncStorage:asyncStore,loadProgress:s.loadProgress,updateProgress:s.updateProgress});
   await Promise.all([daily.grantDailyLoginReward(2),daily.grantDailyLoginReward(2),daily.grantDailyLoginReward(2)]);
   const p=await s.loadProgress();assert.equal(p.coins,520);assert.equal(p.walletHistory.length,2);assert.equal((await daily.checkDailyLogin()).shouldShow,false);
 });

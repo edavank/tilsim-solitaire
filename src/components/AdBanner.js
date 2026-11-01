@@ -1,47 +1,44 @@
-// AdBanner — kendi kendine render olur, ads hazır değilse hiç bir şey göstermez
-import React, { useEffect, useState } from 'react';
-import { View } from 'react-native';
-import { getBannerComponent, isAdsAvailable } from '../utils/ads';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, AppState } from 'react-native';
+import { getBannerComponent, subscribeAdAvailability } from '../utils/ads';
 
 export default function AdBanner({ style }) {
-  const [ready, setReady] = useState(false);
-  const [banner, setBanner] = useState(null);
+  const [banner, setBanner] = useState(() => getBannerComponent());
+  const [revision, setRevision] = useState(0);
+  const retryTimer = useRef(null);
+  const failures = useRef(0);
+  const mounted = useRef(false);
 
   useEffect(() => {
-    let mounted = true;
-    // Ads hazır değilse 1 sn aralıklarla poll et (max 5 sn)
-    let attempts = 0;
-    const check = () => {
-      if (!mounted) return;
-      if (isAdsAvailable()) {
-        const b = getBannerComponent();
-        if (b) {
-          setBanner(b);
-          setReady(true);
-          return;
-        }
+    mounted.current = true;
+    const unsubscribe = subscribeAdAvailability(() => {
+      if (mounted.current) setBanner(getBannerComponent());
+    });
+    const foreground = AppState.addEventListener('change',state => {
+      if (state !== 'active') {clearTimeout(retryTimer.current); return;}
+      if (mounted.current) {
+        setBanner(getBannerComponent());
+        if (failures.current) setRevision(value=>value+1);
       }
-      attempts++;
-      if (attempts < 5) setTimeout(check, 1000);
-    };
-    check();
-    return () => { mounted = false; };
+    });
+    return () => { mounted.current=false; unsubscribe(); foreground.remove(); clearTimeout(retryTimer.current); };
   }, []);
 
-  if (!ready || !banner) {
-    // Fallback: boş alan, banner yüklenince doldurur
-    return <View style={[{ height: 60 }, style]} />;
-  }
-
-  const { BannerAd, BannerAdSize, unitId } = banner;
-  return (
-    <View style={[{ alignItems: 'center', justifyContent: 'center' }, style]}>
-      <BannerAd
-        unitId={unitId}
-        size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-        requestOptions={{ requestNonPersonalizedAdsOnly: false }}
-        onAdFailedToLoad={(e) => console.log('[Banner] fail:', e?.message)}
-      />
-    </View>
-  );
+  const retry = () => {
+    if (!mounted.current) return;
+    failures.current++;
+    clearTimeout(retryTimer.current);
+    if (AppState.currentState !== 'active') return;
+    retryTimer.current = setTimeout(() => {
+      if (mounted.current) setRevision(value=>value+1);
+    }, Math.min(10000*failures.current,60000));
+  };
+  if (!banner) return <View style={[{height:60},style]} />;
+  const {BannerAd,BannerAdSize,unitId} = banner;
+  return <View style={[{alignItems:'center',justifyContent:'center'},style]}>
+    <BannerAd key={revision} unitId={unitId} size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+      requestOptions={{requestNonPersonalizedAdsOnly:false}}
+      onAdLoaded={() => {failures.current=0;clearTimeout(retryTimer.current);}}
+      onAdFailedToLoad={retry} />
+  </View>;
 }

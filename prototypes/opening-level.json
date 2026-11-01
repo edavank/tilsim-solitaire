@@ -1,0 +1,31 @@
+{
+  "status": "draft_not_connected_to_live_levels",
+  "level": {
+    "id": 1,
+    "moves": 18,
+    "categories": [
+      { "name": "Meyveler", "words": ["Elma", "Armut", "Kiraz"] },
+      { "name": "Taşıtlar", "words": ["Tren", "Araba", "Uçak"] }
+    ],
+    "openCategorySlots": 2,
+    "openColumns": 3,
+    "advertising": false
+  },
+  "columns": [["cat-0"], ["w-0-Elma"], ["w-1-Tren"]],
+  "deckBottomToTop": ["w-1-Araba", "w-1-Uçak", "w-0-Armut", "w-0-Kiraz", "cat-1"],
+  "solution": [
+    { "type": "place", "card": "cat-0", "source": "column", "column": 0, "slot": 0 },
+    { "type": "draw" },
+    { "type": "place", "card": "cat-1", "source": "drawn", "slot": 1 },
+    { "type": "place", "card": "w-0-Elma", "source": "column", "column": 1, "slot": 0 },
+    { "type": "place", "card": "w-1-Tren", "source": "column", "column": 2, "slot": 1 },
+    { "type": "draw" },
+    { "type": "place", "card": "w-0-Kiraz", "source": "drawn", "slot": 0 },
+    { "type": "draw" },
+    { "type": "place", "card": "w-0-Armut", "source": "drawn", "slot": 0 },
+    { "type": "draw" },
+    { "type": "place", "card": "w-1-Uçak", "source": "drawn", "slot": 1 },
+    { "type": "draw" },
+    { "type": "place", "card": "w-1-Araba", "source": "drawn", "slot": 1 }
+  ]
+}

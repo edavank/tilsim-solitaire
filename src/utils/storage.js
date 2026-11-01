@@ -5,6 +5,9 @@ const KEYS = {
   PROGRESS: '@tilsim_progress',
   SETTINGS: '@tilsim_settings',
   SAVED_GAME: '@tilsim_saved_game',
+  SAVED_TIMED: '@tilsim_saved_game_timed',
+  SAVED_DAILY: '@tilsim_saved_game_daily',
+  SAVED_MODES: '@tilsim_saved_modes_v1',
 };
 
 const DEFAULT_PROGRESS = {
@@ -37,7 +40,7 @@ async function withLock(key, fn) {
 
 async function getItem(key) {
   if (!AsyncStorage) return memStore[key] || null;
-  try { return await AsyncStorage.getItem(key); } catch (e) { return memStore[key] || null; }
+  return AsyncStorage.getItem(key);
 }
 
 async function setItem(key, value) {
@@ -47,30 +50,33 @@ async function setItem(key, value) {
 }
 
 async function removeItem(key) {
+  if (AsyncStorage) await AsyncStorage.removeItem(key);
   delete memStore[key];
-  if (!AsyncStorage) return;
-  try { await AsyncStorage.removeItem(key); } catch (e) {}
 }
 
 export async function loadProgress() {
-  try {
-    const raw = await getItem(KEYS.PROGRESS);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      // Deep-copy arrays so callers can't mutate DEFAULT_PROGRESS via shared ref
-      return {
-        ...DEFAULT_PROGRESS,
-        ...parsed,
-        unlockedThemes: Array.isArray(parsed.unlockedThemes)
-          ? [...parsed.unlockedThemes]
-          : [...DEFAULT_PROGRESS.unlockedThemes],
-      };
-    }
-  } catch (e) {}
-  return { ...DEFAULT_PROGRESS, unlockedThemes: [...DEFAULT_PROGRESS.unlockedThemes] };
+  const raw = await getItem(KEYS.PROGRESS);
+  if (!raw) return { ...DEFAULT_PROGRESS, unlockedThemes: [...DEFAULT_PROGRESS.unlockedThemes] };
+  let parsed;
+  try { parsed = JSON.parse(raw); }
+  catch (error) { throw Object.assign(new Error('Kayıt okunamadı; mevcut veriler korunuyor.'), {code:'SAVE_CORRUPT'}); }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw Object.assign(new Error('Geçersiz kayıt; mevcut veriler korunuyor.'), {code:'SAVE_CORRUPT'});
+  }
+  const progress = { ...DEFAULT_PROGRESS, ...parsed,
+    unlockedThemes: Array.isArray(parsed.unlockedThemes) ? [...parsed.unlockedThemes] : [...DEFAULT_PROGRESS.unlockedThemes] };
+  validateProgressBalance(progress);
+  return progress;
+}
+
+function validateProgressBalance(progress) {
+  if (!Number.isSafeInteger(progress.coins) || progress.coins < 0) {
+    throw Object.assign(new Error('Bakiye geçersiz; işlem kaydedilmedi.'), {code:'INVALID_BALANCE'});
+  }
 }
 
 export async function saveProgress(progress) {
+  validateProgressBalance(progress);
   await setItem(KEYS.PROGRESS, JSON.stringify(progress));
 }
 
@@ -125,20 +131,102 @@ export async function saveSettings(settings) {
   });
 }
 
-export async function loadSavedGame() {
-  try {
-    const raw = await getItem(KEYS.SAVED_GAME);
-    if (raw) return JSON.parse(raw);
-  } catch (e) {}
-  return null;
+function savedGameKey(mode = 'classic') {
+  if (mode === 'timed') return KEYS.SAVED_TIMED;
+  if (mode === 'daily') return KEYS.SAVED_DAILY;
+  return KEYS.SAVED_GAME;
+}
+
+async function markSaveModeMigrated(mode) {
+  if (mode === 'classic') return;
+  return withLock(KEYS.SAVED_MODES, async () => {
+    const raw = await getItem(KEYS.SAVED_MODES);
+    const modes = raw ? JSON.parse(raw) : {};
+    if (!modes[mode]) await setItem(KEYS.SAVED_MODES,JSON.stringify({...modes,[mode]:true}));
+  });
+}
+
+export async function loadSavedGame(mode = 'classic') {
+  const progress = await loadProgress();
+  if (Object.prototype.hasOwnProperty.call(progress._localBoards || {}, mode)) {
+    return progress._localBoards[mode];
+  }
+  const key = savedGameKey(mode);
+  return withLock(key, async () => {
+    const raw = await getItem(key);
+    if (raw) {
+      const saved = JSON.parse(raw);
+      if (mode !== 'classic') await markSaveModeMigrated(mode);
+      else if (['timed','daily'].includes(saved.gameMode)) {
+        // Preserve a legacy mode save before classic play can replace its key.
+        await saveSavedGame(saved);
+        return null;
+      }
+      return saved;
+    }
+    if (key !== KEYS.SAVED_GAME) {
+      const modeRaw = await getItem(KEYS.SAVED_MODES);
+      if (modeRaw && JSON.parse(modeRaw)[mode]) return null;
+      const legacyRaw = await getItem(KEYS.SAVED_GAME);
+      if (legacyRaw) {
+        const legacy = JSON.parse(legacyRaw);
+        if (legacy.gameMode === mode) {
+          await setItem(key,legacyRaw);
+          await markSaveModeMigrated(mode);
+          return legacy;
+        }
+      }
+    }
+    return null;
+  });
 }
 
 export async function saveSavedGame(gameState) {
-  return withLock(KEYS.SAVED_GAME, () => setItem(KEYS.SAVED_GAME, JSON.stringify(gameState)));
+  const mode = gameState.gameMode || 'classic';
+  return updateProgress(current => {
+    const previous = current._localBoards?.[mode];
+    if (current._localClosedRuns?.includes(gameState.runId)) return {};
+    // A queued autosave from before a paid action cannot undo that action.
+    if (previous && previous.runId === gameState.runId && (previous._toolRevision || 0) > (gameState._toolRevision || 0)) return {};
+    return {_localBoards:{...current._localBoards,[mode]:gameState}};
+  });
 }
 
-export async function clearSavedGame() {
-  return withLock(KEYS.SAVED_GAME, () => removeItem(KEYS.SAVED_GAME));
+export async function clearSavedGame(mode = 'classic') {
+  // Load a legacy run before installing the tombstone; keep old disk data intact.
+  const previous = await loadSavedGame(mode);
+  return updateProgress(current => {
+    const runId = current._localBoards?.[mode]?.runId || previous?.runId;
+    return {_localBoards:{...current._localBoards,[mode]:null},
+      _localClosedRuns:[...new Set([...(current._localClosedRuns || []),...(runId ? [runId] : [])])].slice(-64)};
+  });
+}
+
+// Inventory/coins and the resulting board live in ONE durable JSON write.
+// A crash sees either the old pair or the new pair, never a debit without its board.
+export async function commitBoardAction({before, after, tool, coinCost = 0}) {
+  if (!before?.runId || after?.runId !== before.runId || !Number.isSafeInteger(coinCost) || coinCost < 0) throw new Error('Invalid board transaction');
+  const mode = before.gameMode || 'classic';
+  if (!['classic','daily','timed'].includes(mode) || (after.gameMode || 'classic') !== mode) throw new Error('Invalid game mode');
+  if (tool && !['hint','undo','joker','shuffle','delete'].includes(tool)) throw new Error('Invalid tool');
+  let success = false, board = null;
+  const progress = await updateProgress(current => {
+    const saved = current._localBoards?.[mode];
+    if (current._localClosedRuns?.includes(before.runId)
+      || (saved && saved.runId !== before.runId)
+      || (saved?.runId === before.runId && (saved._toolRevision || 0) !== (before._toolRevision || 0))) {
+      throw Object.assign(new Error('Oyun kaydı değişti. Yeniden açarak devam et.'),{code:'BOARD_CONFLICT'});
+    }
+    const count = tool ? current.toolCredits?.[tool] ?? 0 : 0;
+    if (!Number.isSafeInteger(count) || count < 0) throw new Error('Invalid tool inventory');
+    if (current.coins < coinCost || (tool && count < 1)) return {};
+    board = {...after,_toolRevision:(before._toolRevision || 0)+1};
+    success = true;
+    return {coins:current.coins-coinCost,
+      ...(tool ? {toolCredits:{...current.toolCredits,[tool]:count-1}} : {}),
+      _localBoards:{...current._localBoards,[mode]:board}};
+  },{kind:'purchase',source:'board-action',toolKey:tool || 'moves',description:'Oyun içi yardımcı işlemi'});
+  return {success,progress,board};
 }
 
 // "Tüm ilerleme silinecek" prompt'una uyumlu: progress + saved_game + stars +
@@ -149,11 +237,15 @@ export async function resetAll() {
     const keysToClear = [
       KEYS.PROGRESS,
       KEYS.SAVED_GAME,
+      KEYS.SAVED_TIMED,
+      KEYS.SAVED_DAILY,
+      KEYS.SAVED_MODES,
       '@tilsim_stars',
       '@tilsim_xp',
       '@tilsim_achievements',
       '@tilsim_collection',
       '@tilsim_daily_login',
+      'tilsim_daily_login',
     ];
     for (const k of keysToClear) await removeItem(k);
     // Günlük görev tamamlama kayıtlarını da sil (@tilsim_daily_YYYY-MM-DD)
@@ -179,11 +271,15 @@ export async function resetUserScopedData() {
     const keysToClear = [
       KEYS.PROGRESS,
       KEYS.SAVED_GAME,
+      KEYS.SAVED_TIMED,
+      KEYS.SAVED_DAILY,
+      KEYS.SAVED_MODES,
       '@tilsim_stars',
       '@tilsim_xp',
       '@tilsim_achievements',
       '@tilsim_collection',
       '@tilsim_daily_login',
+      'tilsim_daily_login',
     ];
     for (const k of keysToClear) await removeItem(k);
     if (AsyncStorage) {

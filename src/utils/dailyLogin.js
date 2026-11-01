@@ -32,58 +32,46 @@ function getYesterday() {
   return `${year}-${month}-${day}`;
 }
 
+async function loadLegacyVisit() {
+  const raw = await AsyncStorage.getItem(KEY);
+  return raw ? JSON.parse(raw) : { lastDate:null, streak:0 };
+}
+
+function visitStreak(progress, legacy) {
+  const today = getToday(), yesterday = getYesterday();
+  const current = progress.dailyLoginReceipts?.[today];
+  if (current) return { claimed:true, streak:current.streak };
+  if (legacy.lastDate === today) return { claimed:true, streak:legacy.streak };
+  const previous = progress.dailyLoginReceipts?.[yesterday]?.streak
+    ?? (legacy.lastDate === yesterday ? legacy.streak : 0);
+  return { claimed:false, streak:(Number.isSafeInteger(previous) && previous > 0 ? previous : 0) + 1 };
+}
+
 export async function checkDailyLogin() {
   try {
-    const raw = await AsyncStorage.getItem(KEY);
-    const data = raw ? JSON.parse(raw) : { lastDate: null, streak: 0 };
-    const today = getToday();
-    const progress = await loadProgress();
-    if (progress.dailyLoginReceipts?.[today]) return {shouldShow:false,streak:progress.dailyLoginReceipts[today].streak,reward:null};
-    const yesterday = getYesterday();
-
-    // Bugün zaten ödül alındıysa
-    if (data.lastDate === today) {
-      return { shouldShow: false, streak: data.streak, reward: null };
-    }
-
-    let newStreak;
-    if (data.lastDate === yesterday) {
-      // Dün giriş yapılmış → seriyi devam ettir
-      newStreak = data.streak + 1;
-    } else {
-      // Dün giriş yapılmamış → seri sıfırlanır
-      newStreak = 1;
-    }
-
-    // 7 günden sonra 7'de kal (hep 100 coin)
-    const dayIndex = Math.min(newStreak, 7) - 1;
-    const reward = DAILY_REWARDS[dayIndex];
-
-    return {
-      shouldShow: true,
-      streak: newStreak,
-      reward: reward,
-      allDays: DAILY_REWARDS,
-    };
-  } catch (e) {
-    return { shouldShow: false, streak: 0, reward: null };
-  }
+    const [legacy, progress] = await Promise.all([loadLegacyVisit(), loadProgress()]);
+    const visit = visitStreak(progress, legacy);
+    return { shouldShow:!visit.claimed, streak:visit.streak,
+      reward:visit.claimed ? null : DAILY_REWARDS[Math.min(visit.streak,7)-1], allDays:DAILY_REWARDS };
+  } catch (e) { return {shouldShow:false,streak:0,reward:null}; }
 }
 
 export async function claimDailyReward(streak) {
-  const today = getToday();
-  await AsyncStorage.setItem(KEY, JSON.stringify({ lastDate: today, streak }));
+  await AsyncStorage.setItem(KEY, JSON.stringify({ lastDate:getToday(), streak }));
 }
 
-export async function grantDailyLoginReward(streak) {
-  const today = getToday();
-  const reward = DAILY_REWARDS[Math.max(0,Math.min(streak,7)-1)].coins;
+export async function grantDailyLoginReward(_displayedStreak) {
+  const today = getToday(), legacy = await loadLegacyVisit();
+  let actualStreak;
   const progress = await updateProgress(cur => {
-    if (cur.dailyLoginReceipts?.[today]) return {};
-    return { coins:(cur.coins || 0)+reward,
-      dailyLoginReceipts:{...(cur.dailyLoginReceipts || {}),[today]:{coins:reward,streak}} };
+    const visit = visitStreak(cur,legacy);
+    actualStreak = visit.streak;
+    if (visit.claimed) return {};
+    const reward = DAILY_REWARDS[Math.min(actualStreak,7)-1].coins;
+    return { coins:cur.coins + reward,
+      dailyLoginReceipts:{...(cur.dailyLoginReceipts || {}),[today]:{coins:reward,streak:actualStreak}} };
   },{id:`daily-login:${today}`,kind:'reward',source:'daily_login',description:'Günlük giriş ödülü'});
-  try { await claimDailyReward(streak); } catch (e) {}
+  try { await claimDailyReward(actualStreak); } catch (e) {}
   return progress;
 }
 

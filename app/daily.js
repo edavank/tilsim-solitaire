@@ -47,9 +47,9 @@ const DAILY_I18N = {
   es: { title: 'Desafío diario', streak: '🔥 Racha', totalLabel: '✅ Total', reward: '🪙 Recompensa',
     info: '📅 Un nivel único cada día\n🏆 6 categorías × 5 palabras — ¡difícil!\n🪙 Completa → gana 100 monedas\n⏪ También puedes jugar días pasados' },
   ar: { title: 'التحدي اليومي', streak: '🔥 سلسلة', totalLabel: '✅ المجموع', reward: '🪙 مكافأة',
-  ru: { title: 'Ежедневное задание', streak: '🔥 Серия', totalLabel: '✅ Всего', reward: '🪙 Награда',
+    info: '📅 مستوى فريد كل يوم\n🏆 6 فئات × 5 كلمات — صعب!\n🪙 أكمل → اربح 100 عملة\n⏪ يمكنك أيضاً لعب الأيام الماضية' },  ru: { title: 'Ежедневное задание', streak: '🔥 Серия', totalLabel: '✅ Всего', reward: '🪙 Награда',
     info: '📅 Уникальный уровень каждый день\n🏆 6 категорий × 5 слов — сложно!\n🪙 Завершите → 100 монет\n⏪ Можно играть прошлые дни' },
-    info: '📅 مستوى فريد كل يوم\n🏆 6 فئات × 5 كلمات — صعب!\n🪙 أكمل → اربح 100 عملة\n⏪ يمكنك أيضاً لعب الأيام الماضية' },
+
 };
 
 function getMonthDays(year, month) {
@@ -250,3 +250,4 @@ const st = StyleSheet.create({
   infoBox: { marginTop: 20, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   infoText: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.onSurfaceVariant, lineHeight: 22 },
 });
+
