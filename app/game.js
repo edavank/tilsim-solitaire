@@ -819,7 +819,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       if (!target.category && card.type === 'category') {
         target.category = card;
         const ns = removeFromSource(prev, source, sourceIndex, card.id);
-        setHistory((h) => [...h, prev]);
+        setHistory((h) => [...h, current]);
         
         setTimeout(() => playSound('flip'), 10);
         setCombo((c) => { comboRef.current = c + 1; return c + 1; });
@@ -927,7 +927,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         }
 
         const isComplete = newCompletedCats >= level.categories.length;
-        setHistory((h) => [...h, prev]);
+        setHistory((h) => [...h, current]);
 
         if (catCompleted && !isComplete) {
           setFeedback('🎉 ' + target.category.word + t.categoryComplete);
@@ -953,7 +953,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       }
       return prev;
     });
-  }, [level.categories.length]);
+  }, [level.categories, gameLang, t]);
 
   const moveToColumn = useCallback((card, source, sourceIndex, targetColIndex) => {
     if (source === 'column' && sourceIndex === targetColIndex) return;
@@ -1212,12 +1212,13 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   // ── Joker Card (Wildcard) ──
   const useJoker = useCallback(async () => {
     if (!isToolUnlocked('joker')) return;
+    if (toolActionRef.current) return;
     if (gs.drawnCards.length === 0) { setFeedback(t.jokerNeedCard); return; }
     if (gs.drawnCards[gs.drawnCards.length - 1].type !== 'word' || gs.drawnCards[gs.drawnCards.length - 1].isJoker) { setFeedback(t.jokerNeedCard); return; }
     if (toolCredits.joker > 0) {
+      toolActionRef.current = true;
       const newCredits = { ...toolCredits, joker: toolCredits.joker - 1 };
       setToolCredits(newCredits);
-      await updateProgress({ toolCredits: newCredits });
       setGs((p) => {
         if (p.drawnCards.length === 0) return p;
         const newDrawn = [...p.drawnCards];
@@ -1228,6 +1229,9 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         return { ...p, drawnCards: newDrawn };
       });
       setFeedback(t.jokerActive);
+      try { await updateProgress({ toolCredits: newCredits }); }
+      catch (e) { setFeedback(t.saveFailed || 'Kayıt yapılamadı. Lütfen yeniden dene.'); }
+      finally { toolActionRef.current = false; }
       return;
     }
     setToolModal('joker');
@@ -1665,6 +1669,8 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   }, [toolCredits, applyFailedShuffle]);
 
   const handleReplay = useCallback(async () => {
+    skipSaveRef.current = true;
+    latestSaveRef.current = null;
     const prog = await loadProgress();
     // Kaybedildiyse streak sıfırla
     const updates = { totalGames: (prog.totalGames || 0) + 1 };
@@ -1677,6 +1683,13 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   }, [resetGame]);
 
   const handleHome = useCallback(async () => {
+    if (gs && !gs.isComplete && !gs.isFailed) {
+      await flushGameSave();
+      skipSaveRef.current = true;
+      latestSaveRef.current = null;
+      router.canGoBack() ? router.back() : router.replace('/');
+      return;
+    }
     skipSaveRef.current = true;
     latestSaveRef.current = null;
     const prog = await loadProgress();
@@ -1757,7 +1770,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
 
     await clearSavedGame();
     router.canGoBack() ? router.back() : router.replace("/");
-  }, [gs, isDaily, isTimed, levelId, level, gameLang, user, dailyDate]);
+  }, [gs, isDaily, isTimed, levelId, level, gameLang, user, dailyDate, flushGameSave]);
 
   const selId = selected?.card?.id;
   const selectedStackIds = selected?.stackCards ? new Set(selected.stackCards.map((c) => c.id)) : null;
