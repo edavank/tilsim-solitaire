@@ -486,9 +486,11 @@ export default function GameScreen() {
     setFeedbackRaw({ msg: msg || '', id: Date.now() + Math.random() });
   }, []);
   const [adLoadingTool, setAdLoadingTool] = useState(null);
+  const [adInProgress, setAdInProgress] = useState(false);
   const [history, setHistory] = useState([]);
   const [elapsedTime, setElapsedTime] = useState(0);
   const startTimeRef = useRef(Date.now());
+  const clockPauseStartedRef = useRef(null);
   const [hintCard, setHintCard] = useState(null);
   const [hintSlot, setHintSlot] = useState(null);
   const [sparkle, setSparkle] = useState(null);
@@ -556,6 +558,9 @@ export default function GameScreen() {
   const toolActionRef = useRef(false);
   const purchaseRef = useRef(false);
   const hintActionRef = useRef(null);
+  const boardActionRef = useRef(null);
+  const rewardActionRef = useRef(false);
+  const pendingAdBoardRef = useRef(null);
   const drawnTouchRef = useRef({ startX: 0, startY: 0, moved: false });
 const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   const colLayoutsRef = useRef([]); // her sütunun {x, y, w, h} ölçümü
@@ -626,14 +631,20 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   cancelDragRef.current = cancelDrag;
 
   // Timer
+  const clockSuspended = paused || adInProgress || showTutorial || !!toolIntro || dailyIntro || timedIntro || !!toolModal;
   useEffect(() => {
     if (!saveReady || gs.isComplete || gs.isFailed) return;
     // Paused: timedEnd'i sakla, resume'da geri yükle (wall-clock shift)
-    if (paused) {
-      if (isTimed && timedEndRef.current != null) {
+    if (clockSuspended) {
+      if (clockPauseStartedRef.current == null) clockPauseStartedRef.current = Date.now();
+      if (isTimed && timedEndRef.current != null && pauseRemainRef.current == null) {
         pauseRemainRef.current = Math.max(0, timedEndRef.current - Date.now());
       }
       return;
+    }
+    if (clockPauseStartedRef.current != null) {
+      startTimeRef.current += Date.now() - clockPauseStartedRef.current;
+      clockPauseStartedRef.current = null;
     }
     if (isTimed) {
       if (pauseRemainRef.current != null) {
@@ -659,7 +670,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [saveReady, gs.isComplete, gs.isFailed, paused, isTimed]);
+  }, [saveReady, gs.isComplete, gs.isFailed, clockSuspended, isTimed]);
 
   // Play win/lose sounds
   useEffect(() => {
@@ -714,7 +725,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
             const fresh = generateGameState(activeLevel);
             if (isTimed) fresh.moves = 9999;
             setGs(fresh);
-            setHistory([]); setElapsedTime(0); startTimeRef.current = Date.now();
+            setHistory([]); setElapsedTime(0); startTimeRef.current = Date.now(); clockPauseStartedRef.current = null;
             if (isTimed) {
               setTimeRemaining(getTimedSeconds(activeLevel.id));
               timedEndRef.current = null; pauseRemainRef.current = null;
@@ -1175,6 +1186,12 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
     handleCardTap(gs.drawnCards[gs.drawnCards.length - 1], 'drawn', null);
   }, [gs.drawnCards, handleCardTap]);
 
+  const showGameRewarded = useCallback(async (onLoadingChange) => {
+    setAdInProgress(true);
+    try { return await showRewarded(onLoadingChange); }
+    finally { setAdInProgress(false); }
+  }, []);
+
   const acquireTool = useCallback(async (tool, method) => {
     if (!saveReady) return;
     if (purchaseRef.current || !['coin','ad'].includes(method)) return null;
@@ -1190,7 +1207,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
           return null;
         }
       } else {
-        const result = await showRewarded(loading => setAdLoadingTool(loading ? tool : null));
+        const result = await showGameRewarded(loading => setAdLoadingTool(loading ? tool : null));
         if (!result.success) return null;
         progress = await grantToolCredit(tool);
         setCoins(progress.coins); setToolCredits(progress.toolCredits || {});
@@ -1201,17 +1218,19 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       setFeedback(t.saveFailed || 'İşlem kaydedilemedi. Mevcut coin ve hakların korunuyor.');
       return null;
     } finally { purchaseRef.current = false; setAdLoadingTool(null); }
-  }, [saveReady, gameLang, t, setFeedback]);
+  }, [saveReady, gameLang, t, setFeedback, showGameRewarded]);
 
   const commitToolBoard = useCallback(async (tool, nextBoard, coinCost = 0) => {
     if (!saveReady || toolActionRef.current || navigationRef.current) return null;
     toolActionRef.current = true;
     try {
+      const target = typeof nextBoard === 'function' ? nextBoard(gs) : nextBoard;
+      if (!target) return null;
       const before = { ...gs, levelId:isDaily ? level.id : levelId, gameLanguage:gameLang,
         gameMode:isDaily ? 'daily' : isTimed ? 'timed' : 'classic', timeRemaining, elapsedTime };
       // Establish this run before the atomic action and drain queued autosaves.
       await saveSavedGame(before);
-      const result = await commitBoardAction({before,after:{...before,...nextBoard,runId:before.runId},tool,coinCost});
+      const result = await commitBoardAction({before,after:{...before,...target,runId:before.runId},tool,coinCost});
       setCoins(result.progress.coins); setToolCredits(result.progress.toolCredits || {});
       if (!result.success) {
         if (tool) setToolModal(tool); else setFeedback(t.coinNeeded500);
@@ -1225,6 +1244,32 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       return null;
     } finally { toolActionRef.current = false; }
   }, [saveReady, gs, isDaily, isTimed, level.id, levelId, gameLang, timeRemaining, elapsedTime, t]);
+  boardActionRef.current = commitToolBoard;
+
+  const applyAdBoardReward = useCallback(async (key, transition) => {
+    if (!saveReady || rewardActionRef.current || toolActionRef.current || navigationRef.current) return false;
+    if (pendingAdBoardRef.current && (pendingAdBoardRef.current.key !== key || pendingAdBoardRef.current.runId !== gs.runId)) {
+      setFeedback('Önce kazandığın ödülü aynı düğmeden yeniden kaydet.'); return false;
+    }
+    rewardActionRef.current = true;
+    try {
+      if (!pendingAdBoardRef.current) {
+        const result = await showGameRewarded(loading=>setAdLoadingTool(loading ? key : null));
+        if (!result.success) {
+          if (!result.handled && result.reason !== 'dismissed') setFeedback(t.adFailed || 'Reklam yüklenemedi');
+          return false;
+        }
+        pendingAdBoardRef.current = {key,runId:gs.runId};
+      }
+      const board = await boardActionRef.current(null,transition);
+      if (!board) { setFeedback('Ödül kaydedilemedi. Aynı düğmeye yeniden dokun; tekrar reklam izlemene gerek yok.'); return false; }
+      pendingAdBoardRef.current = null;
+      return true;
+    } catch (error) {
+      setFeedback(t.saveFailed || 'Reklam ödülü kaydedilemedi. Lütfen aynı düğmeden yeniden dene.');
+      return false;
+    } finally { rewardActionRef.current = false; setAdLoadingTool(null); }
+  }, [saveReady,gs.runId,showGameRewarded,t]);
 
   const useUndo = useCallback(async () => {
     if (!saveReady || toolActionRef.current || !isToolUnlocked('undo')) return;
@@ -1308,6 +1353,8 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   }, [acquireTool]);
 
   const resetGame = useCallback(() => {
+    if (toolActionRef.current || rewardActionRef.current) return;
+    if (pendingAdBoardRef.current) { setFeedback('Kazandığın ödülü önce aynı düğmeden yeniden kaydet.'); return; }
     completionPromiseRef.current = null;
     setCompletionReceipt(null); setRewardStatus('saving'); maxComboRef.current = 0;
     skipSaveRef.current = false;
@@ -1315,25 +1362,16 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
     const state = generateGameState(newLevel);
     if (isTimed) state.moves = 9999;
     setGs(state); setHistory([]); setSelected(null);
-    setHintCard(null); setHintSlot(null); setCombo(0); comboRef.current = 0; startTimeRef.current = Date.now(); setElapsedTime(0);
+    setHintCard(null); setHintSlot(null); setCombo(0); comboRef.current = 0; startTimeRef.current = Date.now(); clockPauseStartedRef.current = null; setElapsedTime(0);
     wrongMovesRef.current = 0;
     if (isTimed) { setTimeRemaining(getTimedSeconds(levelId)); timedEndRef.current = null; pauseRemainRef.current = null; }
   }, [levelId, isDaily, isTimed, gameLang]);
 
   const addMovesAd = useCallback(async () => {
     if (!saveReady || isTimed) return;
-    if (adLoadingTool) return;
-    const result = await showRewarded((loading) => {
-      setAdLoadingTool(loading ? 'moves' : null);
-    });
-    setAdLoadingTool(null);
-    if (!result.success) {
-      if (!result.handled && result.reason !== 'dismissed') setFeedback(t.adFailed || 'Reklam yüklenemedi');
-      return;
-    }
-    setGs((p) => ({ ...p, moves: p.moves + 20, extraMovesGranted: (p.extraMovesGranted || 0) + 20, isFailed: false }));
-    setFeedback(t.movesAdded);
-  }, [saveReady, isTimed, adLoadingTool, t, setFeedback]);
+    const success = await applyAdBoardReward('moves',game=>game.isComplete ? null : ({...game,moves:game.moves+20,extraMovesGranted:(game.extraMovesGranted || 0)+20,isFailed:false}));
+    if (success) setFeedback(t.movesAdded);
+  }, [saveReady,isTimed,applyAdBoardReward,t]);
 
   const addMovesCoin = useCallback(async () => {
     if (!saveReady || isTimed || purchaseRef.current) return;
@@ -1396,7 +1434,8 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
     mode: isDaily ? 'daily' : isTimed ? 'timed' : 'classic', elapsedTime, timeLimit: getTimedSeconds(level.id) });
 
   const handleNextLevel = useCallback(async () => {
-    if (navigationRef.current || toolActionRef.current) return;
+    if (navigationRef.current || toolActionRef.current || rewardActionRef.current) return;
+    if (pendingAdBoardRef.current) { setFeedback('Kazandığın ödülü önce aynı düğmeden yeniden kaydet.'); return; }
     navigationRef.current = true;
     try {
       const result = await ensureCompletion();
@@ -1421,7 +1460,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       setCompletionReceipt(null); setRewardStatus('saving');
       setGs(nextState); setHistory([]); setSelected(null); setHintCard(null); setHintSlot(null);
       setCombo(0); comboRef.current = 0; maxComboRef.current = 0; wrongMovesRef.current = 0;
-      startTimeRef.current = Date.now(); setElapsedTime(0);
+      startTimeRef.current = Date.now(); clockPauseStartedRef.current = null; setElapsedTime(0);
       if (isTimed) { setTimeRemaining(getTimedSeconds(nextId)); timedEndRef.current = null; pauseRemainRef.current = null; }
       const latest = await loadProgress(); setCoins(latest.coins || 0);
       const tool = result.receipt.newTools?.[0];
@@ -1463,7 +1502,8 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   }, [saveReady,isTimed,applyFailedShuffle]);
 
   const handleReplay = useCallback(async () => {
-    if (navigationRef.current || toolActionRef.current) return;
+    if (navigationRef.current || toolActionRef.current || rewardActionRef.current) return;
+    if (pendingAdBoardRef.current) { setFeedback('Kazandığın ödülü önce aynı düğmeden yeniden kaydet.'); return; }
     navigationRef.current = true;
     try {
       if (gs.isComplete) await ensureCompletion();
@@ -1476,7 +1516,8 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   }, [gs.isComplete, gs.isFailed, ensureCompletion, resetGame, t]);
 
   const handleHome = useCallback(async () => {
-    if (navigationRef.current || toolActionRef.current) return;
+    if (navigationRef.current || toolActionRef.current || rewardActionRef.current) return;
+    if (pendingAdBoardRef.current) { setFeedback('Kazandığın ödülü önce aynı düğmeden yeniden kaydet.'); return; }
     navigationRef.current = true;
     try {
       if (gs.isComplete) await ensureCompletion();
@@ -1501,30 +1542,14 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   // dragStackIds hesaplanır ama prop olarak geçilmez (performans)
 
   const handleUnlock = useCallback(async (type, index) => {
-    if (!saveReady) return;
-    if (adLoadingTool) return;
-    const result = await showRewarded((loading) => {
-      setAdLoadingTool(loading ? 'unlock' : null);
-    });
-    setAdLoadingTool(null);
-    if (result.success) {
-      setGs((prev) => {
-        if (type === 'slot') {
-          const newSlots = prev.slots.map((sl, i) => i === index ? { ...sl, locked: false } : sl);
-          return { ...prev, slots: newSlots };
-        }
-        if (type === 'column') {
-          const newCols = prev.columns.map((col, i) => i === index ? { ...col, locked: false } : col);
-          return { ...prev, columns: newCols };
-        }
-        return prev;
-      });
-      setFeedback(t.unlocked);
-      playSound('correct');
-    } else {
-      if (!result.handled && result.reason !== 'dismissed') setFeedback(t.adFailed || 'Reklam yüklenemedi');
-    }
-  }, [saveReady, adLoadingTool, t]);
+    if (!saveReady || !['slot','column'].includes(type) || !Number.isInteger(index)) return;
+    const field = type === 'slot' ? 'slots' : 'columns';
+    if (!gs[field]?.[index]?.locked || gs.isComplete || gs.isFailed) return;
+    if (await applyAdBoardReward(`unlock-${type}-${index}`,game=>{
+      if (!game[field]?.[index] || game.isComplete) return null;
+      return {...game,[field]:game[field].map((item,i)=>i===index ? {...item,locked:false}:item)};
+    })) { setFeedback(t.unlocked); playSound('correct'); }
+  }, [saveReady,gs,applyAdBoardReward,t]);
 
   const handleDrop = useCallback((dragInfo, dropX, dropY) => {
     const { card, source, sourceIndex, stackCards } = dragInfo;

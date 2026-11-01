@@ -155,7 +155,7 @@ test('Replay on the win screen settles the reward before resetting the game',asy
   const {storage:s}=services();const c=completionService(s);const gameSource=read('app/game.js');const input=finish();let reset=false;
   const noop=()=>{};const box={...s,gs:input.game,level:input.level,isDaily:false,isTimed:false,gameLang:'tr',levelId:1,dailyDate:null,elapsedTime:100,timeRemaining:100,getTimedSeconds:()=>180,
     useCallback:f=>f,settleCompletion:c.settleCompletion,isDailyChallengeCompleted:async()=>false,getDailyCompletionMap:async()=>({}),checkAchievements:async()=>[],submitScore:()=>new Promise(()=>{}),
-    completionPromiseRef:{current:null},navigationRef:{current:false},toolActionRef:{current:false},skipSaveRef:{current:false},latestSaveRef:{current:null},wrongMovesRef:{current:0},maxComboRef:{current:0},
+    completionPromiseRef:{current:null},navigationRef:{current:false},toolActionRef:{current:false},rewardActionRef:{current:false},pendingAdBoardRef:{current:null},skipSaveRef:{current:false},latestSaveRef:{current:null},wrongMovesRef:{current:0},maxComboRef:{current:0},
     setRewardStatus:noop,setCoins:noop,setToolCredits:noop,setUnlockedTools:noop,setCompletionReceipt:noop,setFeedback:noop,setAchievementPopup:noop,user:null,syncToCloud:noop,t:{},resetGame:()=>{reset=true},console};
   const a=gameSource.indexOf('  const ensureCompletion =');const b=gameSource.indexOf('\n  useEffect(() => {\n    if (gs.isComplete)',a);
   box.ensureCompletion=vm.runInNewContext('(()=>{'+gameSource.slice(a,b)+'\nreturn ensureCompletion;})()',box);

@@ -72,7 +72,7 @@ test('Entering without a level parameter builds the saved current level, not lev
  vm.runInNewContext(source.slice(a,b),{useEffect:f=>f(),loadAttempt:0,loadProgress:async()=>({coins:900,currentLevel:14}),params:{},isDaily:false,isTimed:false,gameLang:'tr',level:{id:1},
   getLevel:id=>({id}),generateGameState:level=>{generated=level.id;return{...board(),levelId:level.id};},
   setCoins:noop,setLevelId:id=>{levelId=id;},setShowTutorial:noop,updateProgress:noop,setUnlockedTools:noop,setToolCredits:noop,
-  require:()=>({loadSavedGame:async()=>null}),isSavedBoardValid:()=>true,setGs:s=>{state=s;},setHistory:noop,setElapsedTime:noop,startTimeRef:{current:0},
+  require:()=>({loadSavedGame:async()=>null}),isSavedBoardValid:()=>true,setGs:s=>{state=s;},setHistory:noop,setElapsedTime:noop,startTimeRef:{current:0},clockPauseStartedRef:{current:null},
   setSaveLoadError:e=>{error=e;},setSaveReady:v=>{ready=v;},setTimeRemaining:noop,timedEndRef:{current:null},pauseRemainRef:{current:null},getTimedSeconds:()=>180,
  });
  for(let i=0;i<15;i++)await Promise.resolve();assert.equal(error,null);assert.equal(ready,true);assert.equal(levelId,14);assert.equal(generated,14);assert.equal(state.levelId,14);
@@ -84,4 +84,24 @@ test('Undo preserves purchased extra moves and permanent unlocks',async()=>{
  const gs={...previous,moves:27,slots:[{locked:false}],columns:[{locked:false,cards:[]}],extraMovesGranted:20,hintsUsed:2,_toolRevision:3};
  const fn=vm.runInNewContext(source.slice(a,b)+'\nuseUndo',{useCallback:f=>f,saveReady:true,toolActionRef:{current:false},isToolUnlocked:()=>true,history:[previous],gs,t:{},setFeedback(){},setHistory(){historyPopped=true;},commitToolBoard:async(_,next)=>{target=next;return next;}});
  await fn();assert.equal(target.moves,28);assert.equal(target.extraMovesGranted,20);assert.equal(target.slots[0].locked,false);assert.equal(target.columns[0].locked,false);assert.equal(target.hintsUsed,2);assert.equal(historyPopped,true);
+});
+
+function adAction(ad,commit) {
+ const source=read('app/game.js'),a=source.indexOf('  const applyAdBoardReward ='),b=source.indexOf('  const useUndo =',a);
+ const pending={current:null},busy={current:false};
+ const fn=vm.runInNewContext(source.slice(a,b)+'\napplyAdBoardReward',{useCallback:f=>f,saveReady:true,gs:{runId:'r'},rewardActionRef:busy,toolActionRef:{current:false},navigationRef:{current:false},pendingAdBoardRef:pending,boardActionRef:{current:commit},showGameRewarded:ad,t:{},setFeedback(){},setAdLoadingTool(){}});
+ return{fn,pending,busy};
+}
+test('An earned ad can retry a failed board write without showing a second ad',async()=>{
+ let ads=0,writes=0;const h=adAction(async()=>{ads++;return{success:true};},async()=>++writes===1?null:{runId:'r'});
+ assert.equal(await h.fn('moves',x=>x),false);assert.ok(h.pending.current);assert.equal(await h.fn('moves',x=>x),true);assert.equal(ads,1);assert.equal(writes,2);assert.equal(h.pending.current,null);
+});
+test('Duplicate ad-reward taps cannot open a second ad or apply twice',async()=>{
+ let resolve,ads=0,writes=0;const h=adAction(()=>{ads++;return new Promise(r=>{resolve=r;});},async()=>{writes++;return{runId:'r'};});
+ const first=h.fn('moves',x=>x);assert.equal(await h.fn('moves',x=>x),false);resolve({success:true});await first;assert.equal(ads,1);assert.equal(writes,1);assert.equal(h.busy.current,false);
+});
+test('An incomplete ad grants no board change; unexpected ad errors clear the lock',async()=>{
+ let writes=0;for(const ad of [async()=>({success:false,reason:'dismissed'}),async()=>{throw Error('SDK error');}]){
+  const h=adAction(ad,async()=>{writes++;});assert.equal(await h.fn('moves',x=>x),false);assert.equal(h.busy.current,false);assert.equal(h.pending.current,null);
+ }assert.equal(writes,0);
 });

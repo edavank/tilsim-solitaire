@@ -14,7 +14,7 @@ const board=()=>({runId:'r',moves:10,isComplete:false,isFailed:false,deck:[],dra
 function undoHandler(consume) {
  const source=read('app/game.js'),start=source.indexOf('  const commitToolBoard ='),end=source.indexOf('  const executeUndo =',start);
  const effects=[],lock={current:false};
- const run=vm.runInNewContext(source.slice(start,end)+'\nuseUndo',{
+ const run=vm.runInNewContext(source.slice(start,source.indexOf('  boardActionRef.current =',start))+source.slice(source.indexOf('  const useUndo =',start),end)+'\nuseUndo',{
   useCallback:f=>f,saveReady:true,toolActionRef:lock,isToolUnlocked:()=>true,history:[{...board(),moves:9}],toolCredits:{undo:1},t:{undoDone:'done'},gs:board(),navigationRef:{current:false},isDaily:false,isTimed:false,level:{id:1},levelId:1,gameLang:'tr',timeRemaining:0,elapsedTime:0,latestSaveRef:{current:null},saveSavedGame:async()=>{},setCoins:()=>{},
   commitBoardAction:async ({after})=>{const r=await consume();return {...r,board:after};},setToolCredits:p=>effects.push(['credits',p]),setGs:p=>effects.push(['board',p]),
   setHistory:()=>effects.push(['history']),setSelected:()=>{},setFeedback:x=>effects.push(['feedback',x]),setToolModal:x=>effects.push(['modal',x]),
@@ -109,6 +109,6 @@ test('Daily screen translations contain Russian and Arabic as independent langua
 test('Timed continuation handlers never debit coins or request an ineffective moves ad',async()=>{
  const source=read('app/game.js');for(const [name,next]of [['addMovesAd','addMovesCoin'],['addMovesCoin','ensureCompletion']]){
   const a=source.indexOf('  const '+name+' ='),b=source.indexOf('  const '+next+' =',a);const end=source.indexOf('\n  // A finished run',a);const snippet=source.slice(a,name==='addMovesCoin'?end:b);
-  const fn=vm.runInNewContext(snippet+'\n'+name,{useCallback:f=>f,saveReady:true,isTimed:true,gs:{},commitToolBoard(){throw Error('must not charge');},adLoadingTool:null,t:{},setFeedback(){},updateProgress(){throw Error('must not charge');},showRewarded(){throw Error('must not show');}});await fn();
+  const fn=vm.runInNewContext(snippet+'\n'+name,{useCallback:f=>f,saveReady:true,isTimed:true,gs:{},applyAdBoardReward(){throw Error('must not show');},commitToolBoard(){throw Error('must not charge');},adLoadingTool:null,t:{},setFeedback(){},updateProgress(){throw Error('must not charge');},showGameRewarded(){throw Error('must not show');}});await fn();
  }
 });
