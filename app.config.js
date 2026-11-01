@@ -8,6 +8,7 @@ module.exports = () => {
     scheme:'tilsim-solitaire-qa',
     runtimeVersion:'1.0.9-audit.1',
     android:{...base.android,package:'com.edavank.tilsimsolitaire.qa'},
+    plugins:[...base.plugins,'./plugins/withAuditBuildMemory'],
     extra:{...base.extra,auditQa:true},
   };
 };
