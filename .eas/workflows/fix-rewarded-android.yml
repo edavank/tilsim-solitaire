@@ -1,14 +1,17 @@
-name: Android rewarded ad hotfix
+name: Rewarded ad hotfix - Android and iOS
+
+on:
+  workflow_dispatch: {}
 
 jobs:
-  publish_android_hotfix:
-    name: Publish rewarded ad fix for Android 1.0.8
+  publish_hotfix:
+    name: Publish rewarded ad fix for Android and iOS 1.0.8
     type: update
     environment: production
     params:
-      platform: android
+      platform: all
       channel: production
-      message: Fix rewarded video loading on Android 1.0.8
+      message: Fix rewarded video loading on Android and iOS 1.0.8
     hooks:
       before_update:
         - name: Verify hotfix target
