@@ -1,4 +1,4 @@
-name: Tilsim S2 - iPhone test build
+name: Tilsim S2 - iPhone build only (no submission)
 
 on:
   workflow_dispatch: {}
@@ -20,10 +20,3 @@ jobs:
             node --test scripts/test-critical.cjs scripts/test-ad-recovery.cjs
             node --test scripts/test-update-recovery.cjs
             node scripts/verify-screen.cjs
-  upload_testflight:
-    name: Upload to TestFlight only
-    type: submit
-    needs: [build_ios]
-    params:
-      build_id: ${{ needs.build_ios.outputs.build_id }}
-      profile: production

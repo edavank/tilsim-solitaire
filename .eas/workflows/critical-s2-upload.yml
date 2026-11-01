@@ -2,8 +2,6 @@ name: Tilsim S2 - upload existing iPhone test build
 
 on:
   workflow_dispatch: {}
-  push:
-    branches: ['release/critical-s2-upload']
 
 jobs:
   upload_testflight:
