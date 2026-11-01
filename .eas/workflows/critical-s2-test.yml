@@ -21,14 +21,8 @@ jobs:
             node scripts/verify-screen.cjs
   upload_testflight:
     name: Upload to TestFlight only
-    type: testflight
+    type: submit
     needs: [build_ios]
     params:
       build_id: ${{ needs.build_ios.outputs.build_id }}
       profile: production
-      submit_beta_review: false
-      changelog: |
-        S2 TEST
-        Bolum sonu odulunun tek kez kaydedilmesini, tekrar oyna/ana sayfa akislarini,
-        uygulamayi yeniden acmayi ve bulut esitlemesinden sonra harcanan bakiyenin korunmasini kontrol edin.
-        Ayarlar ekraninda S2 TEST yazmalidir. Uygulamayi veya oyun verilerini silmeyin.
