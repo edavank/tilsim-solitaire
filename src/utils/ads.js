@@ -244,7 +244,7 @@ function preloadRewarded() {
       requestNonPersonalizedAdsOnly: false,
     });
 
-    const loadUnsub = rewardedAd.addAdEventListener(AdEventType.LOADED, () => {
+    const loadUnsub = rewardedAd.addAdEventListener(RewardedAdEventType.LOADED, () => {
       rewardedLoaded = true;
       rewardedLoading = false;
       rewardedLoadAttempts = 0;
@@ -363,7 +363,7 @@ function preloadRewardedInterstitial() {
     rewardedInterstitialAd = RewardedInterstitialAd.createForAdRequest(ids.rewardedInterstitial, {
       requestNonPersonalizedAdsOnly: false,
     });
-    const loadUnsub = rewardedInterstitialAd.addAdEventListener(AdEventType.LOADED, () => {
+    const loadUnsub = rewardedInterstitialAd.addAdEventListener(RewardedAdEventType.LOADED, () => {
       rewardedInterstitialLoaded = true;
       rewardedInterstitialLoading = false;
       console.log('[Ads] rewardedInterstitial preload OK');
