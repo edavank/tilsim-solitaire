@@ -163,7 +163,7 @@ async function runGoogleLogin() {
     const Constants = require('expo-constants').default;
     WebBrowser.maybeCompleteAuthSession();
     const redirectUrl = Constants?.appOwnership === 'expo' && Constants?.expoConfig?.hostUri
-      ? `exp://${Constants.expoConfig.hostUri}/--/` : makeRedirectUri({scheme:'tilsim-solitaire'});
+      ? `exp://${Constants.expoConfig.hostUri}/--/` : makeRedirectUri({scheme:(Array.isArray(Constants?.expoConfig?.scheme) ? Constants.expoConfig.scheme[0] : Constants?.expoConfig?.scheme) || 'tilsim-solitaire'});
     authPhase = 'requesting_google';
     const {data,error} = await cloudRequest(supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:redirectUrl,skipBrowserRedirect:true}}));
     if (error) return authFailure('oauth_failed',error);
@@ -254,6 +254,23 @@ export async function signInWithApple() {
   }
 }
 
+// Only isolated audit builds expose this password login. No password is stored here.
+export async function signInWithTestAccount(email,password) {
+  if (!(typeof process !== 'undefined' && process.env.EXPO_PUBLIC_AUDIT_QA === '1')) return authFailure('qa_only','Bu giriş yalnız test sürümünde kullanılabilir.');
+  if (!/^tilsim\.qa\.[a-z0-9-]+@example\.invalid$/i.test(String(email).trim())) return authFailure('qa_account_required','Yalnız geçici test adresini kullan.');
+  try {
+    await initAuth();
+    if (!supabase || authPhase === 'cleanup_failed') return authFailure('cleanup_pending','Hesap bağlantısı hazırlanamadı.');
+    const {data,error} = await cloudRequest(supabase.auth.signInWithPassword({email:String(email).trim(),password}));
+    if (error || !data?.session?.user?.id) return authFailure('test_login_failed','Test hesabına giriş yapılamadı. E-posta ve şifreyi kontrol et.');
+    const saved = await cloudRequest(supabase.auth.getSession());
+    if (saved.error || saved.data?.session?.user?.id !== data.session.user.id) return authFailure('session_not_persisted','Test oturumu kaydedilemedi.');
+    sessionRevision++;
+    await publishSession(saved.data.session,sessionRevision);
+    return {user:currentUser};
+  } catch (error) { return authFailure('test_login_failed','Test hesabına giriş tamamlanamadı.'); }
+}
+
 // ─── Sign Out ────────────────────────────────────────────────
 export async function signOut() {
   if (supabase) {
@@ -279,6 +296,7 @@ export async function deleteAccount() {
   if (!supabase) return {success:false,error:'Hesap bağlantısı hazırlanamadı.',code:'AUTH_REQUIRED'};
   try {
     const pending = await getPendingAccountDeletion();
+    if (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_AUDIT_QA === '1' && currentUser && !/^tilsim\.qa\.[a-z0-9-]+@example\.invalid$/i.test(currentUser.email || '')) return {success:false,error:'Test sürümünde yalnız geçici test profili silinebilir. Normal profilin korunuyor.',code:'QA_ACCOUNT_REQUIRED'};
     const accountId = currentUser?.id || pending?.accountId;
     if (!accountId || (pending && pending.accountId !== accountId)) return {success:false,error:'Önce yarım kalan hesap işlemi tamamlanmalı.',code:'AUTH_REQUIRED'};
     if (!pending) {

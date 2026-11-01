@@ -1,6 +1,6 @@
 import { getAuthDiagnostics } from '../src/utils/auth';
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView, Image, Alert, Linking , ImageBackground} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Switch, ScrollView, Image, Alert, Linking , ImageBackground} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -16,6 +16,7 @@ import { getAdDiagnostics } from '../src/utils/ads';
 const BG_STARS = require('../assets/bg-stars.webp');
 
 const APP_VERSION = Constants?.expoConfig?.version || '1.0.0';
+const AUDIT_QA = Constants?.expoConfig?.extra?.auditQa === true;
 
 const LANG_OPTIONS = [
   { code: 'tr', flag: '🇹🇷', name: 'Türkçe' },
@@ -29,13 +30,15 @@ const LANG_OPTIONS = [
 
 export default function SettingsScreen() {
   const { lang, t, setLang } = useLang();
-  const { user, loading, handleGoogleLogin, handleAppleLogin, handleSignOut, handleDeleteAccount, isAppleAvailable, syncToCloud, cloudStatus, cloudError, lastSyncedAt } = useAuth();
+  const { user, loading, handleGoogleLogin, handleAppleLogin, handleTestLogin, handleSignOut, handleDeleteAccount, isAppleAvailable, syncToCloud, cloudStatus, cloudError, lastSyncedAt } = useAuth();
   const [sound, setSound] = useState(true);
   const [vibration, setVibration] = useState(true);
   const [bgm, setBgm] = useState(true);
   const [coins, setCoins] = useState(0);
   const [busy, setBusy] = useState(false);
   const [showLangPicker, setShowLangPicker] = useState(false);
+  const [testEmail,setTestEmail] = useState('tilsim.qa.20261101@example.invalid');
+  const [testPassword,setTestPassword] = useState('');
 
   useEffect(() => {
     loadSettings().then((s) => {
@@ -142,6 +145,23 @@ export default function SettingsScreen() {
         <TouchableOpacity style={s.card} onPress={() => setShowLangPicker(true)} activeOpacity={0.7}>
           <SettingRow icon="translate" iconColor={COLORS.secondary} label={t.language} right={<ChevronValue value={LANG_OPTIONS.find(l => l.code === lang)?.flag + ' ' + LANG_OPTIONS.find(l => l.code === lang)?.name || 'Türkçe'} />} />
         </TouchableOpacity>
+
+        {AUDIT_QA && <View style={[s.card,{padding:16,gap:12}]}>
+          <Text style={{color:COLORS.coin,fontFamily:FONTS.headline}}>Tılsım Test · Denetim sürümü</Text>
+          <Text style={{color:COLORS.onSurfaceVariant}}>Bu ayrı test sürümüdür. Reklamlar test reklamıdır. Silme deneyi yalnız geçici test profiliyle yapılabilir.</Text>
+          {user ? <Text style={{color:COLORS.onSurfaceVariant}}>Geçici test hesabına girmeden önce aşağıdan mevcut hesaptan çıkış yap.</Text> : <>
+            <TextInput accessibilityLabel="Test e-posta adresi" value={testEmail} onChangeText={setTestEmail} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" editable={!busy&&!loading} style={{color:COLORS.onSurface,borderColor:COLORS.outlineVariant,borderWidth:1,borderRadius:12,padding:12}} />
+            <TextInput accessibilityLabel="Test hesabı şifresi" placeholder="Yalnız test için belirlediğin şifre" placeholderTextColor={COLORS.onSurfaceVariant} value={testPassword} onChangeText={setTestPassword} secureTextEntry autoCapitalize="none" autoCorrect={false} editable={!busy&&!loading} style={{color:COLORS.onSurface,borderColor:COLORS.outlineVariant,borderWidth:1,borderRadius:12,padding:12}} />
+            <TouchableOpacity disabled={busy||loading||!testPassword} onPress={async()=>{
+              setBusy(true);
+              try {
+                const result=await handleTestLogin(testEmail,testPassword);
+                if(result.error) Alert.alert('Test hesabı',result.error);
+                else Alert.alert('Test hesabı','Geçici test profiline giriş yapıldı.');
+              } finally {setTestPassword('');setBusy(false);}
+            }}><Text style={{color:COLORS.primary,fontFamily:FONTS.headline}}>{loading||busy?'Giriş yapılıyor…':'Test hesabıyla giriş yap'}</Text></TouchableOpacity>
+          </>}
+        </View>}
 
         {/* Hesap */}
         <View style={s.sectionHeader}>

@@ -37,6 +37,21 @@
       "distribution": "store",
       "channel": "preview",
       "autoIncrement": true
+    },
+    "audit_android": {
+      "extends": "preview",
+      "channel": "audit-qa",
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_AUDIT_QA": "1"
+      }
+    },
+    "audit_ios": {
+      "extends": "qa",
+      "channel": "audit-qa",
+      "env": {
+        "EXPO_PUBLIC_AUDIT_QA": "1"
+      }
     }
   },
   "submit": {

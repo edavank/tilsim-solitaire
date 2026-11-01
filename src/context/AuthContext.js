@@ -59,13 +59,13 @@ export function AuthProvider({ children }) {
     try { await AsyncStorage?.setItem(HAS_SEEN_LOGIN_KEY, 'true'); } catch (e) {}
   }, []);
 
-  const loginWith = useCallback((provider) => {
+  const loginWith = useCallback((provider,credentials) => {
     if (mutationTask.current) return Promise.resolve({error:'Hesap işlemi sürüyor. Lütfen bekle.',code:'busy'});
     if (loginTask.current) return loginTask.current;
     loginTask.current = Promise.resolve().then(async () => {
       setLoading(true);
       try {
-        const result = provider === 'google' ? await authModule.signInWithGoogle() : await authModule.signInWithApple();
+        const result = provider === 'google' ? await authModule.signInWithGoogle() : provider === 'test' ? await authModule.signInWithTestAccount(credentials.email,credentials.password) : await authModule.signInWithApple();
         if (result?.error) return {error:result.error,code:result.code};
         if (!result?.user?.id) return {error:'Oturum doğrulanamadı. Lütfen tekrar dene.',code:'no_session'};
         setUser(result.user);
@@ -78,6 +78,7 @@ export function AuthProvider({ children }) {
   }, [markLoginSeen]);
   const handleGoogleLogin = useCallback(() => loginWith('google'),[loginWith]);
   const handleAppleLogin = useCallback(() => loginWith('apple'),[loginWith]);
+  const handleTestLogin = useCallback((email,password)=>loginWith('test',{email,password}),[loginWith]);
 
   const handleSkipLogin = useCallback(async () => {
     await markLoginSeen();
@@ -161,7 +162,7 @@ export function AuthProvider({ children }) {
     shouldShowLogin,
     isAppleAvailable: Platform.OS === 'ios',
     handleGoogleLogin,
-    handleAppleLogin,
+    handleAppleLogin, handleTestLogin,
     handleSkipLogin,
     handleSignOut,
     handleDeleteAccount,

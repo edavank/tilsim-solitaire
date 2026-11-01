@@ -43,7 +43,8 @@ const AD_IDS = {
   },
 };
 
-const ids = __DEV__ ? AD_IDS.test : AD_IDS.production;
+const auditQa = typeof process !== 'undefined' && process.env.EXPO_PUBLIC_AUDIT_QA === '1';
+const ids = auditQa ? {...AD_IDS.test,rewardedInterstitial:null} : __DEV__ ? AD_IDS.test : AD_IDS.production;
 
 let MobileAds = null;
 let InterstitialAd = null;
