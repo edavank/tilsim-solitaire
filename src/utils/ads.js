@@ -59,6 +59,35 @@ let AdEventType = null;
 let RewardedAdEventType = null;
 
 let adsReady = false;
+let lastRewardedError = null;
+
+function recordRewardedError(error) {
+  lastRewardedError = {
+    code: String(error?.code || 'unknown'),
+    message: String(error?.message || error || 'Unknown error'),
+  };
+}
+
+export function getAdDiagnostics() {
+  let update = {};
+  try {
+    const Updates = require('expo-updates');
+    update = {
+      updateId: Updates.updateId,
+      runtimeVersion: Updates.runtimeVersion,
+      channel: Updates.channel,
+      embedded: Updates.isEmbeddedLaunch,
+    };
+  } catch (e) {}
+  return {
+    revision: 'ads-20261101-r2',
+    ...update,
+    adsReady,
+    rewardedLoaded,
+    rewardedLoading,
+    lastRewardedError,
+  };
+}
 
 function isExpoGo() {
   try {
@@ -208,6 +237,7 @@ function attachShowListenersAndShow(resolve, onLoadingChange) {
   unsubs.push(closeUnsub);
 
   const errUnsub = rewardedAd.addAdEventListener(AdEventType.ERROR, (error) => {
+    recordRewardedError(error);
     console.log('[Ads] rewarded show hatasi:', error.message);
     cleanup();
     rewardedLoaded = false;
@@ -220,8 +250,18 @@ function attachShowListenersAndShow(resolve, onLoadingChange) {
 
   try {
     try { onLoadingChange?.(false); } catch (e) {}
-    rewardedAd.show();
+    Promise.resolve(rewardedAd.show()).catch((error) => {
+      recordRewardedError(error);
+      console.log('[Ads] rewarded show promise hatasi:', error.message);
+      cleanup();
+      rewardedLoaded = false;
+      rewardedAd = null;
+      setTimeout(preloadRewarded, 1000);
+      try { onLoadingChange?.(false); } catch (e) {}
+      resolve({ success: false, reward: null });
+    });
   } catch (e) {
+    recordRewardedError(e);
     console.log('[Ads] rewarded show cagri hatasi:', e.message);
     cleanup();
     rewardedLoaded = false;
@@ -248,6 +288,7 @@ function preloadRewarded() {
       rewardedLoaded = true;
       rewardedLoading = false;
       rewardedLoadAttempts = 0;
+      lastRewardedError = null;
       console.log('[Ads] rewarded preload OK');
       cleanupPreloadListeners();
 
@@ -261,6 +302,7 @@ function preloadRewarded() {
     preloadListenerUnsubs.push(loadUnsub);
 
     const errorUnsub = rewardedAd.addAdEventListener(AdEventType.ERROR, (error) => {
+      recordRewardedError(error);
       console.log('[Ads] rewarded yukleme hatasi:', error.message);
       rewardedLoaded = false;
       rewardedLoading = false;
@@ -286,6 +328,7 @@ function preloadRewarded() {
 
     rewardedAd.load();
   } catch (e) {
+    recordRewardedError(e);
     console.log('[Ads] preloadRewarded hatasi:', e.message);
     rewardedLoading = false;
   }
