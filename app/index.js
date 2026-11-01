@@ -9,7 +9,7 @@ import { loadProgress, loadSelectedAvatar, getAvatarEmoji } from '../src/utils/s
 import { useLang } from '../src/context/LanguageContext';
 import { useAuth } from '../src/context/AuthContext';
 import { isDailyChallengeCompleted } from '../src/utils/dailyChallenge';
-import { checkDailyLogin, claimDailyReward, DAILY_REWARDS } from '../src/utils/dailyLogin';
+import { checkDailyLogin, grantDailyLoginReward, DAILY_REWARDS } from '../src/utils/dailyLogin';
 import { updateProgress } from '../src/utils/storage';
 
 const { width: SW } = Dimensions.get('window');
@@ -87,14 +87,8 @@ export default function HomeScreen() {
         setCurrentLevel(p.currentLevel); setCoins(p.coins); setUnseenAch(p.unseenAch || 0);
         // Arka planda cloud sync (giriş yapılmışsa)
         if (user) {
-          syncToCloud({
-            currentLevel: p.currentLevel,
-            coins: p.coins,
-            totalGames: p.totalGames || 0,
-            totalWins: p.totalWins || 0,
-            bestScore: p.bestScore || 0,
-            streak: p.streak || 0,
-            xp: p.xp || 0,
+          syncToCloud().then(latest => {
+            if (latest) { setCurrentLevel(latest.currentLevel); setCoins(latest.coins); setUnseenAch(latest.unseenAch || 0); }
           }).catch(() => {});
         }
       }).catch(() => {});
@@ -268,13 +262,7 @@ export default function HomeScreen() {
             <TouchableOpacity
               style={{ backgroundColor: COLORS.coin, borderRadius: 16, paddingVertical: 14, paddingHorizontal: 40, width: '100%', alignItems: 'center' }}
               onPress={async () => {
-                const reward = dailyLoginData.reward.coins;
-                await claimDailyReward(dailyLoginData.streak);
-                // Race-safe: updateProgress mutex'iyle paralel güncellemelerin
-                // ezilmesini engelle. Callback içinde en güncel coins'i oku.
-                const next = await updateProgress((cur) => ({ coins: (cur.coins || 0) + reward }));
-                // Geriye uyumluluk: updateProgress objesi de alabiliyor, ama
-                // callback pattern atomik. storage.js her iki biçimi destekler.
+                const next = await grantDailyLoginReward(dailyLoginData.streak);
                 setCoins(next.coins);
                 setDailyLoginData(null);
               }}
@@ -369,3 +357,4 @@ const s = StyleSheet.create({
   levelSelectTextWrap: { flex: 1 },
   levelSelectText: { fontFamily: FONTS.headline, fontSize: 14, color: COLORS.onSurface },
 });
+

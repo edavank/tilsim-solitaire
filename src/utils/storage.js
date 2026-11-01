@@ -74,7 +74,7 @@ export async function saveProgress(progress) {
   await setItem(KEYS.PROGRESS, JSON.stringify(progress));
 }
 
-export async function updateProgress(updates) {
+export async function updateProgress(updates, walletEvent = {}) {
   // Atomik: eşzamanlı çağrılar sıralanır, her biri en güncel değeri okur.
   // `updates` obje veya fonksiyon olabilir. Fonksiyon pattern coin/xp gibi
   // increment'lerde lost-update önler: updateProgress(cur => ({coins: cur.coins+50}))
@@ -82,9 +82,29 @@ export async function updateProgress(updates) {
     const current = await loadProgress();
     const patch = typeof updates === 'function' ? updates(current) : updates;
     const next = { ...current, ...patch };
+    if (Number.isFinite(next.coins) && next.coins !== current.coins) {
+      const restoredHistory = walletEvent.source === 'cloud' && Array.isArray(patch.walletHistory)
+        && patch.walletHistory[patch.walletHistory.length-1]?.balanceAfter === next.coins ? patch.walletHistory : null;
+      const history = Array.isArray(current.walletHistory) ? current.walletHistory : [{
+        id:'opening',createdAt:Date.now(),kind:'opening',description:'İlk kayıtlı bakiye',amount:current.coins,balanceAfter:current.coins,
+      }];
+      next.walletHistory = restoredHistory || [...history, { id:walletEvent.id || `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        createdAt:Date.now(),kind:walletEvent.kind || (next.coins > current.coins ? 'credit':'spend'),
+        description:walletEvent.description || 'Oyun içi bakiye değişimi',
+        amount:next.coins-current.coins,balanceAfter:next.coins,runId:walletEvent.runId,
+        source:walletEvent.source,levelId:walletEvent.levelId,toolKey:walletEvent.toolKey }].slice(-200);
+    }
     await saveProgress(next);
     return next;
   });
+}
+
+export async function loadCloudJournal(accountId) {
+  const raw = await getItem(`@tilsim_cloud_v2:${accountId}`);
+  return raw ? JSON.parse(raw) : null;
+}
+export async function saveCloudJournal(accountId, journal) {
+  return withLock(`@tilsim_cloud_v2:${accountId}`, () => setItem(`@tilsim_cloud_v2:${accountId}`, JSON.stringify(journal)));
 }
 
 export async function loadSettings() {
@@ -193,6 +213,8 @@ export async function saveLevelStars(levelId, stars) {
 
 export async function loadLevelStars() {
   try {
+    const progress = await loadProgress();
+    if (progress.levelStars) return progress.levelStars;
     const raw = await getItem('@tilsim_stars');
     return raw ? JSON.parse(raw) : {};
   } catch (e) { return {}; }
@@ -214,6 +236,8 @@ export async function addXP(amount) {
 
 export async function loadXP() {
   try {
+    const progress = await loadProgress();
+    if (Number.isFinite(progress.xp)) return { xp: progress.xp, level: Math.floor(progress.xp / 500) + 1 };
     const raw = await getItem('@tilsim_xp');
     return raw ? JSON.parse(raw) : { xp: 0, level: 1 };
   } catch (e) { return { xp: 0, level: 1 }; }

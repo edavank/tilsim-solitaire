@@ -1,0 +1,34 @@
+name: Tilsim S2 - iPhone test build
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: ['release/critical-s2-test']
+
+jobs:
+  build_ios:
+    name: Build isolated preview-channel iPhone version
+    type: build
+    params:
+      platform: ios
+      profile: qa
+      message: S2 TEST - rewards and cloud save validation
+    hooks:
+      after_install_node_modules:
+        - name: Check critical behavior before building
+          run: |
+            node --test scripts/test-critical.cjs
+            node scripts/verify-screen.cjs
+  upload_testflight:
+    name: Upload to TestFlight only
+    type: testflight
+    needs: [build_ios]
+    params:
+      build_id: ${{ needs.build_ios.outputs.build_id }}
+      profile: production
+      submit_beta_review: false
+      changelog: |
+        S2 TEST
+        Bolum sonu odulunun tek kez kaydedilmesini, tekrar oyna/ana sayfa akislarini,
+        uygulamayi yeniden acmayi ve bulut esitlemesinden sonra harcanan bakiyenin korunmasini kontrol edin.
+        Ayarlar ekraninda S2 TEST yazmalidir. Uygulamayi veya oyun verilerini silmeyin.

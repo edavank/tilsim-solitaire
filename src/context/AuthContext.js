@@ -15,6 +15,7 @@ try {
     signOut: async () => {},
     deleteAccount: async () => ({ success: true }),
     syncProgressToCloud: async () => null,
+    preserveLocalAccountBackup: async () => {},
     loadProgressFromCloud: async () => null,
   };
 }
@@ -30,6 +31,9 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   const [hasSeenLogin, setHasSeenLogin] = useState(true); // default true to avoid flash
+  const [cloudStatus, setCloudStatus] = useState('idle');
+  const [cloudError, setCloudError] = useState(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState(null);
   const initDone = useRef(false);
 
   // Init auth + check if login screen was seen before
@@ -84,14 +88,34 @@ export function AuthProvider({ children }) {
     await markLoginSeen();
   }, [markLoginSeen]);
 
+  const syncToCloud = useCallback(async (_legacySnapshot, choice) => {
+    setCloudStatus('syncing');
+    try {
+      const result = await authModule.syncProgressToCloud(undefined, choice);
+      if (result) { setCloudStatus('saved'); setCloudError(null); setLastSyncedAt(Date.now()); }
+      else setCloudStatus('idle');
+      return result;
+    } catch (error) {
+      setCloudStatus(error.code === 'BOOTSTRAP_CONFLICT' ? 'conflict' : 'error');
+      setCloudError(error);
+      throw error;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (authReady && user?.id) syncToCloud().catch(() => {});
+    else { setCloudStatus('idle'); setCloudError(null); setLastSyncedAt(null); }
+  }, [authReady, user?.id, syncToCloud]);
+
   const handleSignOut = useCallback(async () => {
     // Sign-out öncesi son bir kez yerel -> cloud sync ki kullanıcı ilerlemesini
     // kaybetmesin. Sonra supabase'den çıkış + yerel veri temizliği.
-    try {
-      const { loadProgress } = require('../utils/storage');
-      const local = await loadProgress();
-      await authModule.syncProgressToCloud(local);
-    } catch (e) {}
+    try { await syncToCloud(); }
+    catch (e) {
+      // An offline user may sign out only after a durable account-scoped backup.
+      try { await authModule.preserveLocalAccountBackup(); }
+      catch (backupError) { return { success:false, error:'Yerel kayıt korunamadı. Lütfen yeniden dene.' }; }
+    }
     await authModule.signOut();
     // Hesaplar arası veri sızıntısını önle: Kullanıcı A çıkış yapıp B'ye
     // girerse, A'nın local coin/level'i Math.max merge ile B'nin cloud'una
@@ -100,7 +124,8 @@ export function AuthProvider({ children }) {
       const { resetUserScopedData } = require('../utils/storage');
       await resetUserScopedData();
     } catch (e) {}
-  }, []);
+    return { success:true };
+  }, [syncToCloud]);
 
   // Apple 5.1.1(v): Hesap silme — cloud + local tüm verileri siler
   const handleDeleteAccount = useCallback(async () => {
@@ -115,10 +140,6 @@ export function AuthProvider({ children }) {
   }, []);
 
   // Cloud sync helpers
-  const syncToCloud = useCallback(async (localProgress) => {
-    return await authModule.syncProgressToCloud(localProgress);
-  }, []);
-
   const loadFromCloud = useCallback(async () => {
     return await authModule.loadProgressFromCloud();
   }, []);
@@ -139,6 +160,7 @@ export function AuthProvider({ children }) {
     handleDeleteAccount,
     syncToCloud,
     loadFromCloud,
+    cloudStatus, cloudError, lastSyncedAt,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -151,3 +173,4 @@ export function useAuth() {
 }
 
 export default AuthContext;
+

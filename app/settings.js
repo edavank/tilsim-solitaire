@@ -28,7 +28,7 @@ const LANG_OPTIONS = [
 
 export default function SettingsScreen() {
   const { lang, t, setLang } = useLang();
-  const { user, loading, handleGoogleLogin, handleAppleLogin, handleSignOut, handleDeleteAccount, isAppleAvailable, syncToCloud } = useAuth();
+  const { user, loading, handleGoogleLogin, handleAppleLogin, handleSignOut, handleDeleteAccount, isAppleAvailable, syncToCloud, cloudStatus, cloudError, lastSyncedAt } = useAuth();
   const [sound, setSound] = useState(true);
   const [vibration, setVibration] = useState(true);
   const [bgm, setBgm] = useState(true);
@@ -106,6 +106,9 @@ export default function SettingsScreen() {
       <ScrollView style={{ flex: 1 }} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Oyun Tercihleri */}
+        <TouchableOpacity style={[s.card,{padding:16}]} onPress={()=>router.push('/wallet')}>
+          <Text style={{color:COLORS.primary,fontFamily:FONTS.bodyBold}}>{t.walletTitle || 'Coin hareketleri'} →</Text>
+        </TouchableOpacity>
         <View style={s.sectionHeader}>
           <MaterialIcons name="tune" size={18} color={COLORS.primary} />
           <Text style={s.sectionTitle}>{t.gamePrefs}</Text>
@@ -134,6 +137,19 @@ export default function SettingsScreen() {
         </View>
         {user ? (
           <View style={s.card}>
+            <View style={{ padding:16, gap:8 }}>
+              <Text style={{ color:COLORS.onSurface, fontFamily:FONTS.bodyBold }}>{t.cloudSave || 'Bulut kaydı'}</Text>
+              <Text style={{ color:COLORS.onSurfaceVariant }}>{cloudStatus === 'saved' ? (t.cloudSaved || 'Kaydın bulutla eşitlendi.') : cloudStatus === 'syncing' ? (t.cloudSaving || 'Kaydın eşitleniyor…') : cloudStatus === 'conflict' ? (t.cloudConflict || 'Bu cihazın kaydıyla buluttaki kayıt farklı. Hangisini kullanacağını seçebilirsin.') : cloudStatus === 'error' ? (t.cloudPending || 'Kaydın bu cihazda korunuyor. Bulut eşitlemesi henüz tamamlanmadı.') : (t.cloudNotSynced || 'Henüz eşitlenmedi.')}</Text>
+              {lastSyncedAt && <Text style={{ color:COLORS.onSurfaceVariant }}>{new Date(lastSyncedAt).toLocaleTimeString()}</Text>}
+              {cloudStatus === 'conflict' && <>
+                <Text style={{color:COLORS.onSurfaceVariant}}>{t.deviceSave || 'Bu cihaz'}: {cloudError?.local?.currentLevel} · {cloudError?.local?.coins} {t.gold || 'coin'}{ '\n' }{t.cloudSave || 'Bulut'}: {cloudError?.remote?.currentLevel} · {cloudError?.remote?.coins} {t.gold || 'coin'}</Text>
+                {['device','cloud'].map(choice => <TouchableOpacity key={choice} onPress={() => Alert.alert(t.cloudChoose || 'Kayıt seçimi', t.cloudChooseInfo || 'Seçmediğin kopya kurtarma için saklanır.', [
+                  {text:t.cancel || 'Vazgeç',style:'cancel'},
+                  {text:choice === 'device' ? (t.useDevice || 'Bu cihazı kullan') : (t.useCloud || 'Buluttaki kaydı kullan'),onPress:()=>syncToCloud(undefined,choice).then(p=>{if(p)setCoins(p.coins);}).catch(()=>{})},
+                ])}><Text style={{color:COLORS.primary,paddingVertical:8}}>{choice === 'device' ? (t.useDevice || 'Bu cihazı kullan') : (t.useCloud || 'Buluttaki kaydı kullan')}</Text></TouchableOpacity>)}
+              </>}
+              {cloudStatus !== 'syncing' && cloudStatus !== 'conflict' && <TouchableOpacity onPress={() => syncToCloud().then(p=>{if(p)setCoins(p.coins);}).catch(()=>{})}><Text style={{color:COLORS.primary}}>{t.syncNow || 'Şimdi eşitle'}</Text></TouchableOpacity>}
+            </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 }}>
               <MaterialIcons name="account-circle" size={40} color={COLORS.primary} />
               <View style={{ flex: 1 }}>
@@ -145,7 +161,8 @@ export default function SettingsScreen() {
             </View>
             <View style={s.divider} />
             <TouchableOpacity style={{ padding: 14, alignItems: 'center' }} onPress={async () => {
-              await handleSignOut();
+              const result = await handleSignOut();
+              if (result?.success === false) { Alert.alert(t.cloudSave || 'Bulut kaydı', result.error); return; }
               Alert.alert(t.signedOut || 'Çıkış yapıldı');
               router.replace('/');
             }}>
@@ -231,7 +248,7 @@ export default function SettingsScreen() {
             style={s.footerVersion}
             onLongPress={() => Alert.alert('Destek / Support', JSON.stringify(getAdDiagnostics(), null, 2))}
             accessibilityHint="Support information"
-          >VERSION V{APP_VERSION} · R2</Text>
+          >VERSION V{APP_VERSION} · S2 TEST</Text>
         </View>
 
         <View style={{ height: 120 }} />
@@ -356,3 +373,4 @@ const s = StyleSheet.create({
   langClose: { marginTop: 12, paddingVertical: 12, paddingHorizontal: 40, borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.primary },
   langCloseText: { fontFamily: FONTS.headlineBlack, fontSize: 14, color: COLORS.primary },
 });
+

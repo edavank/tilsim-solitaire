@@ -130,6 +130,10 @@ export const LEVELS = [
 ];
 
 
+export function createRunId() {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+}
+
 export function generateGameState(level) {
   const wordCards = [];
   level.categories.forEach((cat, ci) => {
@@ -170,7 +174,7 @@ export function generateGameState(level) {
   }
 
   return {
-    levelId: level.id, moves: level.moves, hints: level.hints, undos: level.undos,
+    runId: createRunId(), levelId: level.id, moves: level.moves, hints: level.hints, undos: level.undos,
     deck, drawnCards: [], columns, slots,
     coins: 500, score: 0, completedCats: 0, isComplete: false, isFailed: false,
   };
@@ -199,3 +203,4 @@ export function getTotalLevels(language = 'tr') {
   if (language === 'tr') return LEVELS.length;
   return 230;
 }
+

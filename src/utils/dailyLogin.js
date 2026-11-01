@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { loadProgress, updateProgress } from './storage';
 
 const KEY = 'tilsim_daily_login';
 
@@ -36,6 +37,8 @@ export async function checkDailyLogin() {
     const raw = await AsyncStorage.getItem(KEY);
     const data = raw ? JSON.parse(raw) : { lastDate: null, streak: 0 };
     const today = getToday();
+    const progress = await loadProgress();
+    if (progress.dailyLoginReceipts?.[today]) return {shouldShow:false,streak:progress.dailyLoginReceipts[today].streak,reward:null};
     const yesterday = getYesterday();
 
     // Bugün zaten ödül alındıysa
@@ -72,4 +75,17 @@ export async function claimDailyReward(streak) {
   await AsyncStorage.setItem(KEY, JSON.stringify({ lastDate: today, streak }));
 }
 
+export async function grantDailyLoginReward(streak) {
+  const today = getToday();
+  const reward = DAILY_REWARDS[Math.max(0,Math.min(streak,7)-1)].coins;
+  const progress = await updateProgress(cur => {
+    if (cur.dailyLoginReceipts?.[today]) return {};
+    return { coins:(cur.coins || 0)+reward,
+      dailyLoginReceipts:{...(cur.dailyLoginReceipts || {}),[today]:{coins:reward,streak}} };
+  },{id:`daily-login:${today}`,kind:'reward',source:'daily_login',description:'Günlük giriş ödülü'});
+  try { await claimDailyReward(streak); } catch (e) {}
+  return progress;
+}
+
 export { DAILY_REWARDS };
+

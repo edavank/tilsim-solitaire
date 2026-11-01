@@ -31,6 +31,12 @@
       "ios": {
         "autoIncrement": true
       }
+    },
+    "qa": {
+      "extends": "production",
+      "distribution": "store",
+      "channel": "preview",
+      "autoIncrement": true
     }
   },
   "submit": {

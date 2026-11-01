@@ -1,3 +1,6 @@
+import { createCloudSync } from './cloudSync';
+import { loadProgress, updateProgress, loadCloudJournal, saveCloudJournal, loadXP, loadLevelStars } from './storage';
+
 // Auth — Google (Android/iOS) + Apple (iOS) via Supabase
 // Expo Go-safe: lazy imports throughout
 
@@ -237,72 +240,72 @@ async function _getDeviceId() {
   } catch (e) { return null; }
 }
 
-// ─── Cloud Sync (merge: keep highest) ───────────────────────
-// NOT: Alan-bazlı Math.max, cihazlar arası sync için çalışır ama canlı play'de
-// "powerup aldım, coin azaldı" gibi durumlarda eski yüksek coin cloud'dan gelip
-// üzerine yazabilir. Data model üzerinde "coins_spent" tutulmadığı sürece
-// düzgün çözüm yok. Bu davranış kasıtlı — kullanıcı cihaz kaybederse ilerlemesi
-// korunsun. Alternatif "zaman damgalı full-snapshot" için data model değişikliği
-// gerekiyor; bu PR'da scope dışı.
-export async function syncProgressToCloud(localProgress) {
-  if (!supabase || !currentUser) return null;
+// Versioned, receipt-backed sync. Never fall back to max(balance).
+async function cloudRequest(request) {
+  let timer;
   try {
-    const { data: cloud } = await supabase
-      .from('user_progress')
-      .select('*')
-      .eq('user_id', currentUser.id)
-      .maybeSingle();
+    return await Promise.race([request,new Promise((_,reject)=>{
+      timer=setTimeout(()=>reject(Object.assign(new Error('Cloud request timed out'),{code:'CLOUD_TIMEOUT'})),15000);
+    })]);
+  } finally { clearTimeout(timer); }
+}
 
-    const merged = {
-      user_id: currentUser.id,
-      current_level: Math.max(localProgress.currentLevel || 1, cloud?.current_level || 1),
-      coins: Math.max(localProgress.coins || 0, cloud?.coins || 0),
-      total_games: Math.max(localProgress.totalGames || 0, cloud?.total_games || 0),
-      total_wins: Math.max(localProgress.totalWins || 0, cloud?.total_wins || 0),
-      best_score: Math.max(localProgress.bestScore || 0, cloud?.best_score || 0),
-      streak: Math.max(localProgress.streak || 0, cloud?.streak || 0),
-      xp: Math.max(localProgress.xp || 0, cloud?.xp || 0),
-      updated_at: new Date().toISOString(),
-    };
+function cloudError(error) {
+  const message = String(error?.message || error || 'Cloud unavailable');
+  const code = error?.code === '40001' || message.includes('SYNC_CONFLICT') ? 'SYNC_CONFLICT'
+    : ['PGRST202','PGRST204','42703','42883'].includes(error?.code) ? 'SETUP_REQUIRED' : (error?.code || 'CLOUD_UNAVAILABLE');
+  return Object.assign(new Error(message), { code });
+}
 
-    await supabase.from('user_progress').upsert(merged, { onConflict: 'user_id' });
+async function readCloudRecord(accountId) {
+  const { data, error } = await cloudRequest(supabase.from('user_progress').select('*').eq('user_id', accountId).maybeSingle());
+  if (error) throw cloudError(error);
+  if (!data) return { revision:0, state:null };
+  if (!Object.prototype.hasOwnProperty.call(data,'revision')) throw Object.assign(new Error('Cloud migration required'), {code:'SETUP_REQUIRED'});
+  return { revision:data.revision, state:data.state_v2 || {
+    currentLevel:data.current_level, coins:data.coins, totalGames:data.total_games,
+    totalWins:data.total_wins,bestScore:data.best_score,streak:data.streak,xp:data.xp || 0,
+  }};
+}
 
-    return {
-      currentLevel: merged.current_level,
-      coins: merged.coins,
-      totalGames: merged.total_games,
-      totalWins: merged.total_wins,
-      bestScore: merged.best_score,
-      streak: merged.streak,
-      xp: merged.xp,
-    };
-  } catch (e) {
-    console.log('[Auth] syncToCloud error:', e.message);
-    return null;
-  }
+const syncEngine = createCloudSync({
+  getAccountId: () => currentUser?.id,
+  readJournal: loadCloudJournal,
+  writeJournal: saveCloudJournal,
+  loadLocal: async () => {
+    const current = await loadProgress();
+    if (Number.isFinite(current.xp) && current.levelStars) return current;
+    const [xp,stars] = await Promise.all([loadXP(),loadLevelStars()]);
+    return updateProgress(cur => ({ xp:Number.isFinite(cur.xp) ? cur.xp : xp.xp, levelStars:cur.levelStars || stars }));
+  },
+  applyLocal: patch => updateProgress(patch,{kind:'sync',source:'cloud',description:'Bulut kaydıyla eşitleme'}),
+  createRequestId: () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`,
+  readRemote: readCloudRecord,
+  commitRemote: async (accountId,requestId,revision,state) => {
+    if (currentUser?.id !== accountId) throw Object.assign(new Error('Account changed'),{code:'ACCOUNT_CHANGED'});
+    const { data,error } = await cloudRequest(supabase.rpc('sync_progress_v2', {
+      p_request_id:requestId,p_expected_revision:revision,p_state:state,
+    }));
+    if (error) throw cloudError(error);
+    if (!data?.state || !Number.isFinite(data.revision)) throw new Error('Invalid cloud response');
+    return data;
+  },
+});
+
+export async function syncProgressToCloud(_legacySnapshot, choice) {
+  if (!supabase || !currentUser) return null;
+  return syncEngine(currentUser.id,choice);
+}
+
+export async function preserveLocalAccountBackup() {
+  if (!currentUser) return;
+  const accountId = currentUser.id;
+  const journal = await loadCloudJournal(accountId) || {};
+  const backup = await loadProgress();
+  await saveCloudJournal(accountId,{ ...journal,backup });
 }
 
 export async function loadProgressFromCloud() {
   if (!supabase || !currentUser) return null;
-  try {
-    const { data } = await supabase
-      .from('user_progress')
-      .select('*')
-      .eq('user_id', currentUser.id)
-      .maybeSingle();
-
-    if (!data) return null;
-    return {
-      currentLevel: data.current_level,
-      coins: data.coins,
-      totalGames: data.total_games,
-      totalWins: data.total_wins,
-      bestScore: data.best_score,
-      streak: data.streak,
-      xp: data.xp || 0,
-    };
-  } catch (e) {
-    console.log('[Auth] loadFromCloud error:', e.message);
-    return null;
-  }
+  return (await readCloudRecord(currentUser.id)).state;
 }

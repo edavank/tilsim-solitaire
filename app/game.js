@@ -8,7 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { COLORS, FONTS, SIZES, CATEGORY_COLORS, TOOL_COLORS, getCategoryColor } from '../src/constants/theme';
-import { generateGameState, getLevel } from '../src/data/levels';
+import { generateGameState, createRunId, getLevel } from '../src/data/levels';
 import { loadProgress, updateProgress, clearSavedGame, saveSavedGame, saveLevelStars, addXP, loadSelectedAvatar, getAvatarEmoji } from '../src/utils/storage';
 import { playSound } from '../src/utils/sounds';
 import { showRewarded, showInterstitial, showRewardedInterstitial } from '../src/utils/ads';
@@ -16,7 +16,8 @@ import AdBanner from '../src/components/AdBanner';
 import { useLang } from '../src/context/LanguageContext';
 import { useAuth } from '../src/context/AuthContext';
 import { submitScore } from '../src/utils/leaderboardService';
-import { getDailyChallenge, markDailyChallengeCompleted, getDailyCompletionMap } from '../src/utils/dailyChallenge';
+import { getDailyChallenge, isDailyChallengeCompleted, getDailyCompletionMap } from '../src/utils/dailyChallenge';
+import { calculateCompletion, settleCompletion } from '../src/utils/completion';
 import { checkAchievements, claimAchievements, ACHIEVEMENT_I18N } from '../src/utils/achievements';
 import { markCategoryCompleted } from '../src/utils/collection';
 import { resolveDrawnWord, prepareJokerPlacement } from '../src/utils/cardSafety';
@@ -352,12 +353,8 @@ const TableauColumn = React.memo(function TableauColumn({ column, colIndex, sele
 });
 
 /* ── Win Overlay ── */
-function LevelCompleteOverlay({ t, score, coins, movesLeft, maxMoves, levelId, combo, isDaily, elapsedTime, onNext, onReplay, onHome }) {
-  const moveBonus = Math.floor(8 * (movesLeft / maxMoves));
-  const speedBonus = elapsedTime < 60 ? 20 : elapsedTime < 120 ? 10 : elapsedTime < 180 ? 5 : 0;
-  const totalCoins = coins + moveBonus + speedBonus;
-  const moveRatio = movesLeft / maxMoves;
-  const stars = moveRatio > 0.5 ? 3 : moveRatio > 0.25 ? 2 : 1;
+function LevelCompleteOverlay({ t, score, summary, rewardStatus, levelId, combo, isDaily, elapsedTime, onNext, onReplay, onHome }) {
+  const { baseCoins: coins, moveBonus, speedBonus, coins: totalCoins, stars } = summary;
   return (
     <View style={ov.overlay}>
       <LinearGradient colors={['rgba(21,6,41,0.95)', 'rgba(61,53,96,0.95)']} style={StyleSheet.absoluteFillObject} />
@@ -369,6 +366,7 @@ function LevelCompleteOverlay({ t, score, coins, movesLeft, maxMoves, levelId, c
         </View>
         <Image source={OWL_HAPPY} style={ov.owl} />
         <Text style={ov.title}>{t.congrats}</Text>
+        <Text style={{ color: COLORS.onSurfaceVariant, marginBottom: 8 }}>{rewardStatus === 'saved' ? (t.rewardSaved || 'Ödül kaydedildi') : rewardStatus === 'error' ? (t.rewardSaveError || 'Kayıt tamamlanamadı. Devam ederek yeniden deneyebilirsin.') : (t.rewardSaving || 'Ödül kaydediliyor…')}</Text>
         <Text style={ov.subtitle}>{isDaily ? '📅 ' + (t.dailyChallenge || 'DAILY').toUpperCase() : t.level + ' ' + levelId} {t.levelComplete}</Text>
         {combo > 0 && <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 12, color: COLORS.tertiary, marginBottom: 4 }}>🔥 {t.maxCombo || 'Max Combo'}: {combo}x</Text>}
         <Text style={{ fontFamily: FONTS.body, fontSize: 11, color: COLORS.onSurfaceVariant, marginBottom: 8 }}>⏱ {Math.floor(elapsedTime / 60)}:{String(elapsedTime % 60).padStart(2, '0')}{speedBonus > 0 ? ' ' + (t.speedBonusLabel || '⚡ Speed Bonus!') : ''}</Text>
@@ -505,6 +503,12 @@ export default function GameScreen() {
   const [scorePopups, setScorePopups] = useState([]); // [{id, text, x, y}]
   const [achievementPopup, setAchievementPopup] = useState(null); // { icon, title }
   const wrongMovesRef = useRef(0); // Perfect başarımı için yanlış hamle sayacı
+  const maxComboRef = useRef(0);
+  maxComboRef.current = Math.max(maxComboRef.current, combo);
+  const completionPromiseRef = useRef(null);
+  const navigationRef = useRef(false);
+  const [completionReceipt, setCompletionReceipt] = useState(null);
+  const [rewardStatus, setRewardStatus] = useState('saving');
   const _pendingFailedShuffleRef = useRef(false); // handleFailedShuffle → modal → purchase sonrası auto-apply
   
   // Araç açılma sırası
@@ -667,7 +671,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       // Araç durumlarını yükle
       setUnlockedTools(p.unlockedTools || []);
       setToolCredits(p.toolCredits || { hint: 0, joker: 0, shuffle: 0, undo: 0, delete: 0 });
-      if (!isDaily) {
+      {
         try {
           const { loadSavedGame } = require('../src/utils/storage');
           const saved = await loadSavedGame();
@@ -680,14 +684,17 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
             && Array.isArray(saved.drawnCards)
             && Array.isArray(saved.deck)
             && typeof saved.moves === 'number'
-            && !saved.isComplete
             && !saved.isFailed
             && (saved.gameLanguage ? saved.gameLanguage === gameLang : gameLang === 'tr')
-            && (saved.gameMode ? saved.gameMode === (isTimed ? 'timed' : 'classic') : !isTimed)
-            && (!isTimed || (Number.isFinite(saved.timeRemaining) && saved.timeRemaining > 0))
-            && saved.levelId === (parseInt(params.level) || p.currentLevel);
+            && (saved.gameMode ? saved.gameMode === (isDaily ? 'daily' : isTimed ? 'timed' : 'classic') : !isTimed && !isDaily)
+            && (!isTimed || saved.isComplete || (Number.isFinite(saved.timeRemaining) && saved.timeRemaining > 0))
+            && saved.levelId === (isDaily ? level.id : parseInt(params.level) || p.currentLevel);
           if (validSave) {
-            setGs(saved);
+            setGs({ ...saved, runId: saved.runId || createRunId() });
+            if (Number.isFinite(saved.elapsedTime)) {
+              setElapsedTime(saved.elapsedTime);
+              startTimeRef.current = Date.now() - saved.elapsedTime * 1000;
+            }
             if (isTimed && Number.isFinite(saved.timeRemaining)) {
               setTimeRemaining(saved.timeRemaining);
               timedEndRef.current = Date.now() + saved.timeRemaining * 1000;
@@ -716,7 +723,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
 
   // Every write reads the latest render, never the first state in a time window.
   latestSaveRef.current = saveReady && !gs.isComplete && !gs.isFailed && !isDaily
-    ? { ...gs, levelId, gameLanguage: gameLang, gameMode: isTimed ? 'timed' : 'classic', timeRemaining }
+    ? { ...gs, levelId, gameLanguage: gameLang, gameMode: isTimed ? 'timed' : 'classic', timeRemaining, elapsedTime }
     : null;
   const flushGameSave = useCallback(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -1149,7 +1156,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   const executeUndo = useCallback(async (method) => {
     if (method === 'coin') {
       if (coins < 450) { setFeedback(t.coinNeeded500); setToolModal(null); return; }
-      const _aft450 = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 450 })); setCoins(_aft450.coins);
+      const _aft450 = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 450 }), {kind:'purchase',source:'booster',toolKey:'undo',description:'Yardımcı satın alımı'}); setCoins(_aft450.coins);
     }
     if (method === 'ad') {
       if (adLoadingTool) { setToolModal(null); return; }
@@ -1192,7 +1199,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   const executeDelete = useCallback(async (method) => {
     if (method === 'coin') {
       if (coins < 500) { setFeedback(t.coinNeeded500); setToolModal(null); return; }
-      const _aftDel = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 500 })); setCoins(_aftDel.coins);
+      const _aftDel = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 500 }), {kind:'purchase',source:'booster',toolKey:'delete',description:'Yardımcı satın alımı'}); setCoins(_aftDel.coins);
     }
     if (method === 'ad') {
       if (adLoadingTool) { setToolModal(null); return; }
@@ -1240,7 +1247,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   const executeJoker = useCallback(async (method) => {
     if (method === 'coin') {
       if (coins < 750) { setFeedback(t.coinNeeded750); setToolModal(null); return; }
-      const _aft750 = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 750 })); setCoins(_aft750.coins);
+      const _aft750 = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 750 }), {kind:'purchase',source:'booster',toolKey:'joker',description:'Yardımcı satın alımı'}); setCoins(_aft750.coins);
     }
     if (method === 'ad') {
       if (adLoadingTool) { setToolModal(null); return; }
@@ -1323,7 +1330,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   const executeHint = useCallback(async (method) => {
     if (method === 'coin') {
       if (coins < 500) { setFeedback(t.coinNeeded500); setToolModal(null); return; }
-      const _aftHint = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 500 })); setCoins(_aftHint.coins);
+      const _aftHint = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 500 }), {kind:'purchase',source:'booster',toolKey:'hint',description:'Yardımcı satın alımı'}); setCoins(_aftHint.coins);
       setFeedback(t.hintBought);
     }
     if (method === 'ad') {
@@ -1358,6 +1365,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         const emptySlot = gs.slots.findIndex((sl) => !sl.locked && !sl.category);
         if (emptySlot >= 0) {
           setHintCard(p.card.id); setHintSlot(emptySlot);
+          setGs(state => ({ ...state, hintsUsed: (state.hintsUsed || 0) + 1 }));
           setFeedback((t.hintToEmptySlot || '💡 {word} → place in empty slot!').replace('{word}', p.card.word));
           return true;
           return;
@@ -1367,6 +1375,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         const matchSlot = gs.slots.findIndex((sl) => sl.category && sl.category.categoryIndex === p.card.categoryIndex && sl.placedCards.length < sl.category.totalWords);
         if (matchSlot >= 0) {
           setHintCard(p.card.id); setHintSlot(matchSlot);
+          setGs(state => ({ ...state, hintsUsed: (state.hintsUsed || 0) + 1 }));
           setFeedback('💡 ' + p.card.word + ' → ' + gs.slots[matchSlot].category.word + '!');
           return true;
           return;
@@ -1378,6 +1387,8 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   }, [gs]);
 
   const resetGame = useCallback(() => {
+    completionPromiseRef.current = null;
+    setCompletionReceipt(null); setRewardStatus('saving'); maxComboRef.current = 0;
     skipSaveRef.current = false;
     const newLevel = isDaily ? getDailyChallenge(gameLang, params.dailySeed ? parseInt(params.dailySeed) : undefined) : getLevel(levelId, gameLang);
     const state = generateGameState(newLevel);
@@ -1398,194 +1409,112 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       setFeedback(t.adFailed || 'Reklam yuklenemedi');
       return;
     }
-    setGs((p) => ({ ...p, moves: p.moves + 20, isFailed: false }));
+    setGs((p) => ({ ...p, moves: p.moves + 20, extraMovesGranted: (p.extraMovesGranted || 0) + 20, isFailed: false }));
     setFeedback(t.movesAdded);
   }, [adLoadingTool, t, setFeedback]);
 
   const addMovesCoin = useCallback(async () => {
     if (coins < 500) { setFeedback(t.coinNeeded500); return; }
-    const _aftMv = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 500 }));
+    const _aftMv = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 500 }), {kind:'purchase',source:'moves',toolKey:'moves',description:'Yardımcı satın alımı'});
     setCoins(_aftMv.coins);
-    setGs((p) => ({ ...p, moves: p.moves + 20, isFailed: false }));
+    setGs((p) => ({ ...p, moves: p.moves + 20, extraMovesGranted: (p.extraMovesGranted || 0) + 20, isFailed: false }));
     setFeedback(t.movesAdded);
   }, [coins]);
 
-  // ── Level Complete → save & advance ──
-  const handleNextLevel = useCallback(async () => {
-    const bonus = isTimed ? Math.min(levelId * 2, 50) : Math.floor(8 * (gs.moves / level.moves));
-    const eventMultiplier = 1;
-    const prog = await loadProgress();
-
-    if (isDaily) {
-      // Daily challenge: 100 coin bonus, mark done, go home
-      const newCoins = (prog.coins || 0) + Math.floor((100 + bonus) * eventMultiplier);
-      await updateProgress({
-        coins: newCoins,
-        totalGames: (prog.totalGames || 0) + 1,
-        totalWins: (prog.totalWins || 0) + 1,
-        bestScore: Math.max(prog.bestScore || 0, gs.score),
-      });
-      setCoins(newCoins);
-      // Başarım kontrolü
+  // A finished run is committed before any navigation, including Replay.
+  const ensureCompletion = useCallback(() => {
+    if (!gs.isComplete) return Promise.resolve(null);
+    if (completionPromiseRef.current?.runId === gs.runId) return completionPromiseRef.current.promise;
+    const promise = (async () => {
+      setRewardStatus('saving');
+      const mode = isDaily ? 'daily' : isTimed ? 'timed' : 'classic';
+      const seed = String(level.id);
+      const date = dailyDate || (isDaily ? `${seed.slice(0, 4)}-${seed.slice(4, 6)}-${seed.slice(6, 8)}` : undefined);
+      // Persist the completed board first. Recovery retries the same runId.
+      await saveSavedGame({ ...gs, levelId: level.id, gameLanguage: gameLang, gameMode: mode, timeRemaining, elapsedTime });
+      const dailyAlreadyCompleted = isDaily ? await isDailyChallengeCompleted(date) : false;
+      const result = await settleCompletion({ game: gs, level, mode, date, elapsedTime,
+        timeLimit: getTimedSeconds(level.id), dailyAlreadyCompleted });
+      setCoins(result.progress.coins);
+      setToolCredits(result.progress.toolCredits || {});
+      setUnlockedTools(result.progress.unlockedTools || []);
+      setCompletionReceipt(result.receipt);
+      setRewardStatus('saved');
       try {
         const dailyMap = await getDailyCompletionMap();
-        const realDailyCount = Object.keys(dailyMap).length + 1;
-        const achStats = { ...prog, coins: newCoins, totalWins: (prog.totalWins || 0) + 1, dailyCount: realDailyCount, noHintWin: gs.hints === level.hints, speedWin: gs.moves > level.moves / 2, perfectWin: wrongMovesRef.current === 0, maxCombo: combo };
-        const newAch = await checkAchievements(achStats);
-        if (newAch.length > 0) {
-          const totalReward = newAch.reduce((sum, a) => sum + (a.reward || 0), 0);
-          // Coin OTOMATİK eklenmez — kullanıcı başarımlar ekranından "Topla" ile alacak
-          await updateProgress({ unseenAch: (prog.unseenAch || 0) + newAch.length });
-          setAchievementPopup({ ...newAch[0], reward: newAch[0].reward || 0, pendingCoins: totalReward, achievementIds: newAch.map(a => a.id) });
+        const newAch = await checkAchievements({ ...result.progress, dailyCount: Object.keys(dailyMap).length,
+          noHintWin: !(gs.hintsUsed > 0), speedWin: gs.moves - (gs.extraMovesGranted || 0) > level.moves / 2,
+          perfectWin: wrongMovesRef.current === 0, maxCombo: maxComboRef.current });
+        if (newAch.length) {
+          await updateProgress(cur => ({ unseenAch: (cur.unseenAch || 0) + newAch.length }));
+          setAchievementPopup({ ...newAch[0], pendingCoins: newAch.reduce((n, ach) => n + (ach.reward || 0), 0), achievementIds: newAch.map(ach => ach.id) });
         }
-      } catch (e) {}
-      await markDailyChallengeCompleted(dailyDate);
-      // Cloud sync (günlük görev tamamlandı)
-      if (user) {
-        syncToCloud({
-          currentLevel: prog.currentLevel || 1,
-          coins: newCoins,
-          totalGames: (prog.totalGames || 0) + 1,
-          totalWins: (prog.totalWins || 0) + 1,
-          bestScore: Math.max(prog.bestScore || 0, gs.score),
-          streak: prog.streak || 0,
-          xp: prog.xp || 0,
-        }).catch(() => {});
+      } catch (e) { console.warn('[Completion] achievement check pending'); }
+      if (result.firstSettlement) {
+        try { submitScore({ score: result.progress.bestScore, level: result.progress.currentLevel,
+          totalWins: result.progress.totalWins, language: gameLang, displayName: user?.name }).catch(() => {}); }
+        catch (e) { console.warn('[Completion] leaderboard pending'); }
       }
-      router.canGoBack() ? router.back() : router.replace("/");
-      return;
-    }
-
-    const nextId = levelId + 1;
-    const nextLevel = getLevel(nextId, gameLang);
-    if (!nextLevel) { router.canGoBack() ? router.back() : router.replace("/"); return; }
-    // currentLevel sadece İLERİ gider — eski bölümü replay edip "Sonraki"ye
-    // basınca currentLevel 20'den 6'ya DÜŞMEMELİ
-    const safeCurrentLevel = Math.max(nextId, prog.currentLevel || 1);
-    await updateProgress({
-      currentLevel: safeCurrentLevel,
-      coins: (prog.coins || 0) + Math.floor((30 + bonus) * eventMultiplier),
-      totalGames: (prog.totalGames || 0) + 1,
-      totalWins: (prog.totalWins || 0) + 1,
-      bestScore: Math.max(prog.bestScore || 0, gs.score),
-      streak: (prog.streak || 0) + 1,
+      if (user) syncToCloud().catch(() => {});
+      return result;
+    })().catch(error => {
+      completionPromiseRef.current = null;
+      setRewardStatus('error');
+      setFeedback(t.rewardSaveError || 'Ödül kaydedilemedi. Devam ederek yeniden deneyebilirsin.');
+      throw error;
     });
-    await clearSavedGame();
-    // Yıldız kaydet
-    const moveRatio = gs.moves / level.moves;
-    const stars = moveRatio > 0.5 ? 3 : moveRatio > 0.25 ? 2 : 1;
-    await saveLevelStars(levelId, stars);
-    // XP ekle (yıldız başına 50 + bölüm bonusu)
-    await addXP(stars * 50 + Math.floor(levelId / 5) * 10);
-    // Submit to leaderboard
-    try {
-      (async () => {
-        const avatarId = await loadSelectedAvatar();
-        submitScore({
-          score: Math.max(prog.bestScore || 0, gs.score),
-          level: nextId,
-          totalWins: (prog.totalWins || 0) + 1,
-          language: gameLang,
-          displayName: user?.name,
-          userAvatar: getAvatarEmoji(avatarId),
-        });
-      })();
-    } catch (e) {}
-    // Başarım kontrolü
-    try {
-      const dailyMap = await getDailyCompletionMap();
-      const realDailyCount = Object.keys(dailyMap).length;
-      const currentCoinsNow = (prog.coins || 0) + 30 + bonus;
-      const achStats = { currentLevel: nextId, coins: currentCoinsNow, totalWins: (prog.totalWins || 0) + 1, bestScore: Math.max(prog.bestScore || 0, gs.score), streak: (prog.streak || 0) + 1, dailyCount: realDailyCount, noHintWin: gs.hints === level.hints, speedWin: gs.moves > level.moves / 2, perfectWin: wrongMovesRef.current === 0, maxCombo: combo };
-      const newAch = await checkAchievements(achStats);
-      if (newAch.length > 0) {
-        const totalReward = newAch.reduce((sum, a) => sum + (a.reward || 0), 0);
-        // Coin OTOMATİK eklenmez — kullanıcı başarımlar ekranından "Topla" ile alacak
-        await updateProgress({ unseenAch: (prog.unseenAch || 0) + newAch.length });
-        setAchievementPopup({ ...newAch[0], reward: newAch[0].reward || 0, pendingCoins: totalReward, achievementIds: newAch.map(a => a.id) });
-      }
-    } catch (e) {}
-    // FEAT-1: Her 3 bölümde bir Rewarded Interstitial göster (atlanabilir, izlerse +20 coin bonus)
-    if (nextId % 3 === 0) {
-      try {
-        const ri = await showRewardedInterstitial();
-        if (ri.success) {
-          // Kullanıcı reklamı izledi → +20 coin bonus
-          const bonusUpd = await updateProgress((cur) => ({ coins: (cur.coins || 0) + 20 }));
-          // setCoins aşağıda zaten yapılıyor, ama bonus'u UI'a hemen yansıtmak için feedback
-          setFeedback(`🎁 +20 🪙`);
-        }
-      } catch (e) {
-        // Hata durumunda eski davranışa fallback: interstitial göster
-        try { await showInterstitial(); } catch (e2) {}
-      }
-    }
-    
-    // Araç açılma kontrolü
-    const currentUnlocked = prog.unlockedTools || [];
-    const currentCredits = prog.toolCredits || { hint: 0, joker: 0, shuffle: 0, undo: 0, delete: 0 };
-    let newUnlocked = [...currentUnlocked];
-    let newCredits = { ...currentCredits };
-    let introTool = null;
-    for (const [tool, unlockLevel] of Object.entries(TOOL_UNLOCK)) {
-      if (nextId >= unlockLevel && !currentUnlocked.includes(tool)) {
-        newUnlocked.push(tool);
-        newCredits[tool] = (newCredits[tool] || 0) + 3;
-        if (!introTool) introTool = tool; // İlk açılan aracı tanıt
-      }
-    }
-    if (newUnlocked.length > currentUnlocked.length) {
-      await updateProgress({ unlockedTools: newUnlocked, toolCredits: newCredits });
-      setUnlockedTools(newUnlocked);
-      setToolCredits(newCredits);
-    }
-    
-    // ── Cloud sync (arka planda, UI bloklamaz) ──
-    if (user) {
-      const updatedCoins = (prog.coins || 0) + 30 + bonus;
-      syncToCloud({
-        currentLevel: nextId,
-        coins: updatedCoins,
-        totalGames: (prog.totalGames || 0) + 1,
-        totalWins: (prog.totalWins || 0) + 1,
-        bestScore: Math.max(prog.bestScore || 0, gs.score),
-        streak: (prog.streak || 0) + 1,
-        xp: prog.xp || 0,
-      }).catch(() => {}); // Sessizce başarısız olsun
-    }
+    completionPromiseRef.current = { runId: gs.runId, promise };
+    return promise;
+  }, [gs, level, isDaily, isTimed, dailyDate, gameLang, elapsedTime, timeRemaining, user, syncToCloud, t]);
 
-    setLevelId(nextId);
-    const nextState = generateGameState(nextLevel);
-    if (isTimed) nextState.moves = 9999;
-    setGs(nextState);
-    setHistory([]); setSelected(null);
-    setHintCard(null); setHintSlot(null); setCombo(0); comboRef.current = 0; startTimeRef.current = Date.now(); setElapsedTime(0);
-    wrongMovesRef.current = 0;
-    if (isTimed) { setTimeRemaining(getTimedSeconds(nextId)); timedEndRef.current = null; pauseRemainRef.current = null; }
-    // Araç tanıtım popup'ı
-    // BUG FIX: Önceki kod `setCoins((prog.coins||0) + 30 + bonus)` yaparak
-    // achievement bonus'unu UI'dan siliyordu. Şimdi en güncel değeri disk'ten
-    // alıyoruz ki win sırasında kazanılan achievement coin'i ekranda korunsun.
+  useEffect(() => {
+    if (gs.isComplete) ensureCompletion().catch(() => {});
+  }, [gs.isComplete, gs.runId, ensureCompletion]);
+
+  const completionSummary = completionReceipt || calculateCompletion({ game: gs, level,
+    mode: isDaily ? 'daily' : isTimed ? 'timed' : 'classic', elapsedTime, timeLimit: getTimedSeconds(level.id) });
+
+  const handleNextLevel = useCallback(async () => {
+    if (navigationRef.current) return;
+    navigationRef.current = true;
     try {
-      const latest = await loadProgress();
-      setCoins(latest.coins || 0);
-    } catch (e) {
-      setCoins((prog.coins || 0) + 30 + bonus);
-    }
-    if (introTool) {
-      setTimeout(() => { playSound('unlock'); setToolIntro(TOOL_INFO[introTool]); }, 500);
-    }
-    // Günlük Meydan Okuma tanıtımı (Lv.10)
-    if (nextId === 10 && !(prog.dailyIntroShown)) {
-      await updateProgress({ dailyIntroShown: true });
-      setTimeout(() => { setDailyIntro(true); playSound('unlock'); }, introTool ? 1500 : 500);
-    }
-    // Zamanlı Mod tanıtımı (Lv.5)
-    if (nextId === 5 && !(prog.timedIntroShown)) {
-      await updateProgress({ timedIntroShown: true });
-      setTimeout(() => { setTimedIntro(true); playSound('unlock'); }, introTool ? 1500 : 500);
-    }
-  }, [levelId, gs, level, coins, user, syncToCloud]);
+      const result = await ensureCompletion();
+      if (!result) return;
+      skipSaveRef.current = true; latestSaveRef.current = null;
+      await clearSavedGame();
+      if (isDaily) { router.canGoBack() ? router.back() : router.replace('/'); return; }
+      const nextId = levelId + 1;
+      const nextLevel = getLevel(nextId, gameLang);
+      if (!nextLevel) { router.replace('/'); return; }
+      if (nextId % 3 === 0) {
+        try {
+          const ad = await showRewardedInterstitial();
+          if (ad.success) await updateProgress(cur => ({ coins: (cur.coins || 0) + 20 }), {kind:'reward',source:'ad',description:'Reklam ödülü'});
+        } catch (e) { console.warn('[Completion] optional ad skipped'); }
+      }
+      setLevelId(nextId);
+      const nextState = generateGameState(nextLevel);
+      if (isTimed) nextState.moves = 9999;
+      skipSaveRef.current = false;
+      completionPromiseRef.current = null;
+      setCompletionReceipt(null); setRewardStatus('saving');
+      setGs(nextState); setHistory([]); setSelected(null); setHintCard(null); setHintSlot(null);
+      setCombo(0); comboRef.current = 0; maxComboRef.current = 0; wrongMovesRef.current = 0;
+      startTimeRef.current = Date.now(); setElapsedTime(0);
+      if (isTimed) { setTimeRemaining(getTimedSeconds(nextId)); timedEndRef.current = null; pauseRemainRef.current = null; }
+      const latest = await loadProgress(); setCoins(latest.coins || 0);
+      const tool = result.receipt.newTools?.[0];
+      if (tool) setTimeout(() => { playSound('unlock'); setToolIntro(TOOL_INFO[tool]); }, 500);
+      if (nextId === 10 && !latest.dailyIntroShown) {
+        await updateProgress({ dailyIntroShown: true }); setDailyIntro(true);
+      }
+      if (nextId === 5 && !latest.timedIntroShown) {
+        await updateProgress({ timedIntroShown: true }); setTimedIntro(true);
+      }
+      if (user) syncToCloud().catch(() => {});
+    } catch (e) { setFeedback(t.rewardSaveError || 'Kayıt tamamlanamadı. Lütfen yeniden dene.'); }
+    finally { navigationRef.current = false; }
+  }, [ensureCompletion, levelId, gameLang, isDaily, isTimed, user, syncToCloud, t]);
 
   // Hamle bitti → Karıştır (shuffle + 5 hamle ekle)
   const applyFailedShuffle = useCallback(() => {
@@ -1614,7 +1543,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         return { ...col, cards: newCards };
       });
       const newDrawn = allCards.slice(idx).map(c => ({ ...c, faceUp: true }));
-      return { ...prev, columns: newColumns, drawnCards: newDrawn, moves: 5, isFailed: false };
+      return { ...prev, columns: newColumns, drawnCards: newDrawn, moves: 5, extraMovesGranted: (prev.extraMovesGranted || 0) + Math.max(0, 5 - prev.moves), isFailed: false };
     });
     playSound('flip');
     setFeedback(t.shuffleDone);
@@ -1623,7 +1552,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   const executeShuffle = useCallback(async (method) => {
     if (method === 'coin') {
       if (coins < 500) { setFeedback(t.coinNeeded500); setToolModal(null); return; }
-      const _aftShuf = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 500 })); setCoins(_aftShuf.coins);
+      const _aftShuf = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 500 }), {kind:'purchase',source:'booster',toolKey:'shuffle',description:'Yardımcı satın alımı'}); setCoins(_aftShuf.coins);
     }
     if (method === 'ad') {
       if (adLoadingTool) { setToolModal(null); return; }
@@ -1669,108 +1598,31 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   }, [toolCredits, applyFailedShuffle]);
 
   const handleReplay = useCallback(async () => {
-    skipSaveRef.current = true;
-    latestSaveRef.current = null;
-    const prog = await loadProgress();
-    // Kaybedildiyse streak sıfırla
-    const updates = { totalGames: (prog.totalGames || 0) + 1 };
-    if (gs && gs.isFailed) {
-      updates.streak = 0;
-    }
-    await updateProgress(updates);
-    await clearSavedGame();
-    resetGame();
-  }, [resetGame]);
+    if (navigationRef.current) return;
+    navigationRef.current = true;
+    try {
+      if (gs.isComplete) await ensureCompletion();
+      else await updateProgress(cur => ({ totalGames: (cur.totalGames || 0) + 1,
+        streak: gs.isFailed ? 0 : (cur.streak || 0) }));
+      skipSaveRef.current = true; latestSaveRef.current = null;
+      await clearSavedGame(); resetGame();
+    } catch (e) { setFeedback(t.rewardSaveError || 'Kayıt tamamlanamadı. Lütfen yeniden dene.'); }
+    finally { navigationRef.current = false; }
+  }, [gs.isComplete, gs.isFailed, ensureCompletion, resetGame, t]);
 
   const handleHome = useCallback(async () => {
-    if (gs && !gs.isComplete && !gs.isFailed) {
-      await flushGameSave();
-      skipSaveRef.current = true;
-      latestSaveRef.current = null;
+    if (navigationRef.current) return;
+    navigationRef.current = true;
+    try {
+      if (gs.isComplete) await ensureCompletion();
+      else if (!gs.isFailed) await flushGameSave();
+      else await updateProgress({ streak: 0 });
+      skipSaveRef.current = true; latestSaveRef.current = null;
+      if (gs.isComplete || gs.isFailed) await clearSavedGame();
       router.canGoBack() ? router.back() : router.replace('/');
-      return;
-    }
-    skipSaveRef.current = true;
-    latestSaveRef.current = null;
-    const prog = await loadProgress();
-
-    // BUG-1 FIX: Bölüm tamamlandıktan sonra Home'a basılırsa progress save EDİLMELİ
-    // (önceden sadece clearSavedGame çağrılıyordu, leaderboard güncel ama level kayıp oluyordu)
-    if (gs && gs.isComplete && !gs.isFailed) {
-      const bonus = isTimed ? Math.min(levelId * 2, 50) : Math.floor(8 * (gs.moves / level.moves));
-
-      if (isDaily) {
-        const newCoins = (prog.coins || 0) + Math.floor(100 + bonus);
-        await updateProgress({
-          coins: newCoins,
-          totalGames: (prog.totalGames || 0) + 1,
-          totalWins: (prog.totalWins || 0) + 1,
-          bestScore: Math.max(prog.bestScore || 0, gs.score),
-        });
-        try { await markDailyChallengeCompleted(dailyDate); } catch (e) {}
-        if (user) {
-          syncToCloud({
-            currentLevel: prog.currentLevel || 1,
-            coins: newCoins,
-            totalGames: (prog.totalGames || 0) + 1,
-            totalWins: (prog.totalWins || 0) + 1,
-            bestScore: Math.max(prog.bestScore || 0, gs.score),
-            streak: prog.streak || 0,
-            xp: prog.xp || 0,
-          }).catch(() => {});
-        }
-      } else {
-        const nextId = levelId + 1;
-        const safeCurrentLevel = Math.max(nextId, prog.currentLevel || 1);
-        const newCoins = (prog.coins || 0) + 30 + bonus;
-        await updateProgress({
-          currentLevel: safeCurrentLevel,
-          coins: newCoins,
-          totalGames: (prog.totalGames || 0) + 1,
-          totalWins: (prog.totalWins || 0) + 1,
-          bestScore: Math.max(prog.bestScore || 0, gs.score),
-          streak: (prog.streak || 0) + 1,
-        });
-        // Yıldız ve XP
-        const moveRatio = gs.moves / level.moves;
-        const stars = moveRatio > 0.5 ? 3 : moveRatio > 0.25 ? 2 : 1;
-        await saveLevelStars(levelId, stars);
-        await addXP(stars * 50 + Math.floor(levelId / 5) * 10);
-        // Leaderboard
-        try {
-          const avatarId = await loadSelectedAvatar();
-          submitScore({
-            score: Math.max(prog.bestScore || 0, gs.score),
-            level: nextId,
-            totalWins: (prog.totalWins || 0) + 1,
-            language: gameLang,
-            displayName: user?.name,
-            userAvatar: getAvatarEmoji(avatarId),
-          });
-        } catch (e) {}
-        // Cloud sync
-        if (user) {
-          syncToCloud({
-            currentLevel: safeCurrentLevel,
-            coins: newCoins,
-            totalGames: (prog.totalGames || 0) + 1,
-            totalWins: (prog.totalWins || 0) + 1,
-            bestScore: Math.max(prog.bestScore || 0, gs.score),
-            streak: (prog.streak || 0) + 1,
-            xp: prog.xp || 0,
-          }).catch(() => {});
-        }
-      }
-    } else if (gs && gs.isFailed && !gs.isComplete) {
-      // Kaybedilmiş oyundan çıkılırsa streak sıfırla
-      if ((prog.streak || 0) > 0) {
-        await updateProgress({ streak: 0 });
-      }
-    }
-
-    await clearSavedGame();
-    router.canGoBack() ? router.back() : router.replace("/");
-  }, [gs, isDaily, isTimed, levelId, level, gameLang, user, dailyDate, flushGameSave]);
+    } catch (e) { setFeedback(t.rewardSaveError || 'Kayıt tamamlanamadı. Lütfen yeniden dene.'); }
+    finally { navigationRef.current = false; }
+  }, [gs.isComplete, gs.isFailed, ensureCompletion, flushGameSave, t]);
 
   const selId = selected?.card?.id;
   const selectedStackIds = selected?.stackCards ? new Set(selected.stackCards.map((c) => c.id)) : null;
@@ -2303,7 +2155,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       {gs.isComplete && (
         <>
           <ConfettiEffect />
-          <LevelCompleteOverlay t={t} score={gs.score} coins={isDaily ? 100 : 30} movesLeft={isTimed ? 0 : gs.moves} maxMoves={level.moves} levelId={gs.levelId} combo={combo} isDaily={isDaily} elapsedTime={elapsedTime} onNext={handleNextLevel} onReplay={handleReplay} onHome={handleHome} />
+          <LevelCompleteOverlay t={t} score={gs.score} summary={completionSummary} rewardStatus={rewardStatus} levelId={gs.levelId} combo={combo} isDaily={isDaily} elapsedTime={elapsedTime} onNext={handleNextLevel} onReplay={handleReplay} onHome={handleHome} />
         </>
       )}
       {gs.isFailed && !gs.isComplete && !toolModal && (

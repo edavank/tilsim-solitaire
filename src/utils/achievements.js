@@ -150,8 +150,10 @@ export async function claimAchievements(ids) {
       const unpaid = eligible.filter(id => !receipts.has(id));
       reward = unpaid.reduce((sum, id) => sum + ACHIEVEMENTS.find(a => a.id === id).reward, 0);
       eligible.forEach(id => receipts.add(id));
-      return { coins: (cur.coins || 0) + reward, claimedAchievementIds: [...receipts], unseenAch: Math.max(0, (cur.unseenAch || 0) - unpaid.length) };
-    });
+      const achievementPayouts = { ...(cur.achievementPayouts || {}) };
+      unpaid.forEach(id => { achievementPayouts[id] = { coins: ACHIEVEMENTS.find(a => a.id === id).reward }; });
+      return { coins: (cur.coins || 0) + reward, claimedAchievementIds: [...receipts], achievementPayouts, unseenAch: Math.max(0, (cur.unseenAch || 0) - unpaid.length) };
+    }, {kind:'achievement',source:'achievement',description:'Başarım ödülü'});
     eligible.forEach(id => { current[id] = { ...current[id], claimed: true, claimedAt: Date.now() }; });
     // The receipt is authoritative if this secondary write fails. Retry repairs
     // the display flag without awarding money again.
