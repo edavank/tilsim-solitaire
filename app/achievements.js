@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, FONTS  } from '../src/constants/theme';
 import BottomNav from '../src/components/BottomNav';
-import { ACHIEVEMENTS, loadAchievements, ACHIEVEMENT_I18N, claimAchievement, countUnclaimed, totalUnclaimedReward } from '../src/utils/achievements';
+import { ACHIEVEMENTS, loadAchievements, ACHIEVEMENT_I18N, claimAchievement, claimAchievements, countUnclaimed, totalUnclaimedReward } from '../src/utils/achievements';
 import { loadProgress, updateProgress } from '../src/utils/storage';
 import { getDailyCompletionMap } from '../src/utils/dailyChallenge';
 import { useLang } from '../src/context/LanguageContext';
@@ -42,11 +42,8 @@ export default function AchievementsScreen() {
     setClaiming(achId);
     try {
       const result = await claimAchievement(achId);
-      if (result.success && result.reward > 0) {
-        const p = await loadProgress();
-        const newCoins = (p.coins || 0) + result.reward;
-        await updateProgress({ coins: newCoins });
-        setCoins(newCoins);
+      if (result.success) {
+        setCoins(result.coins);
         // playSound kaldırıldı
         // unlocked map'i güncelle
         await refresh();
@@ -59,18 +56,9 @@ export default function AchievementsScreen() {
     if (claiming) return;
     setClaiming('all');
     try {
-      let totalGained = 0;
-      for (const id in unlocked) {
-        if (unlocked[id] && unlocked[id].claimed === false) {
-          const result = await claimAchievement(id);
-          if (result.success) totalGained += result.reward;
-        }
-      }
-      if (totalGained > 0) {
-        const p = await loadProgress();
-        const newCoins = (p.coins || 0) + totalGained;
-        await updateProgress({ coins: newCoins });
-        setCoins(newCoins);
+      const result = await claimAchievements(Object.keys(unlocked).filter(id => unlocked[id]?.claimed === false));
+      if (result.success) {
+        setCoins(result.coins);
         // playSound kaldırıldı
         await refresh();
       }
@@ -198,3 +186,4 @@ const s = StyleSheet.create({
   claimBtnText: { fontFamily: FONTS.headlineBlack, fontSize: 11, color: '#000', letterSpacing: 0.5 },
   claimBtnReward: { fontFamily: FONTS.headlineBlack, fontSize: 10, color: '#000', marginTop: 1 },
 });
+

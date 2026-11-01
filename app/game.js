@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Dimensions,
   ScrollView, Vibration, Image, Animated, Easing,
-  ImageBackground,
+  ImageBackground, AppState,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -17,8 +17,9 @@ import { useLang } from '../src/context/LanguageContext';
 import { useAuth } from '../src/context/AuthContext';
 import { submitScore } from '../src/utils/leaderboardService';
 import { getDailyChallenge, markDailyChallengeCompleted, getDailyCompletionMap } from '../src/utils/dailyChallenge';
-import { checkAchievements, ACHIEVEMENT_I18N } from '../src/utils/achievements';
+import { checkAchievements, claimAchievements, ACHIEVEMENT_I18N } from '../src/utils/achievements';
 import { markCategoryCompleted } from '../src/utils/collection';
+import { resolveDrawnWord, prepareJokerPlacement } from '../src/utils/cardSafety';
 // seasonalEvents kaldırıldı
 
 import { IS_TABLET, fs, getGameLayout } from '../src/utils/responsive';
@@ -539,6 +540,10 @@ export default function GameScreen() {
   const dragRef = useRef({ card: null, source: null, sourceIndex: null, isLast: false, startX: 0, startY: 0 });
   const scrollRef = useRef(null);
   const saveTimerRef = useRef(null);
+  const latestSaveRef = useRef(null);
+  const skipSaveRef = useRef(false);
+  const [saveReady, setSaveReady] = useState(false);
+  const toolActionRef = useRef(false);
   const drawnTouchRef = useRef({ startX: 0, startY: 0, moved: false });
 const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   const colLayoutsRef = useRef([]); // her sütunun {x, y, w, h} ölçümü
@@ -607,98 +612,6 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
     forceRender(v => v + 1);
   }, []);
   cancelDragRef.current = cancelDrag;
-
-  const handleDrop = useCallback((dragInfo, dropX, dropY) => {
-    const { card, source, sourceIndex, stackCards } = dragInfo;
-    const stack = stackCards || [card];
-
-    // ÖNCE drag'i temizle
-    cancelDrag();
-
-    // Basit Y tespiti: ekranın üst %45'i → slot, alt %55'i → sütun
-    const isUpperHalf = dropY < SH * 0.45;
-
-    // En yakın hedefi bul — gerçek ölçümlerden
-    const findNearestFromLayouts = (layouts, count) => {
-      let best = -1, bestD = 9999;
-      for (let i = 0; i < count; i++) {
-        const l = layouts[i];
-        if (!l) continue;
-        const center = l.x + l.w / 2;
-        const d = Math.abs(dropX - center);
-        if (d < bestD) { bestD = d; best = i; }
-      }
-      return best;
-    };
-    const findNearest = (count, startX, totalW, layouts) => {
-      // Önce gerçek ölçümlerden dene
-      if (layouts && layouts.length >= count && layouts[0]) {
-        return findNearestFromLayouts(layouts, count);
-      }
-      // Fallback: hesapla
-      const totalGap = COL_GAP * (count - 1);
-      const itemW = (totalW - totalGap) / count;
-      let best = -1, bestD = 9999;
-      for (let i = 0; i < count; i++) {
-        const center = startX + i * (itemW + COL_GAP) + itemW / 2;
-        const d = Math.abs(dropX - center);
-        if (d < bestD) { bestD = d; best = i; }
-      }
-      return best;
-    };
-
-    const trySlot = () => {
-      const idx = findNearest(gs.slots.length, GAME_PAD, SW - GAME_PAD * 2, slotLayoutsRef.current);
-      if (idx < 0 || idx >= gs.slots.length) return false;
-      const slot = gs.slots[idx];
-      // Slot kilitliyse → geç
-      if (slot.locked) return false;
-      // Boş slot + kategori kartı → yerleştir
-      if (!slot.category && card.type === 'category') {
-        placeCard(card, source, sourceIndex, idx);
-        return true;
-      }
-      // Boş slot + kelime kartı → slot'a yerleşemez, sütuna dene
-      // JOKER: Joker de boş slot'a yerleşemez. Joker yapan oyuncu kartı 
-      // dolu (kategorisi atanmış, henüz tamamlanmamış) bir slot'a sürüklemeli.
-      if (!slot.category && card.type === 'word') {
-        if (card.isJoker) {
-          setFeedback(t.jokerNeedFilledSlot || '🃏 Joker\'i dolu bir kategori slotuna sürükle');
-        }
-        return false;
-      }
-      // Dolu slot + kategori kartı → zaten dolu, sütuna dene
-      if (slot.category && card.type === 'category') return false;
-      // Dolu slot + kelime kartı → KATEGORİ EŞLEŞME kontrolü
-      if (slot.category && card.type === 'word') {
-        if (card.categoryIndex === slot.category.categoryIndex || card.isJoker) {
-          placeCard(card, source, sourceIndex, idx);
-          return true;
-        }
-        // Eşleşmiyorsa → sütuna dene (slot'u titretme!)
-        return false;
-      }
-      return false;
-    };
-
-    const tryColumn = () => {
-      const idx = findNearest(gs.columns.length, GAME_PAD, SW - GAME_PAD * 2, colLayoutsRef.current);
-      if (idx >= 0 && idx < gs.columns.length) {
-        if (stack.length > 1) moveStackToColumn(stack, source, sourceIndex, idx);
-        else moveToColumn(card, source, sourceIndex, idx);
-        return true;
-      }
-      return false;
-    };
-
-    // Üst yarı → önce slot, sonra sütun. Alt yarı → önce sütun, sonra slot.
-    if (isUpperHalf) {
-      if (!trySlot()) tryColumn();
-    } else {
-      if (!tryColumn()) trySlot();
-    }
-  }, [gs.slots, gs.columns, placeCard, moveToColumn, moveStackToColumn, cancelDrag]);
-  handleDropRef.current = handleDrop;
 
   // Timer
   useEffect(() => {
@@ -769,16 +682,23 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
             && typeof saved.moves === 'number'
             && !saved.isComplete
             && !saved.isFailed
+            && (saved.gameLanguage ? saved.gameLanguage === gameLang : gameLang === 'tr')
+            && (saved.gameMode ? saved.gameMode === (isTimed ? 'timed' : 'classic') : !isTimed)
+            && (!isTimed || (Number.isFinite(saved.timeRemaining) && saved.timeRemaining > 0))
             && saved.levelId === (parseInt(params.level) || p.currentLevel);
           if (validSave) {
             setGs(saved);
+            if (isTimed && Number.isFinite(saved.timeRemaining)) {
+              setTimeRemaining(saved.timeRemaining);
+              timedEndRef.current = Date.now() + saved.timeRemaining * 1000;
+            }
           } else if (saved) {
             // Şekli bozuk ya da farklı bölüm — temizle ki bir daha yüklenmesin
             try { const { clearSavedGame: _clr } = require('../src/utils/storage'); _clr(); } catch (e) {}
           }
         } catch (e) {}
       }
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => setSaveReady(true));
   }, []);
 
   // Shake animation
@@ -794,23 +714,38 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
     ]).start(() => setShakeSlotIdx(-1));
   }, [shakeAnim]);
 
-  // Auto-save game state
-  useEffect(() => {
-    if (!gs.isComplete && !gs.isFailed && !isDaily) {
-      // Debounced save — her hamlede değil, 2sn'de bir
-      if (!saveTimerRef.current) {
-        saveTimerRef.current = setTimeout(() => { saveSavedGame({ ...gs, levelId }); saveTimerRef.current = null; }, 2000);
-      }
+  // Every write reads the latest render, never the first state in a time window.
+  latestSaveRef.current = saveReady && !gs.isComplete && !gs.isFailed && !isDaily
+    ? { ...gs, levelId, gameLanguage: gameLang, gameMode: isTimed ? 'timed' : 'classic', timeRemaining }
+    : null;
+  const flushGameSave = useCallback(() => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = null;
+    if (!skipSaveRef.current && latestSaveRef.current) {
+      return saveSavedGame(latestSaveRef.current).catch(e => console.warn('[Save] write failed', e.message));
     }
-  }, [gs]);
+    return Promise.resolve();
+  }, []);
+
+  useEffect(() => {
+    if (latestSaveRef.current && !skipSaveRef.current) {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(flushGameSave, 500);
+    }
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, [gs, saveReady, gameLang, isTimed, flushGameSave]);
 
   // Unmount'ta auto-save timer'ı temizle — timer ateşlenip saveSavedGame çağırsa
   // o sırada async bir pipeline'a kayıt takılmasın
   useEffect(() => {
+    const sub = AppState.addEventListener('change', state => {
+      if (state !== 'active') flushGameSave();
+    });
     return () => {
-      if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
+      sub.remove();
+      flushGameSave();
     };
-  }, []);
+  }, [flushGameSave]);
 
   useEffect(() => { if (feedback.msg) { const tmr = setTimeout(() => setFeedbackRaw({ msg: '', id: 0 }), 2500); return () => clearTimeout(tmr); } }, [feedback.id]);
 
@@ -825,19 +760,17 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   // BUG-4 FIX: "Topla" → coin'i hemen ekle, popup'ı kapat, unseenAch decrement
   const claimAchievement = useCallback(async () => {
     if (!achievementPopup) return;
-    const reward = achievementPopup.pendingCoins || 0;
-    if (reward > 0) {
-      const after = await updateProgress((cur) => ({
-        coins: (cur.coins || 0) + reward,
-        unseenAch: Math.max(0, (cur.unseenAch || 0) - 1),
-      }));
-      setCoins(after.coins);
-      setFeedback(`+${reward} 🪙`);
-    } else {
-      await updateProgress((cur) => ({ unseenAch: Math.max(0, (cur.unseenAch || 0) - 1) }));
+    try {
+      const result = await claimAchievements(achievementPopup.achievementIds || [achievementPopup.id]);
+      if (result.success) {
+        setCoins(result.coins);
+        setFeedback(`+${result.reward} 🪙`);
+      }
+      setAchievementPopup(null);
+    } catch (e) {
+      setFeedback(t.saveFailed || 'Ödül kaydedilemedi. Lütfen yeniden dene.');
     }
-    setAchievementPopup(null);
-  }, [achievementPopup, setFeedback]);
+  }, [achievementPopup, setFeedback, t]);
 
   // Clear hint after 2s
   useEffect(() => {
@@ -862,10 +795,23 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
     return ns;
   }
 
-  const placeCard = useCallback((card, source, sourceIndex, slotIndex) => {
-    setGs((prev) => {
+  const placeCard = useCallback((selectedCard, source, sourceIndex, slotIndex) => {
+    setGs((current) => {
+      let prev = current;
+      let card = selectedCard;
       if (slotIndex < 0 || slotIndex >= prev.slots.length) return prev;
       if (prev.slots[slotIndex].locked) { setFeedback(t.isLocked); return prev; }
+      const sourceCard = source === 'drawn'
+        ? prev.drawnCards[prev.drawnCards.length - 1]
+        : !prev.columns[sourceIndex]?.locked && prev.columns[sourceIndex]?.cards.find(c => c.id === card.id && c.faceUp);
+      if (!sourceCard || sourceCard.id !== card.id || prev.isComplete || prev.isFailed) return prev;
+      card = sourceCard;
+      if (card.isJoker && prev.slots[slotIndex].category) {
+        const prepared = prepareJokerPlacement(prev, card, prev.slots[slotIndex].category, level.categories);
+        if (!prepared) return prev;
+        prev = prepared.state;
+        card = prepared.card;
+      }
 
       const newSlots = prev.slots.map((sl) => ({ ...sl, placedCards: [...sl.placedCards] }));
       const target = newSlots[slotIndex];
@@ -1040,7 +986,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         const topCard = targetCol.cards[targetCol.cards.length - 1];
         if (!topCard.faceUp) { setFeedback(t.cantPlace); return prev; }
         // KURAL: Sadece AYNI KATEGORİ üst üste gelebilir (solitaire renk kuralı gibi)
-        if (topCard.type === 'word' && card.categoryIndex !== topCard.categoryIndex && !card.isJoker) {
+        if (topCard.type === 'word' && card.categoryIndex !== topCard.categoryIndex && !card.isJoker && !topCard.isJoker) {
           setFeedback(t.diffCategoryStack || '⛔ Different category!');
           return prev;
         }
@@ -1062,40 +1008,6 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
     });
     setSelected(null);
   }, []);
-
-  const handleCardTap = useCallback((card, source, sourceIndex, isLast = true) => {
-    if (source === 'column' && !isLast) {
-      // Select this card + all cards BELOW it (if all face-up)
-      const col = gs.columns[sourceIndex];
-      if (!col) return;
-      const cardIdx = col.cards.findIndex((c) => c.id === card.id);
-      if (cardIdx < 0) return;
-      const stack = col.cards.slice(cardIdx);
-      const allFaceUp = stack.every((c) => c.faceUp);
-      if (!allFaceUp) {
-        setFeedback(t.stackSelectError);
-        return;
-      }
-      // Valid stack — select it
-      setSelected({ card, source, sourceIndex, stackCards: stack });
-      setFeedback((t.stackSelected || '✋ {n} cards selected').replace('{n}', stack.length));
-      return;
-    }
-    setSelected((prev) => {
-      if (prev && prev.card.id !== card.id && source === 'column') {
-        // Move selected card/stack to this column
-        if (prev.stackCards && prev.stackCards.length > 1) {
-          moveStackToColumn(prev.stackCards, prev.source, prev.sourceIndex, sourceIndex);
-        } else {
-          moveToColumn(prev.card, prev.source, prev.sourceIndex, sourceIndex);
-        }
-        return null;
-      }
-      if (prev && prev.card.id === card.id) { setFeedback(''); return null; }
-      
-      return { card, source, sourceIndex, stackCards: [card] };
-    });
-  }, [moveToColumn, moveStackToColumn, gs.columns]);
 
   // Move entire stack to another column
   const moveStackToColumn = useCallback((stackCards, source, sourceIndex, targetColIndex) => {
@@ -1143,6 +1055,41 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
     });
     setSelected(null);
   }, []);
+
+  const handleCardTap = useCallback((card, source, sourceIndex, isLast = true) => {
+    if (source === 'column' && !isLast) {
+      // Select this card + all cards BELOW it (if all face-up)
+      const col = gs.columns[sourceIndex];
+      if (!col) return;
+      const cardIdx = col.cards.findIndex((c) => c.id === card.id);
+      if (cardIdx < 0) return;
+      const stack = col.cards.slice(cardIdx);
+      const allFaceUp = stack.every((c) => c.faceUp);
+      if (!allFaceUp) {
+        setFeedback(t.stackSelectError);
+        return;
+      }
+      // Valid stack — select it
+      setSelected({ card, source, sourceIndex, stackCards: stack });
+      setFeedback((t.stackSelected || '✋ {n} cards selected').replace('{n}', stack.length));
+      return;
+    }
+    setSelected((prev) => {
+      if (prev && prev.card.id !== card.id && source === 'column') {
+        // Move selected card/stack to this column
+        if (prev.stackCards && prev.stackCards.length > 1) {
+          moveStackToColumn(prev.stackCards, prev.source, prev.sourceIndex, sourceIndex);
+        } else {
+          moveToColumn(prev.card, prev.source, prev.sourceIndex, sourceIndex);
+        }
+        return null;
+      }
+      if (prev && prev.card.id === card.id) { setFeedback(''); return null; }
+      
+      return { card, source, sourceIndex, stackCards: [card] };
+    });
+  }, [moveToColumn, moveStackToColumn, gs.columns]);
+
 
   const handleColumnTap = useCallback((colIndex) => {
     if (!selected) return;
@@ -1221,18 +1168,26 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
 
   const useDelete = useCallback(async () => {
     if (!isToolUnlocked('delete')) return;
-    if (gs.drawnCards.length === 0) { setFeedback(t.nothingToDelete); return; }
+    if (toolActionRef.current) return;
+    const resolved = resolveDrawnWord(gs, level.categories.length);
+    if (!resolved) { setFeedback(t.nothingToDelete); return; }
     if (toolCredits.delete > 0) {
+      toolActionRef.current = true;
+      // Apply the board synchronously; no stale board is written after an await.
+      setGs(resolved.state);
+      setHistory(h => [...h, gs]);
       const newCredits = { ...toolCredits, delete: toolCredits.delete - 1 };
       setToolCredits(newCredits);
-      await updateProgress({ toolCredits: newCredits });
-      setGs((p) => ({ ...p, drawnCards: p.drawnCards.slice(0, -1), moves: p.moves - 1, isFailed: p.moves - 1 <= 0 }));
       setSelected(null);
       setFeedback(t.deleteDone);
+      if (resolved.completedCategoryName) markCategoryCompleted(resolved.completedCategoryName, gameLang).catch(() => {});
+      try { await updateProgress({ toolCredits: newCredits }); }
+      catch (e) { setFeedback(t.saveFailed || 'Kayıt yapılamadı. Lütfen yeniden dene.'); }
+      finally { toolActionRef.current = false; }
       return;
     }
     setToolModal('delete');
-  }, [gs.drawnCards, toolCredits, isToolUnlocked]);
+  }, [gs, level.categories.length, toolCredits, isToolUnlocked, gameLang, t]);
 
   const executeDelete = useCallback(async (method) => {
     if (method === 'coin') {
@@ -1258,6 +1213,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   const useJoker = useCallback(async () => {
     if (!isToolUnlocked('joker')) return;
     if (gs.drawnCards.length === 0) { setFeedback(t.jokerNeedCard); return; }
+    if (gs.drawnCards[gs.drawnCards.length - 1].type !== 'word' || gs.drawnCards[gs.drawnCards.length - 1].isJoker) { setFeedback(t.jokerNeedCard); return; }
     if (toolCredits.joker > 0) {
       const newCredits = { ...toolCredits, joker: toolCredits.joker - 1 };
       setToolCredits(newCredits);
@@ -1265,7 +1221,9 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       setGs((p) => {
         if (p.drawnCards.length === 0) return p;
         const newDrawn = [...p.drawnCards];
-        const lastCard = { ...newDrawn[newDrawn.length - 1], isJoker: true, word: '', emoji: '🃏' };
+        const original = newDrawn[newDrawn.length - 1];
+        if (original.type !== 'word' || original.isJoker) return p;
+        const lastCard = { ...original, jokerOriginal: { ...original }, isJoker: true, word: '', emoji: '🃏' };
         newDrawn[newDrawn.length - 1] = lastCard;
         return { ...p, drawnCards: newDrawn };
       });
@@ -1342,39 +1300,6 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
     setToolModal('shuffle');
   }, [gs.columns, gs.drawnCards, toolCredits, isToolUnlocked]);
 
-  const executeShuffle = useCallback(async (method) => {
-    if (method === 'coin') {
-      if (coins < 500) { setFeedback(t.coinNeeded500); setToolModal(null); return; }
-      const _aftShuf = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 500 })); setCoins(_aftShuf.coins);
-    }
-    if (method === 'ad') {
-      if (adLoadingTool) { setToolModal(null); return; }
-      const result = await showRewarded((loading) => {
-        setAdLoadingTool(loading ? 'shuffle' : null);
-      });
-      setAdLoadingTool(null);
-      if (!result.success) { setToolModal(null); setFeedback(t.adFailed || 'Reklam yuklenemedi'); return; }
-    }
-    const newCredits = { ...toolCredits, shuffle: toolCredits.shuffle + 1 };
-    setToolCredits(newCredits);
-    await updateProgress({ toolCredits: newCredits });
-    setToolModal(null);
-    // BUG FIX: Fail ekranından "Karıştır" butonuyla modal açılıp satın alınca,
-    // eski kod sadece kredi ekliyor ama uygulamıyordu. Kullanıcı moves=0 +
-    // isFailed=false stuck durumuna düşüyordu. Artık pendingFailedShuffle flag'i
-    // ile purchase sonrası otomatik uygulanır.
-    if (_pendingFailedShuffleRef.current) {
-      _pendingFailedShuffleRef.current = false;
-      // Yeni kredinin 1'ini hemen kullan
-      const usedCredits = { ...newCredits, shuffle: newCredits.shuffle - 1 };
-      setToolCredits(usedCredits);
-      await updateProgress({ toolCredits: usedCredits });
-      applyFailedShuffle();
-    } else {
-      setFeedback(t.shuffleAdded);
-    }
-  }, [coins, toolCredits, applyFailedShuffle]);
-
   // ── Smart Hint ──
   const useHint = useCallback(async () => {
     if (!isToolUnlocked('hint')) return;
@@ -1449,7 +1374,8 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   }, [gs]);
 
   const resetGame = useCallback(() => {
-    const newLevel = isDaily ? getDailyChallenge(gameLang) : getLevel(levelId, gameLang);
+    skipSaveRef.current = false;
+    const newLevel = isDaily ? getDailyChallenge(gameLang, params.dailySeed ? parseInt(params.dailySeed) : undefined) : getLevel(levelId, gameLang);
     const state = generateGameState(newLevel);
     if (isTimed) state.moves = 9999;
     setGs(state); setHistory([]); setSelected(null);
@@ -1506,7 +1432,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
           const totalReward = newAch.reduce((sum, a) => sum + (a.reward || 0), 0);
           // Coin OTOMATİK eklenmez — kullanıcı başarımlar ekranından "Topla" ile alacak
           await updateProgress({ unseenAch: (prog.unseenAch || 0) + newAch.length });
-          setAchievementPopup({ ...newAch[0], reward: newAch[0].reward || 0, pendingCoins: totalReward });
+          setAchievementPopup({ ...newAch[0], reward: newAch[0].reward || 0, pendingCoins: totalReward, achievementIds: newAch.map(a => a.id) });
         }
       } catch (e) {}
       await markDailyChallengeCompleted(dailyDate);
@@ -1572,7 +1498,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         const totalReward = newAch.reduce((sum, a) => sum + (a.reward || 0), 0);
         // Coin OTOMATİK eklenmez — kullanıcı başarımlar ekranından "Topla" ile alacak
         await updateProgress({ unseenAch: (prog.unseenAch || 0) + newAch.length });
-        setAchievementPopup({ ...newAch[0], reward: newAch[0].reward || 0, pendingCoins: totalReward });
+        setAchievementPopup({ ...newAch[0], reward: newAch[0].reward || 0, pendingCoins: totalReward, achievementIds: newAch.map(a => a.id) });
       }
     } catch (e) {}
     // FEAT-1: Her 3 bölümde bir Rewarded Interstitial göster (atlanabilir, izlerse +20 coin bonus)
@@ -1690,6 +1616,40 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
     setFeedback(t.shuffleDone);
   }, []);
 
+  const executeShuffle = useCallback(async (method) => {
+    if (method === 'coin') {
+      if (coins < 500) { setFeedback(t.coinNeeded500); setToolModal(null); return; }
+      const _aftShuf = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 500 })); setCoins(_aftShuf.coins);
+    }
+    if (method === 'ad') {
+      if (adLoadingTool) { setToolModal(null); return; }
+      const result = await showRewarded((loading) => {
+        setAdLoadingTool(loading ? 'shuffle' : null);
+      });
+      setAdLoadingTool(null);
+      if (!result.success) { setToolModal(null); setFeedback(t.adFailed || 'Reklam yuklenemedi'); return; }
+    }
+    const newCredits = { ...toolCredits, shuffle: toolCredits.shuffle + 1 };
+    setToolCredits(newCredits);
+    await updateProgress({ toolCredits: newCredits });
+    setToolModal(null);
+    // BUG FIX: Fail ekranından "Karıştır" butonuyla modal açılıp satın alınca,
+    // eski kod sadece kredi ekliyor ama uygulamıyordu. Kullanıcı moves=0 +
+    // isFailed=false stuck durumuna düşüyordu. Artık pendingFailedShuffle flag'i
+    // ile purchase sonrası otomatik uygulanır.
+    if (_pendingFailedShuffleRef.current) {
+      _pendingFailedShuffleRef.current = false;
+      // Yeni kredinin 1'ini hemen kullan
+      const usedCredits = { ...newCredits, shuffle: newCredits.shuffle - 1 };
+      setToolCredits(usedCredits);
+      await updateProgress({ toolCredits: usedCredits });
+      applyFailedShuffle();
+    } else {
+      setFeedback(t.shuffleAdded);
+    }
+  }, [coins, toolCredits, applyFailedShuffle]);
+
+
   const handleFailedShuffle = useCallback(async () => {
     if (toolCredits.shuffle > 0) {
       // Kredi varsa kullan
@@ -1701,7 +1661,6 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       // Kredi yoksa satın alma modal — satın alınca applyFailedShuffle tetiklenecek
       _pendingFailedShuffleRef.current = true;
       setToolModal('shuffle');
-      setGs(prev => ({ ...prev, isFailed: false, moves: 0 }));
     }
   }, [toolCredits, applyFailedShuffle]);
 
@@ -1718,6 +1677,8 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   }, [resetGame]);
 
   const handleHome = useCallback(async () => {
+    skipSaveRef.current = true;
+    latestSaveRef.current = null;
     const prog = await loadProgress();
 
     // BUG-1 FIX: Bölüm tamamlandıktan sonra Home'a basılırsa progress save EDİLMELİ
@@ -1833,6 +1794,99 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       setFeedback(t.adFailed || 'Reklam yuklenemedi');
     }
   }, [adLoadingTool, t]);
+
+  const handleDrop = useCallback((dragInfo, dropX, dropY) => {
+    const { card, source, sourceIndex, stackCards } = dragInfo;
+    const stack = stackCards || [card];
+
+    // ÖNCE drag'i temizle
+    cancelDrag();
+
+    // Basit Y tespiti: ekranın üst %45'i → slot, alt %55'i → sütun
+    const isUpperHalf = dropY < SH * 0.45;
+
+    // En yakın hedefi bul — gerçek ölçümlerden
+    const findNearestFromLayouts = (layouts, count) => {
+      let best = -1, bestD = 9999;
+      for (let i = 0; i < count; i++) {
+        const l = layouts[i];
+        if (!l) continue;
+        const center = l.x + l.w / 2;
+        const d = Math.abs(dropX - center);
+        if (d < bestD) { bestD = d; best = i; }
+      }
+      return best;
+    };
+    const findNearest = (count, startX, totalW, layouts) => {
+      // Önce gerçek ölçümlerden dene
+      if (layouts && layouts.length >= count && layouts[0]) {
+        return findNearestFromLayouts(layouts, count);
+      }
+      // Fallback: hesapla
+      const totalGap = COL_GAP * (count - 1);
+      const itemW = (totalW - totalGap) / count;
+      let best = -1, bestD = 9999;
+      for (let i = 0; i < count; i++) {
+        const center = startX + i * (itemW + COL_GAP) + itemW / 2;
+        const d = Math.abs(dropX - center);
+        if (d < bestD) { bestD = d; best = i; }
+      }
+      return best;
+    };
+
+    const trySlot = () => {
+      const idx = findNearest(gs.slots.length, GAME_PAD, SW - GAME_PAD * 2, slotLayoutsRef.current);
+      if (idx < 0 || idx >= gs.slots.length) return false;
+      const slot = gs.slots[idx];
+      // Slot kilitliyse → geç
+      if (slot.locked) return false;
+      // Boş slot + kategori kartı → yerleştir
+      if (!slot.category && card.type === 'category') {
+        placeCard(card, source, sourceIndex, idx);
+        return true;
+      }
+      // Boş slot + kelime kartı → slot'a yerleşemez, sütuna dene
+      // JOKER: Joker de boş slot'a yerleşemez. Joker yapan oyuncu kartı 
+      // dolu (kategorisi atanmış, henüz tamamlanmamış) bir slot'a sürüklemeli.
+      if (!slot.category && card.type === 'word') {
+        if (card.isJoker) {
+          setFeedback(t.jokerNeedFilledSlot || '🃏 Joker\'i dolu bir kategori slotuna sürükle');
+        }
+        return false;
+      }
+      // Dolu slot + kategori kartı → zaten dolu, sütuna dene
+      if (slot.category && card.type === 'category') return false;
+      // Dolu slot + kelime kartı → KATEGORİ EŞLEŞME kontrolü
+      if (slot.category && card.type === 'word') {
+        if (card.categoryIndex === slot.category.categoryIndex || card.isJoker) {
+          placeCard(card, source, sourceIndex, idx);
+          return true;
+        }
+        // Eşleşmiyorsa → sütuna dene (slot'u titretme!)
+        return false;
+      }
+      return false;
+    };
+
+    const tryColumn = () => {
+      const idx = findNearest(gs.columns.length, GAME_PAD, SW - GAME_PAD * 2, colLayoutsRef.current);
+      if (idx >= 0 && idx < gs.columns.length) {
+        if (stack.length > 1) moveStackToColumn(stack, source, sourceIndex, idx);
+        else moveToColumn(card, source, sourceIndex, idx);
+        return true;
+      }
+      return false;
+    };
+
+    // Üst yarı → önce slot, sonra sütun. Alt yarı → önce sütun, sonra slot.
+    if (isUpperHalf) {
+      if (!trySlot()) tryColumn();
+    } else {
+      if (!tryColumn()) trySlot();
+    }
+  }, [gs.slots, gs.columns, placeCard, moveToColumn, moveStackToColumn, cancelDrag]);
+  handleDropRef.current = handleDrop;
+
 
   return (
     <View 
@@ -2239,7 +2293,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
           <LevelCompleteOverlay t={t} score={gs.score} coins={isDaily ? 100 : 30} movesLeft={isTimed ? 0 : gs.moves} maxMoves={level.moves} levelId={gs.levelId} combo={combo} isDaily={isDaily} elapsedTime={elapsedTime} onNext={handleNextLevel} onReplay={handleReplay} onHome={handleHome} />
         </>
       )}
-      {gs.isFailed && !gs.isComplete && (
+      {gs.isFailed && !gs.isComplete && !toolModal && (
         <LevelFailedOverlay t={t} levelId={gs.levelId} onAddMovesAd={addMovesAd} onAddMovesCoin={addMovesCoin} onShuffle={handleFailedShuffle} onReplay={handleReplay} onHome={handleHome} />
       )}
 
@@ -2432,3 +2486,4 @@ const st = StyleSheet.create({
   adBannerSpace: { position: 'absolute', bottom: 0, left: 0, right: 0, minHeight: 50, alignItems: 'center', justifyContent: 'center', zIndex: 99 },
   achievPopup: { position: 'absolute', top: 100, left: 20, right: 20, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(30,10,50,0.95)', borderRadius: 16, padding: 14, borderWidth: 1.5, borderColor: '#FFD166', shadowColor: '#FFD166', shadowOpacity: 0.5, shadowRadius: 12, elevation: 10, zIndex: 200 },
 });
+

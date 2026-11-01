@@ -23,14 +23,15 @@ async function withLock(key, fn) {
   const prev = _locks.get(key) || Promise.resolve();
   let release;
   const next = new Promise((r) => { release = r; });
-  _locks.set(key, prev.then(() => next));
+  const queued = prev.then(() => next);
+  _locks.set(key, queued);
   try {
     await prev;
     return await fn();
   } finally {
     release();
     // Son kilidi temizle ki Map büyümesin
-    if (_locks.get(key) === next) _locks.delete(key);
+    if (_locks.get(key) === queued) _locks.delete(key);
   }
 }
 
@@ -40,9 +41,9 @@ async function getItem(key) {
 }
 
 async function setItem(key, value) {
+  // Do not acknowledge a financial/progress write that was not persisted.
+  if (AsyncStorage) await AsyncStorage.setItem(key, value);
   memStore[key] = value;
-  if (!AsyncStorage) return;
-  try { await AsyncStorage.setItem(key, value); } catch (e) {}
 }
 
 async function removeItem(key) {
@@ -70,7 +71,7 @@ export async function loadProgress() {
 }
 
 export async function saveProgress(progress) {
-  try { await setItem(KEYS.PROGRESS, JSON.stringify(progress)); } catch (e) {}
+  await setItem(KEYS.PROGRESS, JSON.stringify(progress));
 }
 
 export async function updateProgress(updates) {
@@ -113,11 +114,11 @@ export async function loadSavedGame() {
 }
 
 export async function saveSavedGame(gameState) {
-  try { await setItem(KEYS.SAVED_GAME, JSON.stringify(gameState)); } catch (e) {}
+  return withLock(KEYS.SAVED_GAME, () => setItem(KEYS.SAVED_GAME, JSON.stringify(gameState)));
 }
 
 export async function clearSavedGame() {
-  try { await removeItem(KEYS.SAVED_GAME); } catch (e) {}
+  return withLock(KEYS.SAVED_GAME, () => removeItem(KEYS.SAVED_GAME));
 }
 
 // "Tüm ilerleme silinecek" prompt'una uyumlu: progress + saved_game + stars +
@@ -260,3 +261,4 @@ export function isAvatarUnlocked(avatarId, currentLevel) {
   const a = AVATARS.find(av => av.id === avatarId);
   return a ? currentLevel >= a.unlockLevel : false;
 }
+
