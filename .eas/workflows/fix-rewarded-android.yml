@@ -1,0 +1,25 @@
+name: Android rewarded ad hotfix
+
+jobs:
+  publish_android_hotfix:
+    name: Publish rewarded ad fix for Android 1.0.8
+    type: update
+    environment: production
+    params:
+      platform: android
+      channel: production
+      message: Fix rewarded video loading on Android 1.0.8
+    hooks:
+      before_update:
+        - name: Verify hotfix target
+          run: |
+            node <<'NODE'
+            const assert = require('node:assert/strict');
+            const { expo } = require('./app.json');
+            assert.equal(expo.version, '1.0.8');
+            assert.equal(expo.extra.eas.projectId, '798b54e7-7f2c-4de5-94cc-9d07e92662e2');
+            assert.equal(expo.runtimeVersion.policy, 'appVersion');
+            const ads = require('node:fs').readFileSync('src/utils/ads.js', 'utf8');
+            assert(ads.includes('rewardedAd.addAdEventListener(RewardedAdEventType.LOADED,'));
+            assert(!ads.includes('rewardedAd.addAdEventListener(AdEventType.LOADED,'));
+            NODE
