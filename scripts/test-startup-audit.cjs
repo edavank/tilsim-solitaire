@@ -6,7 +6,7 @@ function harness(file,modules){
  const equal=(a,b)=>a&&b&&a.length===b.length&&a.every((v,i)=>Object.is(v,b[i]));
  const react={createElement:(type,props,...children)=>({type,props:props||{},children}),createContext:()=>({Provider:'Provider'}),useContext:()=>({}),useState(initial){const i=cursor++;hooks[i]??={value:typeof initial==='function'?initial():initial};return[hooks[i].value,v=>{const next=typeof v==='function'?v(hooks[i].value):v;if(!Object.is(next,hooks[i].value)){hooks[i].value=next;dirty=true;}}];},useRef(v){const i=cursor++;return hooks[i]||(hooks[i]={current:v});},useCallback(fn,deps){const i=cursor++;if(!hooks[i]||!equal(hooks[i].deps,deps))hooks[i]={deps,fn};return hooks[i].fn;},useEffect(fn,deps){const i=cursor++;if(!hooks[i]||!equal(hooks[i].deps,deps)){const prev=hooks[i];const entry={deps,fn,cleanup:prev?.cleanup};hooks[i]=entry;effectHooks.push(entry);pending.push(()=>{prev?.cleanup?.();entry.cleanup=fn();});}}};react.default=react;
  const module={exports:{}};const natives={View:'View',ActivityIndicator:'Spinner',StyleSheet:{create:x=>x,absoluteFillObject:{}},Platform:{OS:'ios'}};
- const defaults={react,'react-native':natives,'expo-av':{},'expo-router':{Stack:'Stack'},'expo-font':{useFonts:()=>[true]},'../src/constants/theme':{COLORS:{},FONTS:{}},'../src/context/AuthContext':{AuthProvider:'AuthProvider'},'../src/context/LanguageContext':{LanguageProvider:'LanguageProvider'},'react-native-gesture-handler':{GestureHandlerRootView:'GestureRoot'},'../src/components/UpdatePrompt':{__esModule:true,default:'UpdatePrompt'}};
+ const defaults={react,'react-native':natives,'expo-av':{},'expo-router':{Stack:'Stack'},'expo-font':{useFonts:()=>[true]},'../src/constants/theme':{COLORS:{},FONTS:{},SIZES:{}},'../src/context/AuthContext':{AuthProvider:'AuthProvider'},'../src/context/LanguageContext':{LanguageProvider:'LanguageProvider'},'react-native-gesture-handler':{GestureHandlerRootView:'GestureRoot'},'../src/components/UpdatePrompt':{__esModule:true,default:'UpdatePrompt'}};
  const code=compile(fs.readFileSync(path.join(__dirname,'..',file),'utf8'));
  vm.runInNewContext(code,{module,exports:module.exports,console,setTimeout,clearTimeout,require:n=>n in modules?modules[n]:n in defaults?defaults[n]:n.startsWith('@expo-google-fonts')?{}:1});
  const component=typeof module.exports.default==='function'?module.exports.default:module.exports.AuthProvider||module.exports.LanguageProvider;
@@ -49,9 +49,26 @@ test('A failed account sign-out never clears local progress or reports success',
  await h.flush();const result=await h.tree.props.value.handleSignOut();assert.equal(result.success,false);assert.equal(resets,0);
 });
 
+test('Sign-out and login cannot race or change accounts during cleanup',async()=>{
+ let finish,logins=0;const auth={initAuth:async()=>null,onAuthChange:fn=>{fn(null);return()=>{};},syncProgressToCloud:async()=>null,signOut:()=>new Promise(r=>{finish=r;}),signInWithGoogle:async()=>{logins++;return{user:{id:'b'}};}};
+ const h=harness('src/context/AuthContext.js',{'../utils/auth':auth,'../utils/storage':{resetUserScopedData:async()=>{}},'@react-native-async-storage/async-storage':{default:{getItem:async()=> 'true'}}});
+ await h.flush();const signingOut=h.tree.props.value.handleSignOut();await h.flush();const login=await h.tree.props.value.handleGoogleLogin();assert.equal(login.code,'busy');assert.equal(logins,0);finish();assert.equal((await signingOut).success,true);
+});
+
+test('Duplicate account deletion taps start only one deletion request',async()=>{
+ let finish,deletions=0;const auth={initAuth:async()=>null,onAuthChange:fn=>{fn(null);return()=>{};},deleteAccount:()=>{deletions++;return new Promise(r=>{finish=r;});}};
+ const h=harness('src/context/AuthContext.js',{'../utils/auth':auth,'@react-native-async-storage/async-storage':{default:{getItem:async()=> 'true'}}});
+ await h.flush();const first=h.tree.props.value.handleDeleteAccount();await h.flush();assert.equal((await h.tree.props.value.handleDeleteAccount()).success,false);assert.equal(deletions,1);finish({success:true});assert.equal((await first).success,true);
+});
+
 test('A banner connects when ad initialization finishes late without remounting the screen',async()=>{
  let available=null,listener;const h=harness('src/components/AdBanner.js',{'../utils/ads':{getBannerComponent:()=>available,subscribeAdAvailability:fn=>{listener=fn;fn(false);return()=>{};}},'react-native':{View:'View',AppState:{currentState:'active',addEventListener:()=>({remove(){}})}}});
  assert.equal(contains(h.tree,'BannerAd'),false);available={BannerAd:'BannerAd',BannerAdSize:{ANCHORED_ADAPTIVE_BANNER:'adaptive'},unitId:'test'};listener(true);h.render();assert.equal(contains(h.tree,'BannerAd'),true);
+});
+
+test('An unavailable leaderboard shows an empty state rather than invented player scores',async()=>{
+ const h=harness('app/leaderboard.js',{'../src/utils/storage':{loadProgress:async()=>({coins:500})},'../src/context/LanguageContext':{useLang:()=>({lang:'tr'})},'../src/utils/leaderboardService':{fetchLeaderboard:async()=>({data:null,error:'offline'}),getUserRank:async()=>({rank:null})}});
+ await h.flush();const text=JSON.stringify(h.tree);assert.ok(text.includes('Henüz veri yok'));assert.equal(text.includes('Efsun'),false);assert.equal(text.includes('12850'),false);
 });
 
 test('Timed loss screen never offers ineffective move/coin purchases',()=>{

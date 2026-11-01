@@ -22,6 +22,7 @@ let memStore = {};
 // Per-key serial lock — her key için read-modify-write işlemlerini sıraya dizer.
 // Race condition fix: iki ödülü aynı anda eklerken birinin kaybolmamasını garanti eder.
 const _locks = new Map();
+let dataEpoch = 0;
 async function withLock(key, fn) {
   const prev = _locks.get(key) || Promise.resolve();
   let release;
@@ -84,8 +85,11 @@ export async function updateProgress(updates, walletEvent = {}) {
   // Atomik: eşzamanlı çağrılar sıralanır, her biri en güncel değeri okur.
   // `updates` obje veya fonksiyon olabilir. Fonksiyon pattern coin/xp gibi
   // increment'lerde lost-update önler: updateProgress(cur => ({coins: cur.coins+50}))
+  const epoch = dataEpoch;
   return withLock(KEYS.PROGRESS, async () => {
+    if (epoch !== dataEpoch) throw Object.assign(new Error('Kayıt sıfırlama sırasında değişti.'),{code:'DATA_RESET'});
     const current = await loadProgress();
+    if (current._localCleanup) throw Object.assign(new Error('Yerel kayıt temizliği tamamlanmalı.'),{code:'CLEANUP_PENDING'});
     const patch = typeof updates === 'function' ? updates(current) : updates;
     const next = { ...current, ...patch };
     if (Number.isFinite(next.coins) && next.coins !== current.coins) {
@@ -112,6 +116,15 @@ export async function loadCloudJournal(accountId) {
 export async function saveCloudJournal(accountId, journal) {
   return withLock(`@tilsim_cloud_v2:${accountId}`, () => setItem(`@tilsim_cloud_v2:${accountId}`, JSON.stringify(journal)));
 }
+
+export async function getPendingAccountDeletion() {
+  const raw = await getItem('@tilsim_deleted_account');
+  return raw ? JSON.parse(raw) : null;
+}
+export async function rememberAccountDeletion(accountId) {
+  await setItem('@tilsim_deleted_account',JSON.stringify({accountId}));
+}
+export async function clearPendingAccountDeletion() { await removeItem('@tilsim_deleted_account'); }
 
 export async function loadSettings() {
   try {
@@ -184,6 +197,7 @@ export async function loadSavedGame(mode = 'classic') {
 export async function saveSavedGame(gameState) {
   const mode = gameState.gameMode || 'classic';
   return updateProgress(current => {
+    if ((gameState.resetEpoch || null) !== (current.resetEpoch || null)) throw Object.assign(new Error('Bu oyun sıfırlama öncesine ait.'),{code:'DATA_RESET'});
     const previous = current._localBoards?.[mode];
     if (current._localClosedRuns?.includes(gameState.runId)) return {};
     // A queued autosave from before a paid action cannot undo that action.
@@ -211,6 +225,7 @@ export async function commitBoardAction({before, after, tool, coinCost = 0}) {
   if (tool && !['hint','undo','joker','shuffle','delete'].includes(tool)) throw new Error('Invalid tool');
   let success = false, board = null;
   const progress = await updateProgress(current => {
+    if ((before.resetEpoch || null) !== (current.resetEpoch || null)) throw Object.assign(new Error('Bu oyun sıfırlama öncesine ait.'),{code:'DATA_RESET'});
     const saved = current._localBoards?.[mode];
     if (current._localClosedRuns?.includes(before.runId)
       || (saved && saved.runId !== before.runId)
@@ -232,66 +247,61 @@ export async function commitBoardAction({before, after, tool, coinCost = 0}) {
 // "Tüm ilerleme silinecek" prompt'una uyumlu: progress + saved_game + stars +
 // xp + achievements + collection + daily + daily_login hepsi temizlenir.
 // Settings (dil/ses) ve device_id korunur — bunlar oyun içi ilerleme değil.
-export async function resetAll() {
-  try {
-    const keysToClear = [
-      KEYS.PROGRESS,
-      KEYS.SAVED_GAME,
-      KEYS.SAVED_TIMED,
-      KEYS.SAVED_DAILY,
-      KEYS.SAVED_MODES,
-      '@tilsim_stars',
-      '@tilsim_xp',
-      '@tilsim_achievements',
-      '@tilsim_collection',
-      '@tilsim_daily_login',
-      'tilsim_daily_login',
-    ];
-    for (const k of keysToClear) await removeItem(k);
-    // Günlük görev tamamlama kayıtlarını da sil (@tilsim_daily_YYYY-MM-DD)
-    if (AsyncStorage) {
-      try {
-        const allKeys = await AsyncStorage.getAllKeys();
-        const dailyKeys = allKeys.filter((k) => k.startsWith('@tilsim_daily_') && k !== '@tilsim_daily_login');
-        if (dailyKeys.length) await AsyncStorage.multiRemove(dailyKeys);
-      } catch (e) {}
-    }
-    memStore = {};
-    // Force default progress (coins=500, level=1)
-    await saveProgress(DEFAULT_PROGRESS);
-  } catch (e) {}
+const USER_DATA_KEYS = [KEYS.SAVED_GAME,KEYS.SAVED_TIMED,KEYS.SAVED_DAILY,KEYS.SAVED_MODES,
+  '@tilsim_stars','@tilsim_xp','@tilsim_achievements','@tilsim_collection','@tilsim_daily_login','tilsim_daily_login'];
+
+async function finishLocalCleanup(current) {
+  const operation = current._localCleanup;
+  if (!operation) return current;
+  // The marker remains durable if ANY deletion fails. Never pretend cleanup succeeded.
+  for (const key of USER_DATA_KEYS) await removeItem(key);
+  const keys = AsyncStorage ? await AsyncStorage.getAllKeys() : Object.keys(memStore);
+  const dailyKeys = keys.filter(key=>key.startsWith('@tilsim_daily_'));
+  for (const key of dailyKeys) await removeItem(key);
+  if (operation.deleteAccountId) await removeItem(`@tilsim_cloud_v2:${operation.deleteAccountId}`);
+  await saveProgress(operation.target);
+  return operation.target;
 }
 
-// Hesap değişikliğinde (sign-out / sign-in başka hesaba) çağrılır.
-// Yerel progress'i varsayılana döndürür ki bir kullanıcının coin/level'i
-// syncToCloud Math.max merge yoluyla diğerine sızmasın.
-// Ayarlar, tema tercihi, device_id korunur.
-export async function resetUserScopedData() {
-  try {
-    const keysToClear = [
-      KEYS.PROGRESS,
-      KEYS.SAVED_GAME,
-      KEYS.SAVED_TIMED,
-      KEYS.SAVED_DAILY,
-      KEYS.SAVED_MODES,
-      '@tilsim_stars',
-      '@tilsim_xp',
-      '@tilsim_achievements',
-      '@tilsim_collection',
-      '@tilsim_daily_login',
-      'tilsim_daily_login',
-    ];
-    for (const k of keysToClear) await removeItem(k);
-    if (AsyncStorage) {
-      try {
-        const allKeys = await AsyncStorage.getAllKeys();
-        const dailyKeys = allKeys.filter((k) => k.startsWith('@tilsim_daily_') && k !== '@tilsim_daily_login');
-        if (dailyKeys.length) await AsyncStorage.multiRemove(dailyKeys);
-      } catch (e) {}
+export async function recoverLocalCleanup() {
+  return withLock(KEYS.PROGRESS, async()=>finishLocalCleanup(await loadProgress()));
+}
+
+async function resetUserData(kind, deleteAccountId) {
+  dataEpoch++;
+  return withLock(KEYS.PROGRESS,async()=>{
+    let current = await loadProgress();
+    if (current._localCleanup) current = await finishLocalCleanup(current);
+    const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+    const target = {...DEFAULT_PROGRESS,unlockedThemes:[...DEFAULT_PROGRESS.unlockedThemes],
+      resetEpoch:id,_localBoards:{classic:null,timed:null,daily:null}};
+    if (kind === 'reset') {
+      target.resetEpoch = id;
+      if (current._cloudOwner) target._cloudOwner = current._cloudOwner;
+      target._cloudResetIntent = {id,createdAt:Date.now()};
     }
-    memStore = {};
-    await saveProgress(DEFAULT_PROGRESS);
-  } catch (e) {}
+    const marked = {...current,_localCleanup:{kind,target,deleteAccountId}};
+    await saveProgress(marked);
+    return finishLocalCleanup(marked);
+  });
+}
+
+export async function resetAll() { return resetUserData('reset'); }
+export async function resetUserScopedData(options = {}) { return resetUserData('signout',options.deleteAccountId); }
+
+let accountPreparationQueue = Promise.resolve();
+export function prepareAccountLocalData(accountId) {
+  const next = accountPreparationQueue.then(async()=>{
+    await recoverLocalCleanup();
+    const progress = await loadProgress();
+    if (!progress._cloudOwner || progress._cloudOwner === accountId) return;
+    const previousId = progress._cloudOwner;
+    const journal = await loadCloudJournal(previousId) || {};
+    await saveCloudJournal(previousId,{...journal,backup:progress});
+    await resetUserScopedData();
+  });
+  accountPreparationQueue=next.catch(()=>{});
+  return next;
 }
 
 // Yıldız sistemi — atomik read-modify-write

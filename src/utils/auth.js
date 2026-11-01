@@ -1,5 +1,5 @@
 import { createCloudSync } from './cloudSync';
-import { loadProgress, updateProgress, loadCloudJournal, saveCloudJournal, loadXP, loadLevelStars } from './storage';
+import { loadProgress, updateProgress, loadCloudJournal, saveCloudJournal, loadXP, loadLevelStars, recoverLocalCleanup, resetUserScopedData, getPendingAccountDeletion, rememberAccountDeletion, clearPendingAccountDeletion, prepareAccountLocalData } from './storage';
 
 // Auth — Google (Android/iOS) + Apple (iOS) via Supabase
 // Expo Go-safe: lazy imports throughout
@@ -34,6 +34,17 @@ function userFromSession(session) {
     avatar: u.user_metadata?.avatar_url || null,
     provider: u.app_metadata?.provider || 'unknown',
   };
+}
+
+async function publishSession(session, revision) {
+  const next = userFromSession(session);
+  if (next && typeof prepareAccountLocalData === 'function') {
+    if (currentUser && currentUser.id !== next.id) { currentUser=null; notifyListeners(); }
+    await prepareAccountLocalData(next.id);
+  }
+  if (revision !== sessionRevision) return currentUser;
+  currentUser=next; notifyListeners();
+  return currentUser;
 }
 
 let _authSubscribed = false;
@@ -77,16 +88,22 @@ export function initAuth() {
   if (authInitPromise) return authInitPromise;
   authInitPromise = (async () => {
     try {
+      if (typeof recoverLocalCleanup === 'function') {
+        try { await recoverLocalCleanup(); } catch (error) { authPhase='cleanup_failed'; throw error; }
+      }
       supabase = require('./supabase').default;
       if (!supabase) return null;
+      const pendingDeletion = typeof getPendingAccountDeletion === 'function' ? await getPendingAccountDeletion() : null;
+      if (pendingDeletion) {
+        try { await completeDeletedAccount(pendingDeletion.accountId); } catch (error) { authPhase='cleanup_failed'; throw error; }
+      }
       if (!_authSubscribed) {
         supabase.auth.onAuthStateChange((event, session) => {
           sessionRevision++;
           lastAuthEvent = event;
           // Do not show Connected for an OAuth session that has not passed persistence checks.
           if (googleLoginPromise && authPhase === 'saving_session' && event !== 'SIGNED_OUT') return;
-          currentUser = userFromSession(session);
-          notifyListeners();
+          publishSession(session,sessionRevision).catch(error=>authFailure('local_account_failed',error));
         });
         _authSubscribed = true;
       }
@@ -94,7 +111,7 @@ export function initAuth() {
       const revision = sessionRevision;
       const {data,error} = await cloudRequest(supabase.auth.getSession());
       if (error) throw error;
-      if (revision === sessionRevision) { currentUser = userFromSession(data?.session); notifyListeners(); }
+      if (revision === sessionRevision) await publishSession(data?.session,revision);
     } catch (error) { authFailure('init_failed',error); }
     return currentUser;
   })().finally(() => { authInitPromise = null; });
@@ -127,8 +144,8 @@ async function sessionFromCallback(url, redirectUrl) {
     return authFailure('session_not_persisted',persisted.error || 'Oturum kaydedilemedi. Lütfen tekrar dene.');
   }
   sessionRevision++;
-  currentUser = sessionUser;
-  notifyListeners();
+  await publishSession(persisted.data.session,sessionRevision);
+  if (currentUser?.id !== sessionUser.id) return authFailure('session_changed','Giriş sırasında hesap değişti. Yeniden dene.');
   lastAuthError = null;
   authPhase = 'signed_in';
   return {user:sessionUser};
@@ -139,6 +156,7 @@ async function runGoogleLogin() {
   try {
     authPhase = 'initializing';
     await initAuth();
+    if (authPhase === 'cleanup_failed') return authFailure('cleanup_pending','Önce yarım kalan kayıt temizliği tamamlanmalı. Yeniden dene.');
     if (!supabase) return authFailure('no_supabase','Hesap bağlantısı hazırlanamadı. Lütfen tekrar dene.');
     const {makeRedirectUri} = require('expo-auth-session');
     const WebBrowser = require('expo-web-browser');
@@ -180,6 +198,7 @@ export function signInWithGoogle() {
 export async function signInWithApple() {
   try {
     await initAuth();
+    if (authPhase === 'cleanup_failed') return authFailure('cleanup_pending','Önce yarım kalan kayıt temizliği tamamlanmalı. Yeniden dene.');
     if (!supabase) return { error: 'Supabase connection unavailable', code: 'no_supabase' };
 
     let AppleAuthentication;
@@ -220,14 +239,13 @@ export async function signInWithApple() {
       }
     }
 
-    // Race fix: listener'dan önce currentUser'ı set et
     const sessionUser = userFromSession(data?.session);
-    if (sessionUser) {
-      currentUser = sessionUser;
-      notifyListeners();
-    }
-
-    return { user: currentUser };
+    if (!sessionUser) return authFailure('no_session','Apple oturumu doğrulanamadı.');
+    const persisted = await cloudRequest(supabase.auth.getSession());
+    if (persisted.error || persisted.data?.session?.user?.id !== sessionUser.id) return authFailure('session_not_persisted','Apple oturumu kaydedilemedi.');
+    sessionRevision++;
+    await publishSession(persisted.data.session,sessionRevision);
+    return {user:currentUser};
   } catch (e) {
     if (e.code === 'ERR_REQUEST_CANCELED' || e.code === 'ERR_CANCELED') {
       return { error: 'Sign-in cancelled', code: 'cancelled' };
@@ -249,44 +267,30 @@ export async function signOut() {
 // ─── Delete Account ─────────────────────────────────────────
 // Apple 5.1.1(v) requirement: hesap oluşturma varsa silme de olmalı.
 // Kullanıcının tüm verilerini siler (cloud + local), ardından çıkış yapar.
-export async function deleteAccount() {
-  if (!supabase || !currentUser) {
-    // Hesap yoksa sadece yerel veriyi temizle
-    return { success: true };
-  }
-  try {
-    const userId = currentUser.id;
-
-    // 1. Cloud verileri sil
-    try {
-      await supabase.from('user_progress').delete().eq('user_id', userId);
-    } catch (e) { console.log('[Auth] delete user_progress error:', e.message); }
-
-    try {
-      await supabase.from('leaderboard').delete().eq('device_id', await _getDeviceId());
-    } catch (e) { console.log('[Auth] delete leaderboard error:', e.message); }
-
-    // 2. Supabase auth sign out
-    try {
-      await supabase.auth.signOut();
-    } catch (e) { console.log('[Auth] signOut during delete:', e.message); }
-
-    currentUser = null;
-    notifyListeners();
-
-    return { success: true };
-  } catch (e) {
-    console.log('[Auth] deleteAccount error:', e.message);
-    return { success: false, error: e.message };
-  }
+async function completeDeletedAccount(accountId) {
+  const signedOut = await supabase.auth.signOut({scope:'local'});
+  if (signedOut?.error) throw signedOut.error;
+  await resetUserScopedData({deleteAccountId:accountId});
+  await clearPendingAccountDeletion();
+  currentUser = null; notifyListeners();
 }
 
-// Device ID helper for account deletion (leaderboard uses device_id)
-async function _getDeviceId() {
+export async function deleteAccount() {
+  if (!supabase) return {success:false,error:'Hesap bağlantısı hazırlanamadı.',code:'AUTH_REQUIRED'};
   try {
-    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-    return await AsyncStorage.getItem('@tilsim_device_id');
-  } catch (e) { return null; }
+    const pending = await getPendingAccountDeletion();
+    const accountId = currentUser?.id || pending?.accountId;
+    if (!accountId || (pending && pending.accountId !== accountId)) return {success:false,error:'Önce yarım kalan hesap işlemi tamamlanmalı.',code:'AUTH_REQUIRED'};
+    if (!pending) {
+      const result = await cloudRequest(supabase.functions.invoke('delete-account',{body:{}}));
+      if (result.error || result.data?.success !== true || result.data?.deletedUserId !== accountId) {
+        return {success:false,error:'Hesap silme sunucuda doğrulanamadı. Mevcut kayıtların korunuyor; yeniden dene.',code:'DELETE_NOT_CONFIRMED'};
+      }
+      await rememberAccountDeletion(accountId);
+    }
+    await completeDeletedAccount(accountId);
+    return {success:true,deletedUserId:accountId};
+  } catch (error) { return {success:false,error:'Hesap silme veya yerel temizlik tamamlanamadı. Yeniden dene.',code:'DELETE_INCOMPLETE'}; }
 }
 
 // Versioned, receipt-backed sync. Never fall back to max(balance).

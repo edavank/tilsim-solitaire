@@ -27,6 +27,7 @@ export async function settleCompletion(input) {
   let receipt;
   let firstSettlement = false;
   const progress = await updateProgress(cur => {
+    if ((game.resetEpoch || null) !== (cur.resetEpoch || null)) throw Object.assign(new Error('Bu bölüm sıfırlama öncesine ait.'),{code:'DATA_RESET'});
     if (cur.completionReceipts?.[key]) {
       receipt = cur.completionReceipts[key];
       if (mode === 'daily' && receipt.runId !== game.runId) receipt = { ...receipt, coins:0, xp:0, baseCoins:0, moveBonus:0, speedBonus:0, alreadyRewarded:true };

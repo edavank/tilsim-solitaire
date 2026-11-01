@@ -13,7 +13,7 @@ try {
     signInWithGoogle: async () => ({ error: 'Auth kullanılamıyor' }),
     signInWithApple: async () => ({ error: 'Auth kullanılamıyor' }),
     signOut: async () => {},
-    deleteAccount: async () => ({ success: true }),
+    deleteAccount: async () => ({ success: false, error: 'Hesap silme hizmeti kullanılamıyor.' }),
     syncProgressToCloud: async () => null,
     preserveLocalAccountBackup: async () => {},
     loadProgressFromCloud: async () => null,
@@ -36,6 +36,8 @@ export function AuthProvider({ children }) {
   const [lastSyncedAt, setLastSyncedAt] = useState(null);
   const initTask = useRef(null);
   const loginTask = useRef(null);
+  const mutationTask = useRef(null);
+  const syncTicket = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,7 +50,7 @@ export function AuthProvider({ children }) {
     initTask.current.then(seen => {
       if (!cancelled) { setHasSeenLogin(seen); setAuthReady(true); }
     }).catch(() => { if (!cancelled) setAuthReady(true); });
-    const unsub = authModule.onAuthChange(u => { if (!cancelled) setUser(u); });
+    const unsub = authModule.onAuthChange(u => { if (!cancelled) { syncTicket.current++; setUser(u); } });
     return () => { cancelled = true; unsub?.(); };
   }, []);
 
@@ -58,6 +60,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const loginWith = useCallback((provider) => {
+    if (mutationTask.current) return Promise.resolve({error:'Hesap işlemi sürüyor. Lütfen bekle.',code:'busy'});
     if (loginTask.current) return loginTask.current;
     loginTask.current = Promise.resolve().then(async () => {
       setLoading(true);
@@ -81,15 +84,21 @@ export function AuthProvider({ children }) {
   }, [markLoginSeen]);
 
   const syncToCloud = useCallback(async (_legacySnapshot, choice) => {
+    const ticket=++syncTicket.current,accountId=authModule.getUser?.()?.id;
+    const current=()=>ticket===syncTicket.current && authModule.getUser?.()?.id===accountId;
     setCloudStatus('syncing');
     try {
       const result = await authModule.syncProgressToCloud(undefined, choice);
-      if (result) { setCloudStatus('saved'); setCloudError(null); setLastSyncedAt(Date.now()); }
-      else setCloudStatus('idle');
+      if (current()) {
+        if (result) { setCloudStatus('saved'); setCloudError(null); setLastSyncedAt(Date.now()); }
+        else setCloudStatus('idle');
+      }
       return result;
     } catch (error) {
-      setCloudStatus(error.code === 'BOOTSTRAP_CONFLICT' ? 'conflict' : 'error');
-      setCloudError(error);
+      if (current()) {
+        setCloudStatus(error.code === 'BOOTSTRAP_CONFLICT' ? 'conflict' : 'error');
+        setCloudError(error);
+      }
       throw error;
     }
   }, []);
@@ -99,7 +108,18 @@ export function AuthProvider({ children }) {
     else { setCloudStatus('idle'); setCloudError(null); setLastSyncedAt(null); }
   }, [authReady, user?.id, syncToCloud]);
 
-  const handleSignOut = useCallback(async () => {
+  const mutateAccount = useCallback(action=>{
+    if (mutationTask.current || loginTask.current) return Promise.resolve({success:false,error:'Başka bir hesap işlemi sürüyor. Lütfen bekle.'});
+    mutationTask.current = Promise.resolve().then(async()=>{
+      setLoading(true);
+      try { return await action(); }
+      catch (error) { return {success:false,error:'Hesap işlemi tamamlanamadı. Yeniden dene.'}; }
+      finally { mutationTask.current=null; setLoading(false); }
+    });
+    return mutationTask.current;
+  }, []);
+
+  const handleSignOut = useCallback(() => mutateAccount(async () => {
     // Sign-out öncesi son bir kez yerel -> cloud sync ki kullanıcı ilerlemesini
     // kaybetmesin. Sonra supabase'den çıkış + yerel veri temizliği.
     try { await syncToCloud(); }
@@ -116,21 +136,15 @@ export function AuthProvider({ children }) {
     try {
       const { resetUserScopedData } = require('../utils/storage');
       await resetUserScopedData();
-    } catch (e) {}
+    } catch (e) { return {success:false,error:'Çıkış yapıldı ancak yerel kayıt temizliği tamamlanamadı. Uygulamayı yeniden açarak tekrar dene.'}; }
     return { success:true };
-  }, [syncToCloud]);
+  }), [syncToCloud,mutateAccount]);
 
   // Apple 5.1.1(v): Hesap silme — cloud + local tüm verileri siler
-  const handleDeleteAccount = useCallback(async () => {
+  const handleDeleteAccount = useCallback(() => mutateAccount(async () => {
     const result = await authModule.deleteAccount();
-    if (result.success) {
-      try {
-        const { resetUserScopedData } = require('../utils/storage');
-        await resetUserScopedData();
-      } catch (e) {}
-    }
     return result;
-  }, []);
+  }), [mutateAccount]);
 
   // Cloud sync helpers
   const loadFromCloud = useCallback(async () => {

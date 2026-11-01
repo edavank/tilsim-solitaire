@@ -24,16 +24,6 @@ const LB_TEXT = {
 
 const PERIODS = ['weekly', 'monthly', 'all'];
 
-// Placeholder data when Supabase not configured
-const PLACEHOLDER = [
-  { display_name: 'Efsun', avatar_emoji: '🦄', score: 12850, level: 45 },
-  { display_name: 'Volkan', avatar_emoji: '🦊', score: 9420, level: 32 },
-  { display_name: 'Beren', avatar_emoji: '🐼', score: 8100, level: 28 },
-  { display_name: 'Aslan', avatar_emoji: '🦁', score: 7950, level: 25 },
-  { display_name: 'Luna', avatar_emoji: '🐰', score: 7210, level: 22 },
-  { display_name: 'Meow', avatar_emoji: '🐱', score: 6840, level: 20 },
-];
-
 export default function LeaderboardScreen() {
   const { lang } = useLang();
   const lb = LB_TEXT[lang] || LB_TEXT.tr;
@@ -43,7 +33,7 @@ export default function LeaderboardScreen() {
   const [coins, setCoins] = useState(0);
   const [totalWins, setTotalWins] = useState(0);
   const [totalGames, setTotalGames] = useState(0);
-  const [leaders, setLeaders] = useState(PLACEHOLDER);
+  const [leaders, setLeaders] = useState([]);
   const [userRank, setUserRank] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -66,7 +56,7 @@ export default function LeaderboardScreen() {
     const { data } = await fetchLeaderboard(PERIODS[tabIdx], 20);
     if (token !== _loadTokenRef.current) return;
     if (data && data.length > 0) setLeaders(data);
-    else setLeaders(PLACEHOLDER);
+    else setLeaders([]);
 
     const { rank } = await getUserRank();
     if (token !== _loadTokenRef.current) return;
@@ -295,3 +285,4 @@ const s = StyleSheet.create({
   userScore: { fontFamily: FONTS.headlineBlack, fontSize: 16, color: COLORS.primary },
   userHint: { fontFamily: FONTS.body, fontSize: 10, color: COLORS.onSurfaceVariant, marginTop: 1 },
 });
+

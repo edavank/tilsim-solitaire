@@ -8,7 +8,7 @@ Board actions now persist their resulting board and inventory/coin debit in one 
 
 ## Verification
 
-- 127 automated behavior/component tests pass, including simulated restarts after tool writes, disk failures, double taps, stale autosaves, independent modes, session persistence and sign-out failures.
+- 153 automated behavior/component tests pass, including simulated restarts after tool writes, disk failures, double taps, stale autosaves, independent modes, session persistence and sign-out failures.
 - 14 original fault reproductions no longer show their original violations.
 - 75,000 extracted card-action calls across 500 layouts show none of the checked card-identity/move-budget violations.
 - Earlier deal analysis: 161,000 starts had 59 instances of the detected initial-lock pattern; these became zero after repair. An independent 48,300 starts also had zero instances of that pattern.
@@ -20,9 +20,9 @@ Run `node --test scripts/test-*.cjs`, `node scripts/verify-screen.cjs`, `node sc
 
 ## Remaining release blockers
 
-- Account deletion must remove the authentication identity through a verified server operation.
-- Server ownership and permissions require a migration and cross-account integration checks.
-- Reset/sign-out/account switching still need a complete recovery lifecycle; local reset must not silently restore the previous cloud backup.
+- Account deletion now has a staged server-verified identity-deletion path; the deployed endpoint and response-loss recovery still require integration verification.
+- The ownership migration passed 12 database assertions in a rolled-back transaction. Permanent activation and compatible client rollout are still pending.
+- Reset/sign-out/account switching now have recovery markers, reset identifiers and owner isolation. Physical-device and deployed integration checks are pending. See ACCOUNT_CLOUD_SERVER_QA.md.
 - Ad reward retry state is currently in memory until the board write succeeds; forced process termination while storage is failing still requires server-backed reward delivery/reconciliation.
 - Scoring/history restoration, category-clear callbacks and remaining rule inconsistencies need further review. Verify pause/ad lifecycle behavior on physical devices.
 - Verify Google session persistence, all helper actions, cloud conflicts and ad recovery on physical Android and iPhone devices.

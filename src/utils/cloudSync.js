@@ -72,13 +72,24 @@ export function createCloudSync(deps) {
     guard(id);
     let journal = await deps.readJournal(id) || {};
     let local = await deps.loadLocal(); guard(id);
+    const resetId = local._cloudResetIntent?.id || null;
+    const applyLocal = fn => deps.applyLocal(cur=>{
+      if ((cur._cloudResetIntent?.id || null) !== resetId) throw Object.assign(new Error('Save reset during sync'),{code:'DATA_RESET'});
+      return fn(cur);
+    });
     if (local._cloudOwner && local._cloudOwner !== id) throw Object.assign(new Error('Local save belongs to another account'),{code:'ACCOUNT_CHANGED'});
-    if (!local._cloudOwner && !meaningful(local) && journal.backup && meaningful(journal.backup)) {
-      local = await deps.applyLocal(cur => { guard(id); return { ...cur, ...journal.backup, _cloudOwner:id }; }); guard(id);
+    if (!resetId && !local._cloudOwner && !meaningful(local) && journal.backup && meaningful(journal.backup)) {
+      local = await applyLocal(cur => { guard(id); return { ...cur, ...journal.backup, _cloudOwner:id }; }); guard(id);
     }
     // Keep the last local copy even if the first network read fails.
     journal = { ...journal, backup: local }; await deps.writeJournal(id,journal);
     let remote = await deps.readRemote(id); guard(id);
+    const retryingReset = resetId && journal.resetId === resetId && journal.pending;
+    if (!retryingReset && (resetId || (remote.state && journal.baseline && (remote.state.resetEpoch || null) !== (journal.baseline.resetEpoch || null)))) {
+      if (!choice && remote.state) throw Object.assign(new Error('Sıfırlama sonrası hangi kayıtla devam edileceğini seç.'),{code:'BOOTSTRAP_CONFLICT',local:cleanSnapshot(local),remote:remote.state});
+      // Discard old in-flight receipts only after detecting an explicit reset.
+      journal = {backup:local,baseline:null,pending:null,resetBackup:{baseline:journal.baseline,backup:journal.backup},resetId};
+    }
     if (!journal.baseline && !journal.pending) {
       // A reward/purchase may have happened while the network read was pending.
       local = await deps.loadLocal(); guard(id);
@@ -88,12 +99,13 @@ export function createCloudSync(deps) {
         throw Object.assign(new Error('Choose the device or cloud save'), {code:'BOOTSTRAP_CONFLICT', local:cleanSnapshot(local), remote:remote.state});
       }
       if (remote.state && (choice === 'cloud' || (!meaningful(local) && choice !== 'device'))) {
-        const restored = await deps.applyLocal(cur => {
+        const restored = await applyLocal(cur => {
           guard(id);
           if (choice !== 'cloud' && JSON.stringify(cleanSnapshot(cur)) !== JSON.stringify(cleanSnapshot(local))) {
             throw Object.assign(new Error('Local save changed during restore'), {code:'BOOTSTRAP_CONFLICT',local:cleanSnapshot(cur),remote:remote.state});
           }
-          return { ...cur, ...cleanSnapshot(remote.state), _cloudOwner:id };
+          return { ...cur, ...cleanSnapshot(remote.state), _cloudOwner:id, _cloudResetIntent:null,
+            ...(resetId || (cur.resetEpoch || null) !== (remote.state.resetEpoch || null) ? {_localBoards:{classic:null,timed:null,daily:null},resetEpoch:remote.state.resetEpoch || null} : {}) };
         }); guard(id);
         journal = { ...journal, baseline:cleanSnapshot(restored), backup:restored };
         await deps.writeJournal(id,journal);
@@ -117,6 +129,8 @@ export function createCloudSync(deps) {
     let accepted;
     for (let attempt=0;attempt<4;attempt++) {
       guard(id);
+      const latest = await deps.loadLocal(); guard(id);
+      if ((latest._cloudResetIntent?.id || null) !== resetId) throw Object.assign(new Error('Save reset during sync'),{code:'DATA_RESET'});
       const state = !remote.state || pending.replace ? pending.sent : mergeProgress(pending.base,pending.sent,remote.state);
       try { accepted = await deps.commitRemote(id,pending.id,remote.revision,state); break; }
       catch (e) {
@@ -126,11 +140,11 @@ export function createCloudSync(deps) {
     }
     if (!accepted) throw Object.assign(new Error('Cloud changed repeatedly'),{code:'SYNC_CONFLICT'});
     guard(id);
-    const applied = await deps.applyLocal(cur => {
+    const applied = await applyLocal(cur => {
       guard(id);
       if (cur._cloudAppliedRequests?.includes(pending.id)) return cur;
       const state = mergeProgress(pending.sent,cur,accepted.state);
-      return { ...cur, ...state, _cloudOwner:id,
+      return { ...cur, ...state, _cloudOwner:id, _cloudResetIntent:null,
         _cloudAppliedRequests:union(cur._cloudAppliedRequests,[pending.id]).slice(-64) };
     });
     guard(id);

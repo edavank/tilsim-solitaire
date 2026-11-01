@@ -1,83 +1,26 @@
 // Leaderboard service — Supabase integration
 // Table: leaderboard (id, device_id, display_name, avatar_emoji, score, level, total_wins, language, updated_at)
 
-import { Platform } from 'react-native';
-
 let supabase = null;
 try { supabase = require('./supabase').default; } catch (e) {}
 
-let AsyncStorage;
-try { AsyncStorage = require('@react-native-async-storage/async-storage').default; } catch (e) {}
-
-// Unique device identifier (persisted)
-let _deviceId = null;
-async function getDeviceId() {
-  if (_deviceId) return _deviceId;
-  try {
-    _deviceId = await AsyncStorage?.getItem('@tilsim_device_id');
-    if (!_deviceId) {
-      _deviceId = 'dev_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
-      await AsyncStorage?.setItem('@tilsim_device_id', _deviceId);
-    }
-  } catch (e) {
-    _deviceId = 'dev_' + Date.now();
-  }
-  return _deviceId;
+// The authenticated owner, not a persisted device identifier, owns the row.
+async function getOwnerId() {
+  const {data,error} = await supabase.auth.getSession();
+  if (error) throw error;
+  return data?.session?.user?.id || null;
 }
 
-// Avatar emojis for random assignment
-const AVATARS = ['🦊', '🦄', '🐼', '🦁', '🐰', '🐱', '🐶', '🦉', '🐬', '🐸', '🦅', '🐧', '🦋', '🐝', '🐨'];
-
 // ── Submit/Update Score ──
-export async function submitScore({ score, level, totalWins, displayName, language = 'tr', userAvatar }) {
-  if (!supabase) return { error: 'Supabase not configured' };
+export async function submitScore({displayName, language='tr', userAvatar} = {}) {
+  if (!supabase) return {error:'Supabase not configured'};
   try {
-    const deviceId = await getDeviceId();
-    
-    // Check if user exists
-    const { data: existing } = await supabase
-      .from('leaderboard')
-      .select('id, score, avatar_emoji')
-      .eq('device_id', deviceId)
-      .maybeSingle();
-
-    if (existing) {
-      // Update only if score improved
-      const updates = {
-        score: Math.max(existing.score || 0, score),
-        level,
-        total_wins: totalWins,
-        language,
-        updated_at: new Date().toISOString(),
-      };
-      if (displayName) updates.display_name = displayName;
-      if (userAvatar) updates.avatar_emoji = userAvatar;
-      
-      const { error } = await supabase
-        .from('leaderboard')
-        .update(updates)
-        .eq('id', existing.id);
-      
-      return { error: error?.message };
-    } else {
-      // Create new entry
-      const { error } = await supabase
-        .from('leaderboard')
-        .insert({
-          device_id: deviceId,
-          display_name: displayName || 'Player',
-          avatar_emoji: userAvatar || AVATARS[Math.floor(Math.random() * AVATARS.length)].id,
-          score,
-          level,
-          total_wins: totalWins,
-          language,
-        });
-      
-      return { error: error?.message };
-    }
-  } catch (e) {
-    return { error: e.message };
-  }
+    if (!await getOwnerId()) return {error:'Sıralamaya katılmak için hesabını bağla.',code:'AUTH_REQUIRED'};
+    const {error} = await supabase.rpc('submit_score_v2',{
+      p_display_name:displayName || 'Oyuncu',p_avatar_emoji:userAvatar || '👤',p_language:language,
+    });
+    return {error:error?.message};
+  } catch (error) { return {error:error.message}; }
 }
 
 // ── Fetch Leaderboard ──
@@ -87,6 +30,7 @@ export async function fetchLeaderboard(period = 'all', limit = 20) {
     let query = supabase
       .from('leaderboard')
       .select('id, display_name, avatar_emoji, score, level, total_wins')
+      .not('owner_id','is',null)
       .order('score', { ascending: false })
       .limit(limit);
 
@@ -110,12 +54,13 @@ export async function fetchLeaderboard(period = 'all', limit = 20) {
 export async function getUserRank() {
   if (!supabase) return { rank: null, entry: null };
   try {
-    const deviceId = await getDeviceId();
+    const ownerId = await getOwnerId();
+    if (!ownerId) return {rank:null,entry:null};
     
     const { data: entry } = await supabase
       .from('leaderboard')
       .select('id, display_name, avatar_emoji, score, level')
-      .eq('device_id', deviceId)
+      .eq('owner_id', ownerId)
       .maybeSingle();
 
     if (!entry) return { rank: null, entry: null };
@@ -124,6 +69,7 @@ export async function getUserRank() {
     const { count } = await supabase
       .from('leaderboard')
       .select('id', { count: 'exact', head: true })
+      .not('owner_id','is',null)
       .gt('score', entry.score);
 
     return { rank: (count || 0) + 1, entry };
@@ -134,12 +80,11 @@ export async function getUserRank() {
 
 // ── Update Display Name ──
 export async function updateDisplayName(name) {
-  if (!supabase) return;
+  if (!supabase) return {error:'Supabase not configured'};
   try {
-    const deviceId = await getDeviceId();
-    await supabase
-      .from('leaderboard')
-      .update({ display_name: name })
-      .eq('device_id', deviceId);
-  } catch (e) {}
+    const ownerId = await getOwnerId();
+    if (!ownerId) return {error:'AUTH_REQUIRED'};
+    const {error} = await supabase.from('leaderboard').update({display_name:String(name).trim().slice(0,50)}).eq('owner_id',ownerId);
+    return {error:error?.message};
+  } catch (error) { return {error:error.message}; }
 }

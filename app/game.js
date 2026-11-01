@@ -681,6 +681,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   // Load progress
   useEffect(() => {
     loadProgress().then(async (p) => {
+      if (p._localCleanup) throw new Error('Kayıt temizliği tamamlanamadı. Yeniden dene.');
       setCoins(p.coins || 0);
       const requestedLevel = parseInt(params.level) || p.currentLevel || 1;
       const activeLevel = isDaily ? level : (getLevel(requestedLevel,gameLang) || getLevel(1,gameLang));
@@ -710,7 +711,8 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
             && (saved.gameLanguage ? saved.gameLanguage === gameLang : gameLang === 'tr')
             && (saved.gameMode ? saved.gameMode === (isDaily ? 'daily' : isTimed ? 'timed' : 'classic') : !isTimed && !isDaily)
             && (!isTimed || saved.isComplete || (Number.isFinite(saved.timeRemaining) && saved.timeRemaining > 0))
-            && saved.levelId === activeLevel.id;
+            && saved.levelId === activeLevel.id
+            && (saved.resetEpoch || null) === (p.resetEpoch || null);
           if (validSave) {
             setGs({ ...saved, runId: saved.runId || createRunId() });
             if (Number.isFinite(saved.elapsedTime)) {
@@ -722,7 +724,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
               timedEndRef.current = Date.now() + saved.timeRemaining * 1000;
             }
           } else {
-            const fresh = generateGameState(activeLevel);
+            const fresh = {...generateGameState(activeLevel),resetEpoch:p.resetEpoch || null};
             if (isTimed) fresh.moves = 9999;
             setGs(fresh);
             setHistory([]); setElapsedTime(0); startTimeRef.current = Date.now(); clockPauseStartedRef.current = null;
@@ -1359,13 +1361,13 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
     setCompletionReceipt(null); setRewardStatus('saving'); maxComboRef.current = 0;
     skipSaveRef.current = false;
     const newLevel = isDaily ? getDailyChallenge(gameLang, params.dailySeed ? parseInt(params.dailySeed) : undefined) : getLevel(levelId, gameLang);
-    const state = generateGameState(newLevel);
+    const state = {...generateGameState(newLevel),resetEpoch:gs.resetEpoch || null};
     if (isTimed) state.moves = 9999;
     setGs(state); setHistory([]); setSelected(null);
     setHintCard(null); setHintSlot(null); setCombo(0); comboRef.current = 0; startTimeRef.current = Date.now(); clockPauseStartedRef.current = null; setElapsedTime(0);
     wrongMovesRef.current = 0;
     if (isTimed) { setTimeRemaining(getTimedSeconds(levelId)); timedEndRef.current = null; pauseRemainRef.current = null; }
-  }, [levelId, isDaily, isTimed, gameLang]);
+  }, [levelId, isDaily, isTimed, gameLang, gs.resetEpoch]);
 
   const addMovesAd = useCallback(async () => {
     if (!saveReady || isTimed) return;
@@ -1409,12 +1411,9 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
           setAchievementPopup({ ...newAch[0], pendingCoins: newAch.reduce((n, ach) => n + (ach.reward || 0), 0), achievementIds: newAch.map(ach => ach.id) });
         }
       } catch (e) { console.warn('[Completion] achievement check pending'); }
-      if (result.firstSettlement) {
-        try { submitScore({ score: result.progress.bestScore, level: result.progress.currentLevel,
-          totalWins: result.progress.totalWins, language: gameLang, displayName: user?.name }).catch(() => {}); }
-        catch (e) { console.warn('[Completion] leaderboard pending'); }
-      }
-      if (user) syncToCloud().catch(() => {});
+      if (user) Promise.resolve(syncToCloud()).then(()=>{
+        if (result.firstSettlement) return submitScore({language:gameLang,displayName:user.name});
+      }).catch(()=>{});
       return result;
     })().catch(error => {
       completionPromiseRef.current = null;
@@ -1453,7 +1452,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         } catch (e) { console.warn('[Completion] optional ad skipped'); }
       }
       setLevelId(nextId);
-      const nextState = generateGameState(nextLevel);
+      const nextState = {...generateGameState(nextLevel),resetEpoch:gs.resetEpoch || null};
       if (isTimed) nextState.moves = 9999;
       skipSaveRef.current = false;
       completionPromiseRef.current = null;

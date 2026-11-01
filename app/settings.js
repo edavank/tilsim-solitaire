@@ -80,7 +80,19 @@ export default function SettingsScreen() {
   const handleReset = () => {
     Alert.alert(t.resetProgress, t.resetConfirm, [
       { text: t.cancel, style: 'cancel' },
-      { text: t.reset, style: 'destructive', onPress: async () => { await resetAll(); router.replace('/'); } },
+      { text: t.reset, style: 'destructive', onPress: async () => {
+        if (busy) return;
+        setBusy(true);
+        try {
+          await resetAll();
+          if (user) {
+            try { await syncToCloud(undefined,'device'); }
+            catch (error) { Alert.alert(t.cloudSave || 'Bulut kaydı','Bu cihazdaki ilerleme sıfırlandı. Bulut kaydı henüz güncellenemedi; eski kayıt otomatik geri yüklenmeyecek. Bağlantı geldiğinde bulut eşitlemesini yeniden dene.'); }
+          }
+          router.replace('/');
+        } catch (error) { Alert.alert(t.cloudSave || 'Kayıt','Sıfırlama tamamlanamadı. Mevcut kayıt korunuyor; yeniden dene.'); }
+        finally { setBusy(false); }
+      } },
     ]);
   };
 
