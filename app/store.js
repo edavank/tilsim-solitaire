@@ -52,7 +52,7 @@ export default function StoreScreen() {
           coins: currentCoins - booster.coinCost,
           toolCredits: { ...prevCredits, [booster.toolKey]: (prevCredits[booster.toolKey] || 0) + 1 },
         };
-      });
+      }, {kind:'purchase',source:'booster',toolKey:booster.toolKey,description:booster.name});
       if (insufficient) {
         setInsufficientModal({ booster, deficit: booster.coinCost - currentCoins });
         return;
@@ -70,7 +70,7 @@ export default function StoreScreen() {
     try {
       const result = await showRewarded();
       if (result && result.success) {
-        const next = await updateProgress((cur) => ({ coins: (cur.coins || 0) + 50 }));
+        const next = await updateProgress((cur) => ({ coins: (cur.coins || 0) + 50 }), {kind:'reward',source:'ad',description:'Reklam ödülü'});
         setCoins(next.coins);
         if (insufficientModal && next.coins >= insufficientModal.booster.coinCost) {
           setInsufficientModal(null);
@@ -81,7 +81,7 @@ export default function StoreScreen() {
             deficit: insufficientModal.booster.coinCost - next.coins,
           });
         }
-      } else {
+      } else if (!result?.handled && result?.reason !== 'dismissed') {
         Alert.alert(st.adFail);
       }
     } catch (e) {
@@ -96,10 +96,10 @@ export default function StoreScreen() {
     try {
       const result = await showRewarded();
       if (result && result.success) {
-        const next = await updateProgress((cur) => ({ coins: (cur.coins || 0) + 50 }));
+        const next = await updateProgress((cur) => ({ coins: (cur.coins || 0) + 50 }), {kind:'reward',source:'ad',description:'Reklam ödülü'});
         setCoins(next.coins);
         Alert.alert(st.earned, st.earnedMsg);
-      } else {
+      } else if (!result?.handled && result?.reason !== 'dismissed') {
         Alert.alert(st.adFail);
       }
     } catch (e) {
@@ -297,3 +297,4 @@ const s = StyleSheet.create({
     fontFamily: FONTS.headline, fontSize: 14, color: COLORS.onSurfaceVariant,
   },
 });
+

@@ -1,0 +1,19 @@
+name: Tilsim audit QA - Android APK with corrected build memory
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build_android:
+    name: Build separate Android test APK
+    type: build
+    params:
+      platform: android
+      profile: audit_android
+      message: AUDIT QA - Android build memory correction; same account and cloud fixes
+    hooks:
+      after_install_node_modules:
+        - name: Verify candidate before Android build
+          run: |
+            node --test scripts/test-*.cjs
+            node scripts/verify-screen.cjs

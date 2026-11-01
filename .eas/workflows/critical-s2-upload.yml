@@ -1,0 +1,12 @@
+name: Tilsim S2 - upload existing iPhone test build
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  upload_testflight:
+    name: Submit completed S2 build to App Store Connect
+    type: submit
+    params:
+      build_id: dac1e10f-1bf5-4b6e-b690-dd3d7b5cafa2
+      profile: production

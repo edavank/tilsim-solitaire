@@ -2,23 +2,27 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Dimensions,
   ScrollView, Vibration, Image, Animated, Easing,
-  ImageBackground,
+  ImageBackground, AppState, ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { COLORS, FONTS, SIZES, CATEGORY_COLORS, TOOL_COLORS, getCategoryColor } from '../src/constants/theme';
-import { generateGameState, getLevel } from '../src/data/levels';
-import { loadProgress, updateProgress, clearSavedGame, saveSavedGame, saveLevelStars, addXP, loadSelectedAvatar, getAvatarEmoji } from '../src/utils/storage';
+import { generateGameState, createRunId, getLevel } from '../src/data/levels';
+import { loadProgress, updateProgress, commitBoardAction, clearSavedGame, saveSavedGame, saveLevelStars, addXP, loadSelectedAvatar, getAvatarEmoji } from '../src/utils/storage';
+import { purchaseToolCredit, grantToolCredit, TOOL_PRICES } from '../src/utils/toolEconomy';
 import { playSound } from '../src/utils/sounds';
 import { showRewarded, showInterstitial, showRewardedInterstitial } from '../src/utils/ads';
 import AdBanner from '../src/components/AdBanner';
 import { useLang } from '../src/context/LanguageContext';
 import { useAuth } from '../src/context/AuthContext';
 import { submitScore } from '../src/utils/leaderboardService';
-import { getDailyChallenge, markDailyChallengeCompleted, getDailyCompletionMap } from '../src/utils/dailyChallenge';
-import { checkAchievements, ACHIEVEMENT_I18N } from '../src/utils/achievements';
+import { getDailyChallenge, isDailyChallengeCompleted, getDailyCompletionMap } from '../src/utils/dailyChallenge';
+import { calculateCompletion, settleCompletion } from '../src/utils/completion';
+import { checkAchievements, claimAchievements, ACHIEVEMENT_I18N } from '../src/utils/achievements';
 import { markCategoryCompleted } from '../src/utils/collection';
+import { shuffleBoard } from '../src/utils/boardActions';
+import { resolveDrawnWord, prepareJokerPlacement, getMovableSource, findSlotHint, isSavedBoardValid } from '../src/utils/cardSafety';
 // seasonalEvents kaldırıldı
 
 import { IS_TABLET, fs, getGameLayout } from '../src/utils/responsive';
@@ -351,12 +355,8 @@ const TableauColumn = React.memo(function TableauColumn({ column, colIndex, sele
 });
 
 /* ── Win Overlay ── */
-function LevelCompleteOverlay({ t, score, coins, movesLeft, maxMoves, levelId, combo, isDaily, elapsedTime, onNext, onReplay, onHome }) {
-  const moveBonus = Math.floor(8 * (movesLeft / maxMoves));
-  const speedBonus = elapsedTime < 60 ? 20 : elapsedTime < 120 ? 10 : elapsedTime < 180 ? 5 : 0;
-  const totalCoins = coins + moveBonus + speedBonus;
-  const moveRatio = movesLeft / maxMoves;
-  const stars = moveRatio > 0.5 ? 3 : moveRatio > 0.25 ? 2 : 1;
+function LevelCompleteOverlay({ t, score, summary, rewardStatus, levelId, combo, isDaily, elapsedTime, onNext, onReplay, onHome }) {
+  const { baseCoins: coins, moveBonus, speedBonus, coins: totalCoins, stars } = summary;
   return (
     <View style={ov.overlay}>
       <LinearGradient colors={['rgba(21,6,41,0.95)', 'rgba(61,53,96,0.95)']} style={StyleSheet.absoluteFillObject} />
@@ -368,6 +368,7 @@ function LevelCompleteOverlay({ t, score, coins, movesLeft, maxMoves, levelId, c
         </View>
         <Image source={OWL_HAPPY} style={ov.owl} />
         <Text style={ov.title}>{t.congrats}</Text>
+        <Text style={{ color: COLORS.onSurfaceVariant, marginBottom: 8 }}>{rewardStatus === 'saved' ? (t.rewardSaved || 'Ödül kaydedildi') : rewardStatus === 'error' ? (t.rewardSaveError || 'Kayıt tamamlanamadı. Devam ederek yeniden deneyebilirsin.') : (t.rewardSaving || 'Ödül kaydediliyor…')}</Text>
         <Text style={ov.subtitle}>{isDaily ? '📅 ' + (t.dailyChallenge || 'DAILY').toUpperCase() : t.level + ' ' + levelId} {t.levelComplete}</Text>
         {combo > 0 && <Text style={{ fontFamily: FONTS.headlineBlack, fontSize: 12, color: COLORS.tertiary, marginBottom: 4 }}>🔥 {t.maxCombo || 'Max Combo'}: {combo}x</Text>}
         <Text style={{ fontFamily: FONTS.body, fontSize: 11, color: COLORS.onSurfaceVariant, marginBottom: 8 }}>⏱ {Math.floor(elapsedTime / 60)}:{String(elapsedTime % 60).padStart(2, '0')}{speedBonus > 0 ? ' ' + (t.speedBonusLabel || '⚡ Speed Bonus!') : ''}</Text>
@@ -406,15 +407,16 @@ function LevelCompleteOverlay({ t, score, coins, movesLeft, maxMoves, levelId, c
 }
 
 /* ── Fail Overlay ── */
-function LevelFailedOverlay({ t, levelId, onAddMovesAd, onAddMovesCoin, onShuffle, onReplay, onHome }) {
+function LevelFailedOverlay({ t, isTimed = false, levelId, onAddMovesAd, onAddMovesCoin, onShuffle, onReplay, onHome }) {
   return (
     <View style={ov.overlay}>
       <LinearGradient colors={['rgba(21,6,41,0.95)', 'rgba(61,53,96,0.95)']} style={StyleSheet.absoluteFillObject} />
       <View style={ov.card}>
         <Image source={OWL_HAPPY} style={ov.owl} />
         <View style={ov.speechBubble}><Text style={ov.speechText}>{t.failSpeech}</Text></View>
-        <Text style={ov.failTitle}>{t.outOfMoves}</Text>
-        <Text style={ov.failSub}>{t.failMsg}</Text>
+        <Text style={ov.failTitle}>{isTimed ? (t.timeUp || 'Süre doldu') : t.outOfMoves}</Text>
+        <Text style={ov.failSub}>{isTimed ? (t.timeUpMsg || 'Bu denemede süre doldu. Yeniden deneyebilirsin.') : t.failMsg}</Text>
+        {!isTimed && <>
         <TouchableOpacity onPress={onAddMovesAd} activeOpacity={0.85}>
           <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={ov.addMovesBtn}>
             <MaterialIcons name="play-circle-filled" size={22} color="#fff" />
@@ -434,6 +436,7 @@ function LevelFailedOverlay({ t, levelId, onAddMovesAd, onAddMovesCoin, onShuffl
             <Text style={[ov.addMovesText, { color: COLORS.secondary }]}>{t.shuffle}</Text>
           </View>
         </TouchableOpacity>
+        </>}
         <View style={ov.bottomRow}>
           <TouchableOpacity style={ov.replayBtn} onPress={onReplay} activeOpacity={0.7}>
             <MaterialIcons name="refresh" size={18} color={COLORS.secondary} />
@@ -483,9 +486,11 @@ export default function GameScreen() {
     setFeedbackRaw({ msg: msg || '', id: Date.now() + Math.random() });
   }, []);
   const [adLoadingTool, setAdLoadingTool] = useState(null);
+  const [adInProgress, setAdInProgress] = useState(false);
   const [history, setHistory] = useState([]);
   const [elapsedTime, setElapsedTime] = useState(0);
   const startTimeRef = useRef(Date.now());
+  const clockPauseStartedRef = useRef(null);
   const [hintCard, setHintCard] = useState(null);
   const [hintSlot, setHintSlot] = useState(null);
   const [sparkle, setSparkle] = useState(null);
@@ -504,6 +509,12 @@ export default function GameScreen() {
   const [scorePopups, setScorePopups] = useState([]); // [{id, text, x, y}]
   const [achievementPopup, setAchievementPopup] = useState(null); // { icon, title }
   const wrongMovesRef = useRef(0); // Perfect başarımı için yanlış hamle sayacı
+  const maxComboRef = useRef(0);
+  maxComboRef.current = Math.max(maxComboRef.current, combo);
+  const completionPromiseRef = useRef(null);
+  const navigationRef = useRef(false);
+  const [completionReceipt, setCompletionReceipt] = useState(null);
+  const [rewardStatus, setRewardStatus] = useState('saving');
   const _pendingFailedShuffleRef = useRef(false); // handleFailedShuffle → modal → purchase sonrası auto-apply
   
   // Araç açılma sırası
@@ -539,6 +550,17 @@ export default function GameScreen() {
   const dragRef = useRef({ card: null, source: null, sourceIndex: null, isLast: false, startX: 0, startY: 0 });
   const scrollRef = useRef(null);
   const saveTimerRef = useRef(null);
+  const latestSaveRef = useRef(null);
+  const skipSaveRef = useRef(false);
+  const [saveReady, setSaveReady] = useState(false);
+  const [saveLoadError, setSaveLoadError] = useState(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const toolActionRef = useRef(false);
+  const purchaseRef = useRef(false);
+  const hintActionRef = useRef(null);
+  const boardActionRef = useRef(null);
+  const rewardActionRef = useRef(false);
+  const pendingAdBoardRef = useRef(null);
   const drawnTouchRef = useRef({ startX: 0, startY: 0, moved: false });
 const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   const colLayoutsRef = useRef([]); // her sütunun {x, y, w, h} ölçümü
@@ -608,107 +630,21 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   }, []);
   cancelDragRef.current = cancelDrag;
 
-  const handleDrop = useCallback((dragInfo, dropX, dropY) => {
-    const { card, source, sourceIndex, stackCards } = dragInfo;
-    const stack = stackCards || [card];
-
-    // ÖNCE drag'i temizle
-    cancelDrag();
-
-    // Basit Y tespiti: ekranın üst %45'i → slot, alt %55'i → sütun
-    const isUpperHalf = dropY < SH * 0.45;
-
-    // En yakın hedefi bul — gerçek ölçümlerden
-    const findNearestFromLayouts = (layouts, count) => {
-      let best = -1, bestD = 9999;
-      for (let i = 0; i < count; i++) {
-        const l = layouts[i];
-        if (!l) continue;
-        const center = l.x + l.w / 2;
-        const d = Math.abs(dropX - center);
-        if (d < bestD) { bestD = d; best = i; }
-      }
-      return best;
-    };
-    const findNearest = (count, startX, totalW, layouts) => {
-      // Önce gerçek ölçümlerden dene
-      if (layouts && layouts.length >= count && layouts[0]) {
-        return findNearestFromLayouts(layouts, count);
-      }
-      // Fallback: hesapla
-      const totalGap = COL_GAP * (count - 1);
-      const itemW = (totalW - totalGap) / count;
-      let best = -1, bestD = 9999;
-      for (let i = 0; i < count; i++) {
-        const center = startX + i * (itemW + COL_GAP) + itemW / 2;
-        const d = Math.abs(dropX - center);
-        if (d < bestD) { bestD = d; best = i; }
-      }
-      return best;
-    };
-
-    const trySlot = () => {
-      const idx = findNearest(gs.slots.length, GAME_PAD, SW - GAME_PAD * 2, slotLayoutsRef.current);
-      if (idx < 0 || idx >= gs.slots.length) return false;
-      const slot = gs.slots[idx];
-      // Slot kilitliyse → geç
-      if (slot.locked) return false;
-      // Boş slot + kategori kartı → yerleştir
-      if (!slot.category && card.type === 'category') {
-        placeCard(card, source, sourceIndex, idx);
-        return true;
-      }
-      // Boş slot + kelime kartı → slot'a yerleşemez, sütuna dene
-      // JOKER: Joker de boş slot'a yerleşemez. Joker yapan oyuncu kartı 
-      // dolu (kategorisi atanmış, henüz tamamlanmamış) bir slot'a sürüklemeli.
-      if (!slot.category && card.type === 'word') {
-        if (card.isJoker) {
-          setFeedback(t.jokerNeedFilledSlot || '🃏 Joker\'i dolu bir kategori slotuna sürükle');
-        }
-        return false;
-      }
-      // Dolu slot + kategori kartı → zaten dolu, sütuna dene
-      if (slot.category && card.type === 'category') return false;
-      // Dolu slot + kelime kartı → KATEGORİ EŞLEŞME kontrolü
-      if (slot.category && card.type === 'word') {
-        if (card.categoryIndex === slot.category.categoryIndex || card.isJoker) {
-          placeCard(card, source, sourceIndex, idx);
-          return true;
-        }
-        // Eşleşmiyorsa → sütuna dene (slot'u titretme!)
-        return false;
-      }
-      return false;
-    };
-
-    const tryColumn = () => {
-      const idx = findNearest(gs.columns.length, GAME_PAD, SW - GAME_PAD * 2, colLayoutsRef.current);
-      if (idx >= 0 && idx < gs.columns.length) {
-        if (stack.length > 1) moveStackToColumn(stack, source, sourceIndex, idx);
-        else moveToColumn(card, source, sourceIndex, idx);
-        return true;
-      }
-      return false;
-    };
-
-    // Üst yarı → önce slot, sonra sütun. Alt yarı → önce sütun, sonra slot.
-    if (isUpperHalf) {
-      if (!trySlot()) tryColumn();
-    } else {
-      if (!tryColumn()) trySlot();
-    }
-  }, [gs.slots, gs.columns, placeCard, moveToColumn, moveStackToColumn, cancelDrag]);
-  handleDropRef.current = handleDrop;
-
   // Timer
+  const clockSuspended = paused || adInProgress || showTutorial || !!toolIntro || dailyIntro || timedIntro || !!toolModal;
   useEffect(() => {
-    if (gs.isComplete || gs.isFailed) return;
+    if (!saveReady || gs.isComplete || gs.isFailed) return;
     // Paused: timedEnd'i sakla, resume'da geri yükle (wall-clock shift)
-    if (paused) {
-      if (isTimed && timedEndRef.current != null) {
+    if (clockSuspended) {
+      if (clockPauseStartedRef.current == null) clockPauseStartedRef.current = Date.now();
+      if (isTimed && timedEndRef.current != null && pauseRemainRef.current == null) {
         pauseRemainRef.current = Math.max(0, timedEndRef.current - Date.now());
       }
       return;
+    }
+    if (clockPauseStartedRef.current != null) {
+      startTimeRef.current += Date.now() - clockPauseStartedRef.current;
+      clockPauseStartedRef.current = null;
     }
     if (isTimed) {
       if (pauseRemainRef.current != null) {
@@ -720,6 +656,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       }
     }
     const timer = setInterval(() => {
+      if (toolActionRef.current) return;
       setElapsedTime(Math.floor((Date.now() - startTimeRef.current) / 1000));
       if (isTimed && timedEndRef.current != null) {
         const remaining = Math.max(0, Math.ceil((timedEndRef.current - Date.now()) / 1000));
@@ -733,7 +670,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [gs.isComplete, gs.isFailed, paused, isTimed]);
+  }, [saveReady, gs.isComplete, gs.isFailed, clockSuspended, isTimed]);
 
   // Play win/lose sounds
   useEffect(() => {
@@ -744,8 +681,11 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   // Load progress
   useEffect(() => {
     loadProgress().then(async (p) => {
+      if (p._localCleanup) throw new Error('Kayıt temizliği tamamlanamadı. Yeniden dene.');
       setCoins(p.coins || 0);
-            if (!params.level) setLevelId(p.currentLevel || 1);
+      const requestedLevel = parseInt(params.level) || p.currentLevel || 1;
+      const activeLevel = isDaily ? level : (getLevel(requestedLevel,gameLang) || getLevel(1,gameLang));
+      if (!isDaily) setLevelId(activeLevel.id);
       if ((p.currentLevel || 1) === 1 && !isDaily && !p.tutorialShown) {
         setShowTutorial(true);
         // Tekrar gösterilmesin — kullanıcı 1. bölümü tekrar oynasa bile
@@ -754,10 +694,11 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       // Araç durumlarını yükle
       setUnlockedTools(p.unlockedTools || []);
       setToolCredits(p.toolCredits || { hint: 0, joker: 0, shuffle: 0, undo: 0, delete: 0 });
-      if (!isDaily) {
+      {
         try {
           const { loadSavedGame } = require('../src/utils/storage');
-          const saved = await loadSavedGame();
+          const saved = await loadSavedGame(isDaily ? 'daily' : isTimed ? 'timed' : 'classic');
+          if (saved && !isSavedBoardValid(saved)) throw new Error('Kayıtlı oyun okunamadı. Mevcut veriler korunuyor.');
           // Şekil doğrulaması: bozuk/eski save crash'e yol açmasın.
           // Gerekli alanlar: slots, columns, drawnCards (arrays), deck, moves (number).
           const validSave = saved
@@ -767,19 +708,36 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
             && Array.isArray(saved.drawnCards)
             && Array.isArray(saved.deck)
             && typeof saved.moves === 'number'
-            && !saved.isComplete
-            && !saved.isFailed
-            && saved.levelId === (parseInt(params.level) || p.currentLevel);
+            && (saved.gameLanguage ? saved.gameLanguage === gameLang : gameLang === 'tr')
+            && (saved.gameMode ? saved.gameMode === (isDaily ? 'daily' : isTimed ? 'timed' : 'classic') : !isTimed && !isDaily)
+            && (!isTimed || saved.isComplete || (Number.isFinite(saved.timeRemaining) && saved.timeRemaining > 0))
+            && saved.levelId === activeLevel.id
+            && (saved.resetEpoch || null) === (p.resetEpoch || null);
           if (validSave) {
-            setGs(saved);
-          } else if (saved) {
-            // Şekli bozuk ya da farklı bölüm — temizle ki bir daha yüklenmesin
-            try { const { clearSavedGame: _clr } = require('../src/utils/storage'); _clr(); } catch (e) {}
-          }
-        } catch (e) {}
+            setGs({ ...saved, runId: saved.runId || createRunId() });
+            if (Number.isFinite(saved.elapsedTime)) {
+              setElapsedTime(saved.elapsedTime);
+              startTimeRef.current = Date.now() - saved.elapsedTime * 1000;
+            }
+            if (isTimed && Number.isFinite(saved.timeRemaining)) {
+              setTimeRemaining(saved.timeRemaining);
+              timedEndRef.current = Date.now() + saved.timeRemaining * 1000;
+            }
+          } else {
+            const fresh = {...generateGameState(activeLevel),resetEpoch:p.resetEpoch || null};
+            if (isTimed) fresh.moves = 9999;
+            setGs(fresh);
+            setHistory([]); setElapsedTime(0); startTimeRef.current = Date.now(); clockPauseStartedRef.current = null;
+            if (isTimed) {
+              setTimeRemaining(getTimedSeconds(activeLevel.id));
+              timedEndRef.current = null; pauseRemainRef.current = null;
+            }
+          } // A save for another level/language is never deleted while inspecting it.
+        } catch (error) { throw error; }
       }
-    }).catch(() => {});
-  }, []);
+    }).then(() => { setSaveLoadError(null); setSaveReady(true); })
+      .catch(error => { setSaveReady(false); setSaveLoadError(error.message || 'Kayıt okunamadı.'); });
+  }, [loadAttempt]);
 
   // Shake animation
   const triggerShake = useCallback((slotIdx) => {
@@ -794,23 +752,38 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
     ]).start(() => setShakeSlotIdx(-1));
   }, [shakeAnim]);
 
-  // Auto-save game state
-  useEffect(() => {
-    if (!gs.isComplete && !gs.isFailed && !isDaily) {
-      // Debounced save — her hamlede değil, 2sn'de bir
-      if (!saveTimerRef.current) {
-        saveTimerRef.current = setTimeout(() => { saveSavedGame({ ...gs, levelId }); saveTimerRef.current = null; }, 2000);
-      }
+  // Every write reads the latest render, never the first state in a time window.
+  latestSaveRef.current = saveReady && !gs.isComplete && !gs.isFailed
+    ? { ...gs, levelId:isDaily ? level.id : levelId, gameLanguage:gameLang, gameMode:isDaily ? 'daily' : isTimed ? 'timed' : 'classic', timeRemaining, elapsedTime }
+    : null;
+  const flushGameSave = useCallback(() => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = null;
+    if (!skipSaveRef.current && latestSaveRef.current) {
+      return saveSavedGame(latestSaveRef.current);
     }
-  }, [gs]);
+    return Promise.resolve();
+  }, []);
+
+  useEffect(() => {
+    if (latestSaveRef.current && !skipSaveRef.current) {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => { flushGameSave().catch(() => setFeedback(t.saveFailed || 'Oyun kaydedilemedi. Lütfen yeniden dene.')); }, 500);
+    }
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, [gs, saveReady, gameLang, isDaily, isTimed, flushGameSave, setFeedback, t]);
 
   // Unmount'ta auto-save timer'ı temizle — timer ateşlenip saveSavedGame çağırsa
   // o sırada async bir pipeline'a kayıt takılmasın
   useEffect(() => {
+    const sub = AppState.addEventListener('change', state => {
+      flushGameSave().catch(() => setFeedback(t.saveFailed || 'Oyun kaydedilemedi. Lütfen yeniden dene.'));
+    });
     return () => {
-      if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
+      sub.remove();
+      flushGameSave().catch(error => console.warn('[Save] final write failed', error.message));
     };
-  }, []);
+  }, [flushGameSave, setFeedback, t]);
 
   useEffect(() => { if (feedback.msg) { const tmr = setTimeout(() => setFeedbackRaw({ msg: '', id: 0 }), 2500); return () => clearTimeout(tmr); } }, [feedback.id]);
 
@@ -825,19 +798,17 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   // BUG-4 FIX: "Topla" → coin'i hemen ekle, popup'ı kapat, unseenAch decrement
   const claimAchievement = useCallback(async () => {
     if (!achievementPopup) return;
-    const reward = achievementPopup.pendingCoins || 0;
-    if (reward > 0) {
-      const after = await updateProgress((cur) => ({
-        coins: (cur.coins || 0) + reward,
-        unseenAch: Math.max(0, (cur.unseenAch || 0) - 1),
-      }));
-      setCoins(after.coins);
-      setFeedback(`+${reward} 🪙`);
-    } else {
-      await updateProgress((cur) => ({ unseenAch: Math.max(0, (cur.unseenAch || 0) - 1) }));
+    try {
+      const result = await claimAchievements(achievementPopup.achievementIds || [achievementPopup.id]);
+      if (result.success) {
+        setCoins(result.coins);
+        setFeedback(`+${result.reward} 🪙`);
+      }
+      setAchievementPopup(null);
+    } catch (e) {
+      setFeedback(t.saveFailed || 'Ödül kaydedilemedi. Lütfen yeniden dene.');
     }
-    setAchievementPopup(null);
-  }, [achievementPopup, setFeedback]);
+  }, [achievementPopup, setFeedback, t]);
 
   // Clear hint after 2s
   useEffect(() => {
@@ -862,10 +833,23 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
     return ns;
   }
 
-  const placeCard = useCallback((card, source, sourceIndex, slotIndex) => {
-    setGs((prev) => {
+  const placeCard = useCallback((selectedCard, source, sourceIndex, slotIndex) => {
+    if (!saveReady) return;
+    if (toolActionRef.current) return;
+    setGs((current) => {
+      let prev = current;
+      let card = selectedCard;
       if (slotIndex < 0 || slotIndex >= prev.slots.length) return prev;
       if (prev.slots[slotIndex].locked) { setFeedback(t.isLocked); return prev; }
+      const sourceCard = getMovableSource(prev, source, sourceIndex, card.id, true)?.[0];
+      if (!sourceCard || sourceCard.id !== card.id || prev.isComplete || prev.isFailed) return prev;
+      card = sourceCard;
+      if (card.isJoker && prev.slots[slotIndex].category) {
+        const prepared = prepareJokerPlacement(prev, card, prev.slots[slotIndex].category, level.categories);
+        if (!prepared) return prev;
+        prev = prepared.state;
+        card = prepared.card;
+      }
 
       const newSlots = prev.slots.map((sl) => ({ ...sl, placedCards: [...sl.placedCards] }));
       const target = newSlots[slotIndex];
@@ -873,7 +857,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       if (!target.category && card.type === 'category') {
         target.category = card;
         const ns = removeFromSource(prev, source, sourceIndex, card.id);
-        setHistory((h) => [...h, prev]);
+        setHistory((h) => [...h, current]);
         
         setTimeout(() => playSound('flip'), 10);
         setCombo((c) => { comboRef.current = c + 1; return c + 1; });
@@ -981,11 +965,11 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         }
 
         const isComplete = newCompletedCats >= level.categories.length;
-        setHistory((h) => [...h, prev]);
+        setHistory((h) => [...h, current]);
 
-        if (catCompleted && !isComplete) {
+        if (catCompleted) {
           setFeedback('🎉 ' + target.category.word + t.categoryComplete);
-          try { markCategoryCompleted(target.category.word, lang); } catch (e) {}
+          markCategoryCompleted(target.category.word, gameLang).catch(() => {});
           setTimeout(() => playSound('complete'), 10);
           // Sparkle effect on completed slot
           const slotWidth = (SW - GAME_PAD * 2) / gs.slots.length;
@@ -1007,13 +991,18 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       }
       return prev;
     });
-  }, [level.categories.length]);
+  }, [saveReady, level.categories, gameLang, t]);
 
   const moveToColumn = useCallback((card, source, sourceIndex, targetColIndex) => {
+    if (!saveReady) return;
+    if (toolActionRef.current) return;
     if (source === 'column' && sourceIndex === targetColIndex) return;
     // Kategori kartları sütuna KONAMAZ — AMA boş sütuna park edilebilir
     if (card.type === 'category') {
       setGs((prev) => {
+        const live = getMovableSource(prev, source, sourceIndex, card.id);
+        if (!live || !prev.columns[targetColIndex]) return prev;
+        card = live[0];
         const targetCol = prev.columns[targetColIndex];
         if (targetCol.locked) { setFeedback(t.isLocked); return prev; }
         // Sadece BOŞ sütuna park edilebilir
@@ -1033,6 +1022,9 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       return;
     }
     setGs((prev) => {
+      const live = getMovableSource(prev, source, sourceIndex, card.id);
+      if (!live || !prev.columns[targetColIndex]) return prev;
+      card = live[0];
       const targetCol = prev.columns[targetColIndex];
       if (targetCol.locked) { setFeedback(t.isLocked); return prev; }
       
@@ -1040,7 +1032,7 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
         const topCard = targetCol.cards[targetCol.cards.length - 1];
         if (!topCard.faceUp) { setFeedback(t.cantPlace); return prev; }
         // KURAL: Sadece AYNI KATEGORİ üst üste gelebilir (solitaire renk kuralı gibi)
-        if (topCard.type === 'word' && card.categoryIndex !== topCard.categoryIndex && !card.isJoker) {
+        if (topCard.type === 'word' && card.categoryIndex !== topCard.categoryIndex && !card.isJoker && !topCard.isJoker) {
           setFeedback(t.diffCategoryStack || '⛔ Different category!');
           return prev;
         }
@@ -1061,50 +1053,22 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       return { ...ns, moves: newMoves, isFailed: newMoves <= 0 };
     });
     setSelected(null);
-  }, []);
-
-  const handleCardTap = useCallback((card, source, sourceIndex, isLast = true) => {
-    if (source === 'column' && !isLast) {
-      // Select this card + all cards BELOW it (if all face-up)
-      const col = gs.columns[sourceIndex];
-      if (!col) return;
-      const cardIdx = col.cards.findIndex((c) => c.id === card.id);
-      if (cardIdx < 0) return;
-      const stack = col.cards.slice(cardIdx);
-      const allFaceUp = stack.every((c) => c.faceUp);
-      if (!allFaceUp) {
-        setFeedback(t.stackSelectError);
-        return;
-      }
-      // Valid stack — select it
-      setSelected({ card, source, sourceIndex, stackCards: stack });
-      setFeedback((t.stackSelected || '✋ {n} cards selected').replace('{n}', stack.length));
-      return;
-    }
-    setSelected((prev) => {
-      if (prev && prev.card.id !== card.id && source === 'column') {
-        // Move selected card/stack to this column
-        if (prev.stackCards && prev.stackCards.length > 1) {
-          moveStackToColumn(prev.stackCards, prev.source, prev.sourceIndex, sourceIndex);
-        } else {
-          moveToColumn(prev.card, prev.source, prev.sourceIndex, sourceIndex);
-        }
-        return null;
-      }
-      if (prev && prev.card.id === card.id) { setFeedback(''); return null; }
-      
-      return { card, source, sourceIndex, stackCards: [card] };
-    });
-  }, [moveToColumn, moveStackToColumn, gs.columns]);
+  }, [saveReady]);
 
   // Move entire stack to another column
   const moveStackToColumn = useCallback((stackCards, source, sourceIndex, targetColIndex) => {
+    if (!saveReady) return;
+    if (toolActionRef.current) return;
     if (source === 'column' && sourceIndex === targetColIndex) return;
     if (stackCards.some(c => c.type === 'category')) {
       setFeedback(t.catFirstSlot || '📂 Place category card in empty upper slot!');
       return;
     }
     setGs((prev) => {
+      const live = getMovableSource(prev, source, sourceIndex, stackCards[0]?.id, true);
+      if (source !== 'column' || !live || !prev.columns[targetColIndex]
+        || live.length !== stackCards.length || live.some((card, i) => card.id !== stackCards[i].id)) return prev;
+      stackCards = live;
       const targetCol = prev.columns[targetColIndex];
       if (targetCol.locked) { setFeedback(t.isLocked); return prev; }
 
@@ -1142,7 +1106,42 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       return { ...prev, columns: newColumns, moves: newMoves, isFailed: newMoves <= 0 };
     });
     setSelected(null);
-  }, []);
+  }, [saveReady]);
+
+  const handleCardTap = useCallback((card, source, sourceIndex, isLast = true) => {
+    if (source === 'column' && !isLast) {
+      // Select this card + all cards BELOW it (if all face-up)
+      const col = gs.columns[sourceIndex];
+      if (!col) return;
+      const cardIdx = col.cards.findIndex((c) => c.id === card.id);
+      if (cardIdx < 0) return;
+      const stack = col.cards.slice(cardIdx);
+      const allFaceUp = stack.every((c) => c.faceUp);
+      if (!allFaceUp) {
+        setFeedback(t.stackSelectError);
+        return;
+      }
+      // Valid stack — select it
+      setSelected({ card, source, sourceIndex, stackCards: stack });
+      setFeedback((t.stackSelected || '✋ {n} cards selected').replace('{n}', stack.length));
+      return;
+    }
+    setSelected((prev) => {
+      if (prev && prev.card.id !== card.id && source === 'column') {
+        // Move selected card/stack to this column
+        if (prev.stackCards && prev.stackCards.length > 1) {
+          moveStackToColumn(prev.stackCards, prev.source, prev.sourceIndex, sourceIndex);
+        } else {
+          moveToColumn(prev.card, prev.source, prev.sourceIndex, sourceIndex);
+        }
+        return null;
+      }
+      if (prev && prev.card.id === card.id) { setFeedback(''); return null; }
+      
+      return { card, source, sourceIndex, stackCards: [card] };
+    });
+  }, [moveToColumn, moveStackToColumn, gs.columns]);
+
 
   const handleColumnTap = useCallback((colIndex) => {
     if (!selected) return;
@@ -1160,8 +1159,12 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   }, [selected, placeCard]);
 
   const drawCard = useCallback(() => {
+    if (!saveReady) return;
+    if (toolActionRef.current) return;
     setGs((p) => {
+      if (p.isComplete || p.isFailed || p.moves <= 0) return p;
       if (p.deck.length === 0 && p.drawnCards.length === 0) { setFeedback(t.allCardsUsed); return p; }
+      setHistory(h => [...h, p]);
       if (p.deck.length === 0) {
         const recycled = [...p.drawnCards].reverse().map((c) => ({ ...c, faceUp: false }));
         for (let i = recycled.length - 1; i > 0; i--) {
@@ -1178,625 +1181,353 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       return { ...p, deck: d, drawnCards: [...p.drawnCards, card], moves: p.moves - 1, isFailed: p.moves - 1 <= 0 };
     });
     setSelected(null);
-  }, []);
+  }, [saveReady]);
 
   const handleDrawnTap = useCallback(() => {
     if (gs.drawnCards.length === 0) { setFeedback(t.selectCardFirst); return; }
     handleCardTap(gs.drawnCards[gs.drawnCards.length - 1], 'drawn', null);
   }, [gs.drawnCards, handleCardTap]);
 
-  const useUndo = useCallback(async () => {
-    if (!isToolUnlocked('undo')) return;
-    if (history.length === 0) { setFeedback(t.nothingToUndo); return; }
-    if (toolCredits.undo > 0) {
-      const newCredits = { ...toolCredits, undo: toolCredits.undo - 1 };
-      setToolCredits(newCredits);
-      await updateProgress({ toolCredits: newCredits });
-      setGs(history[history.length - 1]); setHistory((h) => h.slice(0, -1)); setSelected(null);
-      setFeedback(t.undoDone);
-      return;
+  const showGameRewarded = useCallback(async (onLoadingChange) => {
+    setAdInProgress(true);
+    try { return await showRewarded(onLoadingChange); }
+    finally { setAdInProgress(false); }
+  }, []);
+
+  const acquireTool = useCallback(async (tool, method) => {
+    if (!saveReady) return;
+    if (purchaseRef.current || !['coin','ad'].includes(method)) return null;
+    purchaseRef.current = true;
+    try {
+      let progress;
+      if (method === 'coin') {
+        const result = await purchaseToolCredit(tool);
+        progress = result.progress;
+        setCoins(progress.coins); setToolCredits(progress.toolCredits || {});
+        if (!result.success) {
+          setFeedback(gameLang === 'tr' ? `Yetersiz coin. Gerekli: ${TOOL_PRICES[tool]}.` : `Not enough coins. Required: ${TOOL_PRICES[tool]}.`);
+          return null;
+        }
+      } else {
+        const result = await showGameRewarded(loading => setAdLoadingTool(loading ? tool : null));
+        if (!result.success) return null;
+        progress = await grantToolCredit(tool);
+        setCoins(progress.coins); setToolCredits(progress.toolCredits || {});
+      }
+      setToolModal(null);
+      return progress;
+    } catch (error) {
+      setFeedback(t.saveFailed || 'İşlem kaydedilemedi. Mevcut coin ve hakların korunuyor.');
+      return null;
+    } finally { purchaseRef.current = false; setAdLoadingTool(null); }
+  }, [saveReady, gameLang, t, setFeedback, showGameRewarded]);
+
+  const commitToolBoard = useCallback(async (tool, nextBoard, coinCost = 0) => {
+    if (!saveReady || toolActionRef.current || navigationRef.current) return null;
+    toolActionRef.current = true;
+    try {
+      const target = typeof nextBoard === 'function' ? nextBoard(gs) : nextBoard;
+      if (!target) return null;
+      const before = { ...gs, levelId:isDaily ? level.id : levelId, gameLanguage:gameLang,
+        gameMode:isDaily ? 'daily' : isTimed ? 'timed' : 'classic', timeRemaining, elapsedTime };
+      // Establish this run before the atomic action and drain queued autosaves.
+      await saveSavedGame(before);
+      const result = await commitBoardAction({before,after:{...before,...target,runId:before.runId},tool,coinCost});
+      setCoins(result.progress.coins); setToolCredits(result.progress.toolCredits || {});
+      if (!result.success) {
+        if (tool) setToolModal(tool); else setFeedback(t.coinNeeded500);
+        return null;
+      }
+      latestSaveRef.current = result.board;
+      setGs(result.board); setSelected(null);
+      return result.board;
+    } catch (error) {
+      setFeedback(error.code === 'BOARD_CONFLICT' ? error.message : (t.saveFailed || 'İşlem kaydedilemedi. Coin ve hakların korunuyor.'));
+      return null;
+    } finally { toolActionRef.current = false; }
+  }, [saveReady, gs, isDaily, isTimed, level.id, levelId, gameLang, timeRemaining, elapsedTime, t]);
+  boardActionRef.current = commitToolBoard;
+
+  const applyAdBoardReward = useCallback(async (key, transition) => {
+    if (!saveReady || rewardActionRef.current || toolActionRef.current || navigationRef.current) return false;
+    if (pendingAdBoardRef.current && (pendingAdBoardRef.current.key !== key || pendingAdBoardRef.current.runId !== gs.runId)) {
+      setFeedback('Önce kazandığın ödülü aynı düğmeden yeniden kaydet.'); return false;
     }
-    setToolModal('undo');
-  }, [history, toolCredits, isToolUnlocked]);
+    rewardActionRef.current = true;
+    try {
+      if (!pendingAdBoardRef.current) {
+        const result = await showGameRewarded(loading=>setAdLoadingTool(loading ? key : null));
+        if (!result.success) {
+          if (!result.handled && result.reason !== 'dismissed') setFeedback(t.adFailed || 'Reklam yüklenemedi');
+          return false;
+        }
+        pendingAdBoardRef.current = {key,runId:gs.runId};
+      }
+      const board = await boardActionRef.current(null,transition);
+      if (!board) { setFeedback('Ödül kaydedilemedi. Aynı düğmeye yeniden dokun; tekrar reklam izlemene gerek yok.'); return false; }
+      pendingAdBoardRef.current = null;
+      return true;
+    } catch (error) {
+      setFeedback(t.saveFailed || 'Reklam ödülü kaydedilemedi. Lütfen aynı düğmeden yeniden dene.');
+      return false;
+    } finally { rewardActionRef.current = false; setAdLoadingTool(null); }
+  }, [saveReady,gs.runId,showGameRewarded,t]);
+
+  const useUndo = useCallback(async () => {
+    if (!saveReady || toolActionRef.current || !isToolUnlocked('undo')) return;
+    if (history.length === 0) { setFeedback(t.nothingToUndo); return; }
+    const previous = history[history.length - 1];
+    const next = { ...previous, runId:gs.runId, _toolRevision:gs._toolRevision,
+      // Undo cannot revoke permanent slot/column unlocks or purchased extra moves.
+      slots:previous.slots.map((slot,i) => gs.slots[i]?.locked === false ? {...slot,locked:false} : slot),
+      columns:previous.columns.map((col,i) => gs.columns[i]?.locked === false ? {...col,locked:false} : col),
+      extraMovesGranted:gs.extraMovesGranted || 0,
+      moves:previous.moves + Math.max(0,(gs.extraMovesGranted || 0)-(previous.extraMovesGranted || 0)),
+      hintsUsed:gs.hintsUsed || 0 };
+    next.isFailed = next.moves <= 0 && !next.isComplete;
+    if (await commitToolBoard('undo',next)) {
+      setHistory(h=>h.slice(0,-1)); setFeedback(t.undoDone);
+    }
+  }, [saveReady, gs, history, isToolUnlocked, commitToolBoard, t]);
 
   const executeUndo = useCallback(async (method) => {
-    if (method === 'coin') {
-      if (coins < 450) { setFeedback(t.coinNeeded500); setToolModal(null); return; }
-      const _aft450 = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 450 })); setCoins(_aft450.coins);
-    }
-    if (method === 'ad') {
-      if (adLoadingTool) { setToolModal(null); return; }
-      const result = await showRewarded((loading) => {
-        setAdLoadingTool(loading ? 'undo' : null);
-      });
-      setAdLoadingTool(null);
-      if (!result.success) { setToolModal(null); setFeedback(t.adFailed || 'Reklam yuklenemedi'); return; }
-    }
-    const newCredits = { ...toolCredits, undo: toolCredits.undo + 1 };
-    setToolCredits(newCredits);
-    await updateProgress({ toolCredits: newCredits });
-    setFeedback(t.undoAdded);
-    setToolModal(null);
-  }, [coins, toolCredits]);
+    if (await acquireTool('undo',method)) setFeedback(t.undoAdded);
+  }, [acquireTool, t]);
 
   const useDelete = useCallback(async () => {
+    if (!saveReady) return;
     if (!isToolUnlocked('delete')) return;
-    if (gs.drawnCards.length === 0) { setFeedback(t.nothingToDelete); return; }
-    if (toolCredits.delete > 0) {
-      const newCredits = { ...toolCredits, delete: toolCredits.delete - 1 };
-      setToolCredits(newCredits);
-      await updateProgress({ toolCredits: newCredits });
-      setGs((p) => ({ ...p, drawnCards: p.drawnCards.slice(0, -1), moves: p.moves - 1, isFailed: p.moves - 1 <= 0 }));
-      setSelected(null);
-      setFeedback(t.deleteDone);
-      return;
+    if (toolActionRef.current) return;
+    const resolved = resolveDrawnWord(gs, level.categories.length);
+    if (!resolved) { setFeedback(t.nothingToDelete); return; }
+    if (await commitToolBoard('delete',resolved.state)) {
+      setHistory(h => [...h, gs]); setFeedback(t.deleteDone);
+      if (resolved.completedCategoryName) markCategoryCompleted(resolved.completedCategoryName, gameLang).catch(() => {});
     }
-    setToolModal('delete');
-  }, [gs.drawnCards, toolCredits, isToolUnlocked]);
+  }, [saveReady, gs, level.categories.length, isToolUnlocked, gameLang, t, commitToolBoard]);
 
   const executeDelete = useCallback(async (method) => {
-    if (method === 'coin') {
-      if (coins < 500) { setFeedback(t.coinNeeded500); setToolModal(null); return; }
-      const _aftDel = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 500 })); setCoins(_aftDel.coins);
-    }
-    if (method === 'ad') {
-      if (adLoadingTool) { setToolModal(null); return; }
-      const result = await showRewarded((loading) => {
-        setAdLoadingTool(loading ? 'delete' : null);
-      });
-      setAdLoadingTool(null);
-      if (!result.success) { setToolModal(null); setFeedback(t.adFailed || 'Reklam yuklenemedi'); return; }
-    }
-    const newCredits = { ...toolCredits, delete: toolCredits.delete + 1 };
-    setToolCredits(newCredits);
-    await updateProgress({ toolCredits: newCredits });
-    setFeedback(t.deleteAdded);
-    setToolModal(null);
-  }, [coins, toolCredits]);
+    if (await acquireTool('delete',method)) setFeedback(t.deleteAdded);
+  }, [acquireTool, t]);
 
   // ── Joker Card (Wildcard) ──
   const useJoker = useCallback(async () => {
+    if (!saveReady) return;
     if (!isToolUnlocked('joker')) return;
+    if (toolActionRef.current) return;
     if (gs.drawnCards.length === 0) { setFeedback(t.jokerNeedCard); return; }
-    if (toolCredits.joker > 0) {
-      const newCredits = { ...toolCredits, joker: toolCredits.joker - 1 };
-      setToolCredits(newCredits);
-      await updateProgress({ toolCredits: newCredits });
-      setGs((p) => {
-        if (p.drawnCards.length === 0) return p;
-        const newDrawn = [...p.drawnCards];
-        const lastCard = { ...newDrawn[newDrawn.length - 1], isJoker: true, word: '', emoji: '🃏' };
-        newDrawn[newDrawn.length - 1] = lastCard;
-        return { ...p, drawnCards: newDrawn };
-      });
-      setFeedback(t.jokerActive);
-      return;
-    }
-    setToolModal('joker');
-  }, [gs.drawnCards, toolCredits, isToolUnlocked]);
+    if (gs.drawnCards[gs.drawnCards.length - 1].type !== 'word' || gs.drawnCards[gs.drawnCards.length - 1].isJoker) { setFeedback(t.jokerNeedCard); return; }
+    const drawnCards = [...gs.drawnCards], original = drawnCards[drawnCards.length-1];
+    drawnCards[drawnCards.length-1] = {...original,jokerOriginal:{...original},isJoker:true,word:'',emoji:'🃏'};
+    if (await commitToolBoard('joker',{...gs,drawnCards})) setFeedback(t.jokerActive);
+  }, [saveReady, gs, isToolUnlocked, commitToolBoard, t]);
 
   const executeJoker = useCallback(async (method) => {
-    if (method === 'coin') {
-      if (coins < 750) { setFeedback(t.coinNeeded750); setToolModal(null); return; }
-      const _aft750 = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 750 })); setCoins(_aft750.coins);
-    }
-    if (method === 'ad') {
-      if (adLoadingTool) { setToolModal(null); return; }
-      const result = await showRewarded((loading) => {
-        setAdLoadingTool(loading ? 'joker' : null);
-      });
-      setAdLoadingTool(null);
-      if (!result.success) { setToolModal(null); setFeedback(t.adFailed || 'Reklam yuklenemedi'); return; }
-    }
-    const newCredits = { ...toolCredits, joker: toolCredits.joker + 1 };
-    setToolCredits(newCredits);
-    await updateProgress({ toolCredits: newCredits });
-    setFeedback(t.jokerAdded);
-    setToolModal(null);
-  }, [coins, toolCredits]);
+    if (await acquireTool('joker',method)) setFeedback(t.jokerAdded);
+  }, [acquireTool, t]);
 
   // ── Shuffle (Karıştır) ──
   const useShuffle = useCallback(async () => {
-    if (!isToolUnlocked('shuffle')) return;
-    const hasCards = gs.columns.some(col => !col.locked && col.cards.length > 0) || gs.drawnCards.length > 0;
-    if (!hasCards) { setFeedback(t.shuffleNoCards); return; }
-    if (toolCredits.shuffle > 0) {
-      const newCredits = { ...toolCredits, shuffle: toolCredits.shuffle - 1 };
-      setToolCredits(newCredits);
-      await updateProgress({ toolCredits: newCredits });
-      setGs((prev) => {
-        // Tüm kartları topla (sütunlar + çekilen kartlar)
-        const allCards = [];
-        const colSizes = [];
-        prev.columns.forEach(col => {
-          if (col.locked) { colSizes.push(-1); return; }
-          colSizes.push(col.cards.length);
-          col.cards.forEach(c => allCards.push({ ...c }));
-        });
-        prev.drawnCards.forEach(c => allCards.push({ ...c }));
-        // Karıştır
-        for (let i = allCards.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [allCards[i], allCards[j]] = [allCards[j], allCards[i]];
-        }
-        // Sütunlara geri dağıt
-        let idx = 0;
-        const newColumns = prev.columns.map((col, ci) => {
-          if (col.locked) return col;
-          const size = colSizes[ci];
-          const newCards = allCards.slice(idx, idx + size).map((c, cardIdx) => ({
-            ...c, faceUp: cardIdx === size - 1 // sadece en üstteki açık
-          }));
-          idx += size;
-          return { ...col, cards: newCards };
-        });
-        // Kalanlar çekilen kartlar
-        const newDrawn = allCards.slice(idx).map(c => ({ ...c, faceUp: true }));
-        setHistory((h) => [...h, prev]);
-        return { ...prev, columns: newColumns, drawnCards: newDrawn };
-      });
-      setFeedback(t.shuffleDone);
-      playSound('flip');
-      return;
+    if (!saveReady || toolActionRef.current || !isToolUnlocked('shuffle')) return;
+    if (gs.isComplete || gs.isFailed) return;
+    const next = shuffleBoard(gs);
+    if (!next) { setFeedback(t.shuffleNoCards); return; }
+    if (await commitToolBoard('shuffle',next)) {
+      setHistory(h=>[...h,gs]); setFeedback(t.shuffleDone); playSound('flip');
     }
-    setToolModal('shuffle');
-  }, [gs.columns, gs.drawnCards, toolCredits, isToolUnlocked]);
-
-  const executeShuffle = useCallback(async (method) => {
-    if (method === 'coin') {
-      if (coins < 500) { setFeedback(t.coinNeeded500); setToolModal(null); return; }
-      const _aftShuf = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 500 })); setCoins(_aftShuf.coins);
-    }
-    if (method === 'ad') {
-      if (adLoadingTool) { setToolModal(null); return; }
-      const result = await showRewarded((loading) => {
-        setAdLoadingTool(loading ? 'shuffle' : null);
-      });
-      setAdLoadingTool(null);
-      if (!result.success) { setToolModal(null); setFeedback(t.adFailed || 'Reklam yuklenemedi'); return; }
-    }
-    const newCredits = { ...toolCredits, shuffle: toolCredits.shuffle + 1 };
-    setToolCredits(newCredits);
-    await updateProgress({ toolCredits: newCredits });
-    setToolModal(null);
-    // BUG FIX: Fail ekranından "Karıştır" butonuyla modal açılıp satın alınca,
-    // eski kod sadece kredi ekliyor ama uygulamıyordu. Kullanıcı moves=0 +
-    // isFailed=false stuck durumuna düşüyordu. Artık pendingFailedShuffle flag'i
-    // ile purchase sonrası otomatik uygulanır.
-    if (_pendingFailedShuffleRef.current) {
-      _pendingFailedShuffleRef.current = false;
-      // Yeni kredinin 1'ini hemen kullan
-      const usedCredits = { ...newCredits, shuffle: newCredits.shuffle - 1 };
-      setToolCredits(usedCredits);
-      await updateProgress({ toolCredits: usedCredits });
-      applyFailedShuffle();
-    } else {
-      setFeedback(t.shuffleAdded);
-    }
-  }, [coins, toolCredits, applyFailedShuffle]);
+  }, [saveReady, gs, isToolUnlocked, commitToolBoard, t]);
 
   // ── Smart Hint ──
   const useHint = useCallback(async () => {
-    if (!isToolUnlocked('hint')) return;
-    if (toolCredits.hint > 0) {
-      // Önce hint çalıştır, sadece bulduysa kredi düş (uygun hamle yoksa kredi yenmez)
-      const found = runHintLogic();
-      if (found) {
-        const newCredits = { ...toolCredits, hint: toolCredits.hint - 1 };
-        setToolCredits(newCredits);
-        await updateProgress({ toolCredits: newCredits });
-      }
-      return;
+    if (!saveReady) return;
+    if (!isToolUnlocked('hint') || toolActionRef.current) return;
+    const hint = findSlotHint(gs,level.categories);
+    if (!hint) { setFeedback(t.hintNoMoves || 'Uygun kategori hamlesi yok. Desteden kart çekebilir veya sütunları düzenleyebilirsin.'); return; }
+    if (await commitToolBoard('hint',{...gs,hintsUsed:(gs.hintsUsed || 0)+1})) {
+      setHintCard(hint.cardId); setHintSlot(hint.slotIndex);
+      setFeedback(hint.categoryName ? `💡 ${hint.word} → ${hint.categoryName}` : (t.hintToEmptySlot || '{word} → boş kategori alanı').replace('{word}',hint.word));
     }
-    setToolModal('hint');
-  }, [toolCredits, isToolUnlocked]);
+  }, [saveReady, gs, level.categories, isToolUnlocked, t, commitToolBoard]);
+  hintActionRef.current = useHint;
 
   const executeHint = useCallback(async (method) => {
-    if (method === 'coin') {
-      if (coins < 500) { setFeedback(t.coinNeeded500); setToolModal(null); return; }
-      const _aftHint = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 500 })); setCoins(_aftHint.coins);
-      setFeedback(t.hintBought);
-    }
-    if (method === 'ad') {
-      if (adLoadingTool) { setToolModal(null); return; }
-      const result = await showRewarded((loading) => {
-        setAdLoadingTool(loading ? 'hint' : null);
-      });
-      setAdLoadingTool(null);
-      if (!result.success) { setToolModal(null); setFeedback(t.adFailed || 'Reklam yuklenemedi'); return; }
-      setFeedback(t.hintEarned);
-    }
-    setToolModal(null);
-    setTimeout(() => runHintLogic(), 100);
-  }, [coins]);
-
-  const runHintLogic = useCallback(() => {
-    const playable = [];
-    gs.columns.forEach((col, ci) => {
-      if (col.locked || col.cards.length === 0) return;
-      for (let k = col.cards.length - 1; k >= 0; k--) {
-        const card = col.cards[k];
-        if (!card.faceUp) break;
-        playable.push({ card, source: 'column', sourceIndex: ci });
-      }
-    });
-    if (gs.drawnCards.length > 0) {
-      playable.push({ card: gs.drawnCards[gs.drawnCards.length - 1], source: 'drawn', sourceIndex: null });
-    }
-
-    for (const p of playable) {
-      if (p.card.type === 'category') {
-        const emptySlot = gs.slots.findIndex((sl) => !sl.locked && !sl.category);
-        if (emptySlot >= 0) {
-          setHintCard(p.card.id); setHintSlot(emptySlot);
-          setFeedback((t.hintToEmptySlot || '💡 {word} → place in empty slot!').replace('{word}', p.card.word));
-          return true;
-          return;
-        }
-      }
-      if (p.card.type === 'word') {
-        const matchSlot = gs.slots.findIndex((sl) => sl.category && sl.category.categoryIndex === p.card.categoryIndex && sl.placedCards.length < sl.category.totalWords);
-        if (matchSlot >= 0) {
-          setHintCard(p.card.id); setHintSlot(matchSlot);
-          setFeedback('💡 ' + p.card.word + ' → ' + gs.slots[matchSlot].category.word + '!');
-          return true;
-          return;
-        }
-      }
-    }
-    setFeedback(t.hintNoMoves || 'No suitable move. Draw from deck or rearrange columns!');
-    return false;
-  }, [gs]);
+    if (await acquireTool('hint',method)) await hintActionRef.current?.();
+  }, [acquireTool]);
 
   const resetGame = useCallback(() => {
-    const newLevel = isDaily ? getDailyChallenge(gameLang) : getLevel(levelId, gameLang);
-    const state = generateGameState(newLevel);
+    if (toolActionRef.current || rewardActionRef.current) return;
+    if (pendingAdBoardRef.current) { setFeedback('Kazandığın ödülü önce aynı düğmeden yeniden kaydet.'); return; }
+    completionPromiseRef.current = null;
+    setCompletionReceipt(null); setRewardStatus('saving'); maxComboRef.current = 0;
+    skipSaveRef.current = false;
+    const newLevel = isDaily ? getDailyChallenge(gameLang, params.dailySeed ? parseInt(params.dailySeed) : undefined) : getLevel(levelId, gameLang);
+    const state = {...generateGameState(newLevel),resetEpoch:gs.resetEpoch || null};
     if (isTimed) state.moves = 9999;
     setGs(state); setHistory([]); setSelected(null);
-    setHintCard(null); setHintSlot(null); setCombo(0); comboRef.current = 0; startTimeRef.current = Date.now(); setElapsedTime(0);
+    setHintCard(null); setHintSlot(null); setCombo(0); comboRef.current = 0; startTimeRef.current = Date.now(); clockPauseStartedRef.current = null; setElapsedTime(0);
     wrongMovesRef.current = 0;
     if (isTimed) { setTimeRemaining(getTimedSeconds(levelId)); timedEndRef.current = null; pauseRemainRef.current = null; }
-  }, [levelId, isDaily, isTimed, gameLang]);
+  }, [levelId, isDaily, isTimed, gameLang, gs.resetEpoch]);
 
   const addMovesAd = useCallback(async () => {
-    if (adLoadingTool) return;
-    const result = await showRewarded((loading) => {
-      setAdLoadingTool(loading ? 'moves' : null);
-    });
-    setAdLoadingTool(null);
-    if (!result.success) {
-      setFeedback(t.adFailed || 'Reklam yuklenemedi');
-      return;
-    }
-    setGs((p) => ({ ...p, moves: p.moves + 20, isFailed: false }));
-    setFeedback(t.movesAdded);
-  }, [adLoadingTool, t, setFeedback]);
+    if (!saveReady || isTimed) return;
+    const success = await applyAdBoardReward('moves',game=>game.isComplete ? null : ({...game,moves:game.moves+20,extraMovesGranted:(game.extraMovesGranted || 0)+20,isFailed:false}));
+    if (success) setFeedback(t.movesAdded);
+  }, [saveReady,isTimed,applyAdBoardReward,t]);
 
   const addMovesCoin = useCallback(async () => {
-    if (coins < 500) { setFeedback(t.coinNeeded500); return; }
-    const _aftMv = await updateProgress((cur) => ({ coins: (cur.coins || 0) - 500 }));
-    setCoins(_aftMv.coins);
-    setGs((p) => ({ ...p, moves: p.moves + 20, isFailed: false }));
-    setFeedback(t.movesAdded);
-  }, [coins]);
+    if (!saveReady || isTimed || purchaseRef.current) return;
+    if (await commitToolBoard(null,{...gs,moves:gs.moves+20,extraMovesGranted:(gs.extraMovesGranted || 0)+20,isFailed:false},500)) {
+      setFeedback(t.movesAdded);
+    }
+  }, [saveReady,isTimed,gs,commitToolBoard,t]);
 
-  // ── Level Complete → save & advance ──
-  const handleNextLevel = useCallback(async () => {
-    const bonus = isTimed ? Math.min(levelId * 2, 50) : Math.floor(8 * (gs.moves / level.moves));
-    const eventMultiplier = 1;
-    const prog = await loadProgress();
-
-    if (isDaily) {
-      // Daily challenge: 100 coin bonus, mark done, go home
-      const newCoins = (prog.coins || 0) + Math.floor((100 + bonus) * eventMultiplier);
-      await updateProgress({
-        coins: newCoins,
-        totalGames: (prog.totalGames || 0) + 1,
-        totalWins: (prog.totalWins || 0) + 1,
-        bestScore: Math.max(prog.bestScore || 0, gs.score),
-      });
-      setCoins(newCoins);
-      // Başarım kontrolü
+  // A finished run is committed before any navigation, including Replay.
+  const ensureCompletion = useCallback(() => {
+    if (!gs.isComplete) return Promise.resolve(null);
+    if (completionPromiseRef.current?.runId === gs.runId) return completionPromiseRef.current.promise;
+    const promise = (async () => {
+      setRewardStatus('saving');
+      const mode = isDaily ? 'daily' : isTimed ? 'timed' : 'classic';
+      const seed = String(level.id);
+      const date = dailyDate || (isDaily ? `${seed.slice(0, 4)}-${seed.slice(4, 6)}-${seed.slice(6, 8)}` : undefined);
+      // Persist the completed board first. Recovery retries the same runId.
+      await saveSavedGame({ ...gs, levelId: level.id, gameLanguage: gameLang, gameMode: mode, timeRemaining, elapsedTime });
+      const dailyAlreadyCompleted = isDaily ? await isDailyChallengeCompleted(date) : false;
+      const result = await settleCompletion({ game: gs, level, mode, date, elapsedTime,
+        timeLimit: getTimedSeconds(level.id), dailyAlreadyCompleted });
+      setCoins(result.progress.coins);
+      setToolCredits(result.progress.toolCredits || {});
+      setUnlockedTools(result.progress.unlockedTools || []);
+      setCompletionReceipt(result.receipt);
+      setRewardStatus('saved');
       try {
         const dailyMap = await getDailyCompletionMap();
-        const realDailyCount = Object.keys(dailyMap).length + 1;
-        const achStats = { ...prog, coins: newCoins, totalWins: (prog.totalWins || 0) + 1, dailyCount: realDailyCount, noHintWin: gs.hints === level.hints, speedWin: gs.moves > level.moves / 2, perfectWin: wrongMovesRef.current === 0, maxCombo: combo };
-        const newAch = await checkAchievements(achStats);
-        if (newAch.length > 0) {
-          const totalReward = newAch.reduce((sum, a) => sum + (a.reward || 0), 0);
-          // Coin OTOMATİK eklenmez — kullanıcı başarımlar ekranından "Topla" ile alacak
-          await updateProgress({ unseenAch: (prog.unseenAch || 0) + newAch.length });
-          setAchievementPopup({ ...newAch[0], reward: newAch[0].reward || 0, pendingCoins: totalReward });
+        const newAch = await checkAchievements({ ...result.progress, dailyCount: Object.keys(dailyMap).length,
+          noHintWin: !(gs.hintsUsed > 0), speedWin: gs.moves - (gs.extraMovesGranted || 0) > level.moves / 2,
+          perfectWin: wrongMovesRef.current === 0, maxCombo: maxComboRef.current });
+        if (newAch.length) {
+          await updateProgress(cur => ({ unseenAch: (cur.unseenAch || 0) + newAch.length }));
+          setAchievementPopup({ ...newAch[0], pendingCoins: newAch.reduce((n, ach) => n + (ach.reward || 0), 0), achievementIds: newAch.map(ach => ach.id) });
         }
-      } catch (e) {}
-      await markDailyChallengeCompleted(dailyDate);
-      // Cloud sync (günlük görev tamamlandı)
-      if (user) {
-        syncToCloud({
-          currentLevel: prog.currentLevel || 1,
-          coins: newCoins,
-          totalGames: (prog.totalGames || 0) + 1,
-          totalWins: (prog.totalWins || 0) + 1,
-          bestScore: Math.max(prog.bestScore || 0, gs.score),
-          streak: prog.streak || 0,
-          xp: prog.xp || 0,
-        }).catch(() => {});
-      }
-      router.canGoBack() ? router.back() : router.replace("/");
-      return;
-    }
-
-    const nextId = levelId + 1;
-    const nextLevel = getLevel(nextId, gameLang);
-    if (!nextLevel) { router.canGoBack() ? router.back() : router.replace("/"); return; }
-    // currentLevel sadece İLERİ gider — eski bölümü replay edip "Sonraki"ye
-    // basınca currentLevel 20'den 6'ya DÜŞMEMELİ
-    const safeCurrentLevel = Math.max(nextId, prog.currentLevel || 1);
-    await updateProgress({
-      currentLevel: safeCurrentLevel,
-      coins: (prog.coins || 0) + Math.floor((30 + bonus) * eventMultiplier),
-      totalGames: (prog.totalGames || 0) + 1,
-      totalWins: (prog.totalWins || 0) + 1,
-      bestScore: Math.max(prog.bestScore || 0, gs.score),
-      streak: (prog.streak || 0) + 1,
+      } catch (e) { console.warn('[Completion] achievement check pending'); }
+      if (user) Promise.resolve(syncToCloud()).then(()=>{
+        if (result.firstSettlement) return submitScore({language:gameLang,displayName:user.name});
+      }).catch(()=>{});
+      return result;
+    })().catch(error => {
+      completionPromiseRef.current = null;
+      setRewardStatus('error');
+      setFeedback(t.rewardSaveError || 'Ödül kaydedilemedi. Devam ederek yeniden deneyebilirsin.');
+      throw error;
     });
-    await clearSavedGame();
-    // Yıldız kaydet
-    const moveRatio = gs.moves / level.moves;
-    const stars = moveRatio > 0.5 ? 3 : moveRatio > 0.25 ? 2 : 1;
-    await saveLevelStars(levelId, stars);
-    // XP ekle (yıldız başına 50 + bölüm bonusu)
-    await addXP(stars * 50 + Math.floor(levelId / 5) * 10);
-    // Submit to leaderboard
-    try {
-      (async () => {
-        const avatarId = await loadSelectedAvatar();
-        submitScore({
-          score: Math.max(prog.bestScore || 0, gs.score),
-          level: nextId,
-          totalWins: (prog.totalWins || 0) + 1,
-          language: gameLang,
-          displayName: user?.name,
-          userAvatar: getAvatarEmoji(avatarId),
-        });
-      })();
-    } catch (e) {}
-    // Başarım kontrolü
-    try {
-      const dailyMap = await getDailyCompletionMap();
-      const realDailyCount = Object.keys(dailyMap).length;
-      const currentCoinsNow = (prog.coins || 0) + 30 + bonus;
-      const achStats = { currentLevel: nextId, coins: currentCoinsNow, totalWins: (prog.totalWins || 0) + 1, bestScore: Math.max(prog.bestScore || 0, gs.score), streak: (prog.streak || 0) + 1, dailyCount: realDailyCount, noHintWin: gs.hints === level.hints, speedWin: gs.moves > level.moves / 2, perfectWin: wrongMovesRef.current === 0, maxCombo: combo };
-      const newAch = await checkAchievements(achStats);
-      if (newAch.length > 0) {
-        const totalReward = newAch.reduce((sum, a) => sum + (a.reward || 0), 0);
-        // Coin OTOMATİK eklenmez — kullanıcı başarımlar ekranından "Topla" ile alacak
-        await updateProgress({ unseenAch: (prog.unseenAch || 0) + newAch.length });
-        setAchievementPopup({ ...newAch[0], reward: newAch[0].reward || 0, pendingCoins: totalReward });
-      }
-    } catch (e) {}
-    // FEAT-1: Her 3 bölümde bir Rewarded Interstitial göster (atlanabilir, izlerse +20 coin bonus)
-    if (nextId % 3 === 0) {
-      try {
-        const ri = await showRewardedInterstitial();
-        if (ri.success) {
-          // Kullanıcı reklamı izledi → +20 coin bonus
-          const bonusUpd = await updateProgress((cur) => ({ coins: (cur.coins || 0) + 20 }));
-          // setCoins aşağıda zaten yapılıyor, ama bonus'u UI'a hemen yansıtmak için feedback
-          setFeedback(`🎁 +20 🪙`);
-        }
-      } catch (e) {
-        // Hata durumunda eski davranışa fallback: interstitial göster
-        try { await showInterstitial(); } catch (e2) {}
-      }
-    }
-    
-    // Araç açılma kontrolü
-    const currentUnlocked = prog.unlockedTools || [];
-    const currentCredits = prog.toolCredits || { hint: 0, joker: 0, shuffle: 0, undo: 0, delete: 0 };
-    let newUnlocked = [...currentUnlocked];
-    let newCredits = { ...currentCredits };
-    let introTool = null;
-    for (const [tool, unlockLevel] of Object.entries(TOOL_UNLOCK)) {
-      if (nextId >= unlockLevel && !currentUnlocked.includes(tool)) {
-        newUnlocked.push(tool);
-        newCredits[tool] = (newCredits[tool] || 0) + 3;
-        if (!introTool) introTool = tool; // İlk açılan aracı tanıt
-      }
-    }
-    if (newUnlocked.length > currentUnlocked.length) {
-      await updateProgress({ unlockedTools: newUnlocked, toolCredits: newCredits });
-      setUnlockedTools(newUnlocked);
-      setToolCredits(newCredits);
-    }
-    
-    // ── Cloud sync (arka planda, UI bloklamaz) ──
-    if (user) {
-      const updatedCoins = (prog.coins || 0) + 30 + bonus;
-      syncToCloud({
-        currentLevel: nextId,
-        coins: updatedCoins,
-        totalGames: (prog.totalGames || 0) + 1,
-        totalWins: (prog.totalWins || 0) + 1,
-        bestScore: Math.max(prog.bestScore || 0, gs.score),
-        streak: (prog.streak || 0) + 1,
-        xp: prog.xp || 0,
-      }).catch(() => {}); // Sessizce başarısız olsun
-    }
+    completionPromiseRef.current = { runId: gs.runId, promise };
+    return promise;
+  }, [gs, level, isDaily, isTimed, dailyDate, gameLang, elapsedTime, timeRemaining, user, syncToCloud, t]);
 
-    setLevelId(nextId);
-    const nextState = generateGameState(nextLevel);
-    if (isTimed) nextState.moves = 9999;
-    setGs(nextState);
-    setHistory([]); setSelected(null);
-    setHintCard(null); setHintSlot(null); setCombo(0); comboRef.current = 0; startTimeRef.current = Date.now(); setElapsedTime(0);
-    wrongMovesRef.current = 0;
-    if (isTimed) { setTimeRemaining(getTimedSeconds(nextId)); timedEndRef.current = null; pauseRemainRef.current = null; }
-    // Araç tanıtım popup'ı
-    // BUG FIX: Önceki kod `setCoins((prog.coins||0) + 30 + bonus)` yaparak
-    // achievement bonus'unu UI'dan siliyordu. Şimdi en güncel değeri disk'ten
-    // alıyoruz ki win sırasında kazanılan achievement coin'i ekranda korunsun.
-    try {
-      const latest = await loadProgress();
-      setCoins(latest.coins || 0);
-    } catch (e) {
-      setCoins((prog.coins || 0) + 30 + bonus);
-    }
-    if (introTool) {
-      setTimeout(() => { playSound('unlock'); setToolIntro(TOOL_INFO[introTool]); }, 500);
-    }
-    // Günlük Meydan Okuma tanıtımı (Lv.10)
-    if (nextId === 10 && !(prog.dailyIntroShown)) {
-      await updateProgress({ dailyIntroShown: true });
-      setTimeout(() => { setDailyIntro(true); playSound('unlock'); }, introTool ? 1500 : 500);
-    }
-    // Zamanlı Mod tanıtımı (Lv.5)
-    if (nextId === 5 && !(prog.timedIntroShown)) {
-      await updateProgress({ timedIntroShown: true });
-      setTimeout(() => { setTimedIntro(true); playSound('unlock'); }, introTool ? 1500 : 500);
-    }
-  }, [levelId, gs, level, coins, user, syncToCloud]);
+  useEffect(() => {
+    if (gs.isComplete) ensureCompletion().catch(() => {});
+  }, [gs.isComplete, gs.runId, ensureCompletion]);
 
-  // Hamle bitti → Karıştır (shuffle + 5 hamle ekle)
-  const applyFailedShuffle = useCallback(() => {
-    // Kartları karıştır + 5 hamle ver + isFailed kaldır
-    setGs((prev) => {
-      const allCards = [];
-      const colSizes = [];
-      prev.columns.forEach(col => {
-        if (col.locked) { colSizes.push(-1); return; }
-        colSizes.push(col.cards.length);
-        col.cards.forEach(c => allCards.push({ ...c }));
-      });
-      prev.drawnCards.forEach(c => allCards.push({ ...c }));
-      for (let i = allCards.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [allCards[i], allCards[j]] = [allCards[j], allCards[i]];
+  const completionSummary = completionReceipt || calculateCompletion({ game: gs, level,
+    mode: isDaily ? 'daily' : isTimed ? 'timed' : 'classic', elapsedTime, timeLimit: getTimedSeconds(level.id) });
+
+  const handleNextLevel = useCallback(async () => {
+    if (navigationRef.current || toolActionRef.current || rewardActionRef.current) return;
+    if (pendingAdBoardRef.current) { setFeedback('Kazandığın ödülü önce aynı düğmeden yeniden kaydet.'); return; }
+    navigationRef.current = true;
+    try {
+      const result = await ensureCompletion();
+      if (!result) return;
+      skipSaveRef.current = true; latestSaveRef.current = null;
+      await clearSavedGame(isDaily ? 'daily' : isTimed ? 'timed' : 'classic');
+      if (isDaily) { router.canGoBack() ? router.back() : router.replace('/'); return; }
+      const nextId = levelId + 1;
+      const nextLevel = getLevel(nextId, gameLang);
+      if (!nextLevel) { router.replace('/'); return; }
+      if (nextId % 3 === 0) {
+        try {
+          const ad = await showRewardedInterstitial();
+          if (ad.success) await updateProgress(cur => ({ coins: (cur.coins || 0) + 20 }), {kind:'reward',source:'ad',description:'Reklam ödülü'});
+        } catch (e) { console.warn('[Completion] optional ad skipped'); }
       }
-      let idx = 0;
-      const newColumns = prev.columns.map((col, ci) => {
-        if (col.locked) return col;
-        const size = colSizes[ci];
-        const newCards = allCards.slice(idx, idx + size).map((c, cardIdx) => ({
-          ...c, faceUp: cardIdx === size - 1
-        }));
-        idx += size;
-        return { ...col, cards: newCards };
-      });
-      const newDrawn = allCards.slice(idx).map(c => ({ ...c, faceUp: true }));
-      return { ...prev, columns: newColumns, drawnCards: newDrawn, moves: 5, isFailed: false };
-    });
-    playSound('flip');
-    setFeedback(t.shuffleDone);
-  }, []);
+      setLevelId(nextId);
+      const nextState = {...generateGameState(nextLevel),resetEpoch:gs.resetEpoch || null};
+      if (isTimed) nextState.moves = 9999;
+      skipSaveRef.current = false;
+      completionPromiseRef.current = null;
+      setCompletionReceipt(null); setRewardStatus('saving');
+      setGs(nextState); setHistory([]); setSelected(null); setHintCard(null); setHintSlot(null);
+      setCombo(0); comboRef.current = 0; maxComboRef.current = 0; wrongMovesRef.current = 0;
+      startTimeRef.current = Date.now(); clockPauseStartedRef.current = null; setElapsedTime(0);
+      if (isTimed) { setTimeRemaining(getTimedSeconds(nextId)); timedEndRef.current = null; pauseRemainRef.current = null; }
+      const latest = await loadProgress(); setCoins(latest.coins || 0);
+      const tool = result.receipt.newTools?.[0];
+      if (tool) setTimeout(() => { playSound('unlock'); setToolIntro(TOOL_INFO[tool]); }, 500);
+      if (nextId === 10 && !latest.dailyIntroShown) {
+        await updateProgress({ dailyIntroShown: true }); setDailyIntro(true);
+      }
+      if (nextId === 5 && !latest.timedIntroShown) {
+        await updateProgress({ timedIntroShown: true }); setTimedIntro(true);
+      }
+      if (user) syncToCloud().catch(() => {});
+    } catch (e) { setFeedback(t.rewardSaveError || 'Kayıt tamamlanamadı. Lütfen yeniden dene.'); }
+    finally { navigationRef.current = false; }
+  }, [ensureCompletion, levelId, gameLang, isDaily, isTimed, user, syncToCloud, t]);
+
+  // Failed classic games can continue with a durable shuffle and five moves.
+  const applyFailedShuffle = useCallback(async () => {
+    if (isTimed) return false;
+    const shuffled = shuffleBoard(gs);
+    if (!shuffled) { setFeedback(t.shuffleNoCards); return false; }
+    const next = {...shuffled,moves:5,extraMovesGranted:(gs.extraMovesGranted || 0)+Math.max(0,5-gs.moves),isFailed:false};
+    if (!await commitToolBoard('shuffle',next)) return false;
+    _pendingFailedShuffleRef.current = false;
+    playSound('flip'); setFeedback(t.shuffleDone); return true;
+  }, [isTimed,gs,commitToolBoard,t]);
+
+  const executeShuffle = useCallback(async (method) => {
+    if (toolActionRef.current) return;
+    const progress = await acquireTool('shuffle',method);
+    if (!progress) return;
+    if (_pendingFailedShuffleRef.current) await applyFailedShuffle();
+    else setFeedback(t.shuffleAdded);
+  }, [acquireTool,applyFailedShuffle,t]);
 
   const handleFailedShuffle = useCallback(async () => {
-    if (toolCredits.shuffle > 0) {
-      // Kredi varsa kullan
-      const newCredits = { ...toolCredits, shuffle: toolCredits.shuffle - 1 };
-      setToolCredits(newCredits);
-      await updateProgress({ toolCredits: newCredits });
-      applyFailedShuffle();
-    } else {
-      // Kredi yoksa satın alma modal — satın alınca applyFailedShuffle tetiklenecek
-      _pendingFailedShuffleRef.current = true;
-      setToolModal('shuffle');
-      setGs(prev => ({ ...prev, isFailed: false, moves: 0 }));
-    }
-  }, [toolCredits, applyFailedShuffle]);
+    if (!saveReady || isTimed || toolActionRef.current) return;
+    _pendingFailedShuffleRef.current = true;
+    await applyFailedShuffle();
+  }, [saveReady,isTimed,applyFailedShuffle]);
 
   const handleReplay = useCallback(async () => {
-    const prog = await loadProgress();
-    // Kaybedildiyse streak sıfırla
-    const updates = { totalGames: (prog.totalGames || 0) + 1 };
-    if (gs && gs.isFailed) {
-      updates.streak = 0;
-    }
-    await updateProgress(updates);
-    await clearSavedGame();
-    resetGame();
-  }, [resetGame]);
+    if (navigationRef.current || toolActionRef.current || rewardActionRef.current) return;
+    if (pendingAdBoardRef.current) { setFeedback('Kazandığın ödülü önce aynı düğmeden yeniden kaydet.'); return; }
+    navigationRef.current = true;
+    try {
+      if (gs.isComplete) await ensureCompletion();
+      else await updateProgress(cur => ({ totalGames: (cur.totalGames || 0) + 1,
+        streak: gs.isFailed ? 0 : (cur.streak || 0) }));
+      skipSaveRef.current = true; latestSaveRef.current = null;
+      await clearSavedGame(isDaily ? 'daily' : isTimed ? 'timed' : 'classic'); resetGame();
+    } catch (e) { setFeedback(t.rewardSaveError || 'Kayıt tamamlanamadı. Lütfen yeniden dene.'); }
+    finally { navigationRef.current = false; }
+  }, [gs.isComplete, gs.isFailed, ensureCompletion, resetGame, t]);
 
   const handleHome = useCallback(async () => {
-    const prog = await loadProgress();
-
-    // BUG-1 FIX: Bölüm tamamlandıktan sonra Home'a basılırsa progress save EDİLMELİ
-    // (önceden sadece clearSavedGame çağrılıyordu, leaderboard güncel ama level kayıp oluyordu)
-    if (gs && gs.isComplete && !gs.isFailed) {
-      const bonus = isTimed ? Math.min(levelId * 2, 50) : Math.floor(8 * (gs.moves / level.moves));
-
-      if (isDaily) {
-        const newCoins = (prog.coins || 0) + Math.floor(100 + bonus);
-        await updateProgress({
-          coins: newCoins,
-          totalGames: (prog.totalGames || 0) + 1,
-          totalWins: (prog.totalWins || 0) + 1,
-          bestScore: Math.max(prog.bestScore || 0, gs.score),
-        });
-        try { await markDailyChallengeCompleted(dailyDate); } catch (e) {}
-        if (user) {
-          syncToCloud({
-            currentLevel: prog.currentLevel || 1,
-            coins: newCoins,
-            totalGames: (prog.totalGames || 0) + 1,
-            totalWins: (prog.totalWins || 0) + 1,
-            bestScore: Math.max(prog.bestScore || 0, gs.score),
-            streak: prog.streak || 0,
-            xp: prog.xp || 0,
-          }).catch(() => {});
-        }
-      } else {
-        const nextId = levelId + 1;
-        const safeCurrentLevel = Math.max(nextId, prog.currentLevel || 1);
-        const newCoins = (prog.coins || 0) + 30 + bonus;
-        await updateProgress({
-          currentLevel: safeCurrentLevel,
-          coins: newCoins,
-          totalGames: (prog.totalGames || 0) + 1,
-          totalWins: (prog.totalWins || 0) + 1,
-          bestScore: Math.max(prog.bestScore || 0, gs.score),
-          streak: (prog.streak || 0) + 1,
-        });
-        // Yıldız ve XP
-        const moveRatio = gs.moves / level.moves;
-        const stars = moveRatio > 0.5 ? 3 : moveRatio > 0.25 ? 2 : 1;
-        await saveLevelStars(levelId, stars);
-        await addXP(stars * 50 + Math.floor(levelId / 5) * 10);
-        // Leaderboard
-        try {
-          const avatarId = await loadSelectedAvatar();
-          submitScore({
-            score: Math.max(prog.bestScore || 0, gs.score),
-            level: nextId,
-            totalWins: (prog.totalWins || 0) + 1,
-            language: gameLang,
-            displayName: user?.name,
-            userAvatar: getAvatarEmoji(avatarId),
-          });
-        } catch (e) {}
-        // Cloud sync
-        if (user) {
-          syncToCloud({
-            currentLevel: safeCurrentLevel,
-            coins: newCoins,
-            totalGames: (prog.totalGames || 0) + 1,
-            totalWins: (prog.totalWins || 0) + 1,
-            bestScore: Math.max(prog.bestScore || 0, gs.score),
-            streak: (prog.streak || 0) + 1,
-            xp: prog.xp || 0,
-          }).catch(() => {});
-        }
-      }
-    } else if (gs && gs.isFailed && !gs.isComplete) {
-      // Kaybedilmiş oyundan çıkılırsa streak sıfırla
-      if ((prog.streak || 0) > 0) {
-        await updateProgress({ streak: 0 });
-      }
-    }
-
-    await clearSavedGame();
-    router.canGoBack() ? router.back() : router.replace("/");
-  }, [gs, isDaily, isTimed, levelId, level, gameLang, user, dailyDate]);
+    if (navigationRef.current || toolActionRef.current || rewardActionRef.current) return;
+    if (pendingAdBoardRef.current) { setFeedback('Kazandığın ödülü önce aynı düğmeden yeniden kaydet.'); return; }
+    navigationRef.current = true;
+    try {
+      if (gs.isComplete) await ensureCompletion();
+      else if (!gs.isFailed) await flushGameSave();
+      else await updateProgress({ streak: 0 });
+      skipSaveRef.current = true; latestSaveRef.current = null;
+      if (gs.isComplete || gs.isFailed) await clearSavedGame(isDaily ? 'daily' : isTimed ? 'timed' : 'classic');
+      router.canGoBack() ? router.back() : router.replace('/');
+    } catch (e) { setFeedback(t.rewardSaveError || 'Kayıt tamamlanamadı. Lütfen yeniden dene.'); }
+    finally { navigationRef.current = false; }
+  }, [gs.isComplete, gs.isFailed, ensureCompletion, flushGameSave, t]);
 
   const selId = selected?.card?.id;
   const selectedStackIds = selected?.stackCards ? new Set(selected.stackCards.map((c) => c.id)) : null;
@@ -1810,29 +1541,107 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
   // dragStackIds hesaplanır ama prop olarak geçilmez (performans)
 
   const handleUnlock = useCallback(async (type, index) => {
-    if (adLoadingTool) return;
-    const result = await showRewarded((loading) => {
-      setAdLoadingTool(loading ? 'unlock' : null);
-    });
-    setAdLoadingTool(null);
-    if (result.success) {
-      setGs((prev) => {
-        if (type === 'slot') {
-          const newSlots = prev.slots.map((sl, i) => i === index ? { ...sl, locked: false } : sl);
-          return { ...prev, slots: newSlots };
+    if (!saveReady || !['slot','column'].includes(type) || !Number.isInteger(index)) return;
+    const field = type === 'slot' ? 'slots' : 'columns';
+    if (!gs[field]?.[index]?.locked || gs.isComplete || gs.isFailed) return;
+    if (await applyAdBoardReward(`unlock-${type}-${index}`,game=>{
+      if (!game[field]?.[index] || game.isComplete) return null;
+      return {...game,[field]:game[field].map((item,i)=>i===index ? {...item,locked:false}:item)};
+    })) { setFeedback(t.unlocked); playSound('correct'); }
+  }, [saveReady,gs,applyAdBoardReward,t]);
+
+  const handleDrop = useCallback((dragInfo, dropX, dropY) => {
+    const { card, source, sourceIndex, stackCards } = dragInfo;
+    const stack = stackCards || [card];
+
+    // ÖNCE drag'i temizle
+    cancelDrag();
+
+    // Basit Y tespiti: ekranın üst %45'i → slot, alt %55'i → sütun
+    const isUpperHalf = dropY < SH * 0.45;
+
+    // En yakın hedefi bul — gerçek ölçümlerden
+    const findNearestFromLayouts = (layouts, count) => {
+      let best = -1, bestD = 9999;
+      for (let i = 0; i < count; i++) {
+        const l = layouts[i];
+        if (!l) continue;
+        const center = l.x + l.w / 2;
+        const d = Math.abs(dropX - center);
+        if (d < bestD) { bestD = d; best = i; }
+      }
+      return best;
+    };
+    const findNearest = (count, startX, totalW, layouts) => {
+      // Önce gerçek ölçümlerden dene
+      if (layouts && layouts.length >= count && layouts[0]) {
+        return findNearestFromLayouts(layouts, count);
+      }
+      // Fallback: hesapla
+      const totalGap = COL_GAP * (count - 1);
+      const itemW = (totalW - totalGap) / count;
+      let best = -1, bestD = 9999;
+      for (let i = 0; i < count; i++) {
+        const center = startX + i * (itemW + COL_GAP) + itemW / 2;
+        const d = Math.abs(dropX - center);
+        if (d < bestD) { bestD = d; best = i; }
+      }
+      return best;
+    };
+
+    const trySlot = () => {
+      const idx = findNearest(gs.slots.length, GAME_PAD, SW - GAME_PAD * 2, slotLayoutsRef.current);
+      if (idx < 0 || idx >= gs.slots.length) return false;
+      const slot = gs.slots[idx];
+      // Slot kilitliyse → geç
+      if (slot.locked) return false;
+      // Boş slot + kategori kartı → yerleştir
+      if (!slot.category && card.type === 'category') {
+        placeCard(card, source, sourceIndex, idx);
+        return true;
+      }
+      // Boş slot + kelime kartı → slot'a yerleşemez, sütuna dene
+      // JOKER: Joker de boş slot'a yerleşemez. Joker yapan oyuncu kartı 
+      // dolu (kategorisi atanmış, henüz tamamlanmamış) bir slot'a sürüklemeli.
+      if (!slot.category && card.type === 'word') {
+        if (card.isJoker) {
+          setFeedback(t.jokerNeedFilledSlot || '🃏 Joker\'i dolu bir kategori slotuna sürükle');
         }
-        if (type === 'column') {
-          const newCols = prev.columns.map((col, i) => i === index ? { ...col, locked: false } : col);
-          return { ...prev, columns: newCols };
+        return false;
+      }
+      // Dolu slot + kategori kartı → zaten dolu, sütuna dene
+      if (slot.category && card.type === 'category') return false;
+      // Dolu slot + kelime kartı → KATEGORİ EŞLEŞME kontrolü
+      if (slot.category && card.type === 'word') {
+        if (card.categoryIndex === slot.category.categoryIndex || card.isJoker) {
+          placeCard(card, source, sourceIndex, idx);
+          return true;
         }
-        return prev;
-      });
-      setFeedback(t.unlocked);
-      playSound('correct');
+        // Eşleşmiyorsa → sütuna dene (slot'u titretme!)
+        return false;
+      }
+      return false;
+    };
+
+    const tryColumn = () => {
+      const idx = findNearest(gs.columns.length, GAME_PAD, SW - GAME_PAD * 2, colLayoutsRef.current);
+      if (idx >= 0 && idx < gs.columns.length) {
+        if (stack.length > 1) moveStackToColumn(stack, source, sourceIndex, idx);
+        else moveToColumn(card, source, sourceIndex, idx);
+        return true;
+      }
+      return false;
+    };
+
+    // Üst yarı → önce slot, sonra sütun. Alt yarı → önce sütun, sonra slot.
+    if (isUpperHalf) {
+      if (!trySlot()) tryColumn();
     } else {
-      setFeedback(t.adFailed || 'Reklam yuklenemedi');
+      if (!tryColumn()) trySlot();
     }
-  }, [adLoadingTool, t]);
+  }, [gs.slots, gs.columns, placeCard, moveToColumn, moveStackToColumn, cancelDrag]);
+  handleDropRef.current = handleDrop;
+
 
   return (
     <View 
@@ -1841,6 +1650,16 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       <ImageBackground source={BG_STARS} style={StyleSheet.absoluteFillObject} resizeMode="cover">
         <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(21, 6, 41, 0.65)' }} />
       </ImageBackground>
+
+      {!saveReady && <View style={st.adLoadingOverlay}>
+        <View style={st.adLoadingCard}>
+          <Text style={st.adLoadingText}>{saveLoadError ? (gameLang === 'tr' ? 'Oyun kaydı okunamadı. Verilerin korunuyor.' : 'Could not read your save. Your data is preserved.') : (gameLang === 'tr' ? 'Oyun kaydı yükleniyor…' : 'Loading your save…')}</Text>
+          {saveLoadError ? <>
+            <TouchableOpacity onPress={() => {setSaveLoadError(null);setLoadAttempt(n=>n+1);}}><Text style={{color:'#fff',marginTop:16}}>{gameLang === 'tr' ? 'Tekrar dene' : 'Try again'}</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => router.replace('/')}><Text style={{color:'#fff',marginTop:16}}>{t.home}</Text></TouchableOpacity>
+          </> : <ActivityIndicator color="#fff" style={{marginTop:12}} />}
+        </View>
+      </View>}
 
       {/* Sparkle */}
       {sparkle && <SparkleEffect visible={true} x={sparkle.x} y={sparkle.y} />}
@@ -2236,11 +2055,11 @@ const slotLayoutsRef = useRef([]); // her slot'un {x, y, w, h} ölçümü
       {gs.isComplete && (
         <>
           <ConfettiEffect />
-          <LevelCompleteOverlay t={t} score={gs.score} coins={isDaily ? 100 : 30} movesLeft={isTimed ? 0 : gs.moves} maxMoves={level.moves} levelId={gs.levelId} combo={combo} isDaily={isDaily} elapsedTime={elapsedTime} onNext={handleNextLevel} onReplay={handleReplay} onHome={handleHome} />
+          <LevelCompleteOverlay t={t} score={gs.score} summary={completionSummary} rewardStatus={rewardStatus} levelId={gs.levelId} combo={combo} isDaily={isDaily} elapsedTime={elapsedTime} onNext={handleNextLevel} onReplay={handleReplay} onHome={handleHome} />
         </>
       )}
-      {gs.isFailed && !gs.isComplete && (
-        <LevelFailedOverlay t={t} levelId={gs.levelId} onAddMovesAd={addMovesAd} onAddMovesCoin={addMovesCoin} onShuffle={handleFailedShuffle} onReplay={handleReplay} onHome={handleHome} />
+      {gs.isFailed && !gs.isComplete && !toolModal && (
+        <LevelFailedOverlay t={t} isTimed={isTimed} levelId={gs.levelId} onAddMovesAd={addMovesAd} onAddMovesCoin={addMovesCoin} onShuffle={handleFailedShuffle} onReplay={handleReplay} onHome={handleHome} />
       )}
 
       {/* Floating drag card — her zaman render, opacity ile gizle */}
@@ -2432,3 +2251,4 @@ const st = StyleSheet.create({
   adBannerSpace: { position: 'absolute', bottom: 0, left: 0, right: 0, minHeight: 50, alignItems: 'center', justifyContent: 'center', zIndex: 99 },
   achievPopup: { position: 'absolute', top: 100, left: 20, right: 20, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(30,10,50,0.95)', borderRadius: 16, padding: 14, borderWidth: 1.5, borderColor: '#FFD166', shadowColor: '#FFD166', shadowOpacity: 0.5, shadowRadius: 12, elevation: 10, zIndex: 200 },
 });
+

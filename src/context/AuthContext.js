@@ -13,8 +13,9 @@ try {
     signInWithGoogle: async () => ({ error: 'Auth kullanılamıyor' }),
     signInWithApple: async () => ({ error: 'Auth kullanılamıyor' }),
     signOut: async () => {},
-    deleteAccount: async () => ({ success: true }),
+    deleteAccount: async () => ({ success: false, error: 'Hesap silme hizmeti kullanılamıyor.' }),
     syncProgressToCloud: async () => null,
+    preserveLocalAccountBackup: async () => {},
     loadProgressFromCloud: async () => null,
   };
 }
@@ -30,31 +31,27 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   const [hasSeenLogin, setHasSeenLogin] = useState(true); // default true to avoid flash
-  const initDone = useRef(false);
+  const [cloudStatus, setCloudStatus] = useState('idle');
+  const [cloudError, setCloudError] = useState(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState(null);
+  const initTask = useRef(null);
+  const loginTask = useRef(null);
+  const mutationTask = useRef(null);
+  const syncTicket = useRef(0);
 
-  // Init auth + check if login screen was seen before
-  // StrictMode / hot-reload safe: initDone guard'ı only init işini tekilleştirir,
-  // listener her mount'ta yeniden bağlanır ve cleanup'ta temizlenir.
   useEffect(() => {
     let cancelled = false;
-
-    const runInit = async () => {
-      if (initDone.current) return;
-      initDone.current = true;
-      try {
-        const seen = await AsyncStorage?.getItem(HAS_SEEN_LOGIN_KEY);
-        if (!cancelled) setHasSeenLogin(seen === 'true');
-      } catch (e) {
-        if (!cancelled) setHasSeenLogin(false);
-      }
+    if (!initTask.current) initTask.current = (async () => {
+      let seen = false;
+      try { seen = (await AsyncStorage?.getItem(HAS_SEEN_LOGIN_KEY)) === 'true'; } catch (e) {}
       await authModule.initAuth();
-      if (!cancelled) setAuthReady(true);
-    };
-    runInit();
-
-    // Listener her mount'ta yenilenir — initDone guard'ının dışında
-    const unsub = authModule.onAuthChange((u) => { if (!cancelled) setUser(u); });
-    return () => { cancelled = true; unsub && unsub(); };
+      return seen;
+    })();
+    initTask.current.then(seen => {
+      if (!cancelled) { setHasSeenLogin(seen); setAuthReady(true); }
+    }).catch(() => { if (!cancelled) setAuthReady(true); });
+    const unsub = authModule.onAuthChange(u => { if (!cancelled) { syncTicket.current++; setUser(u); } });
+    return () => { cancelled = true; unsub?.(); };
   }, []);
 
   const markLoginSeen = useCallback(async () => {
@@ -62,63 +59,95 @@ export function AuthProvider({ children }) {
     try { await AsyncStorage?.setItem(HAS_SEEN_LOGIN_KEY, 'true'); } catch (e) {}
   }, []);
 
-  const handleGoogleLogin = useCallback(async () => {
-    setLoading(true);
-    const result = await authModule.signInWithGoogle();
-    setLoading(false);
-    if (result.error) return { error: result.error, code: result.code };
-    await markLoginSeen();
-    return { user: result.user };
+  const loginWith = useCallback((provider,credentials) => {
+    if (mutationTask.current) return Promise.resolve({error:'Hesap işlemi sürüyor. Lütfen bekle.',code:'busy'});
+    if (loginTask.current) return loginTask.current;
+    loginTask.current = Promise.resolve().then(async () => {
+      setLoading(true);
+      try {
+        const result = provider === 'google' ? await authModule.signInWithGoogle() : provider === 'test' ? await authModule.signInWithTestAccount(credentials.email,credentials.password) : await authModule.signInWithApple();
+        if (result?.error) return {error:result.error,code:result.code};
+        if (!result?.user?.id) return {error:'Oturum doğrulanamadı. Lütfen tekrar dene.',code:'no_session'};
+        setUser(result.user);
+        await markLoginSeen();
+        return {user:result.user};
+      } catch (error) { return {error:error.message || 'Giriş tamamlanamadı.',code:'login_failed'}; }
+      finally { setLoading(false); loginTask.current = null; }
+    });
+    return loginTask.current;
   }, [markLoginSeen]);
-
-  const handleAppleLogin = useCallback(async () => {
-    setLoading(true);
-    const result = await authModule.signInWithApple();
-    setLoading(false);
-    if (result.error) return { error: result.error, code: result.code };
-    await markLoginSeen();
-    return { user: result.user };
-  }, [markLoginSeen]);
+  const handleGoogleLogin = useCallback(() => loginWith('google'),[loginWith]);
+  const handleAppleLogin = useCallback(() => loginWith('apple'),[loginWith]);
+  const handleTestLogin = useCallback((email,password)=>loginWith('test',{email,password}),[loginWith]);
 
   const handleSkipLogin = useCallback(async () => {
     await markLoginSeen();
   }, [markLoginSeen]);
 
-  const handleSignOut = useCallback(async () => {
+  const syncToCloud = useCallback(async (_legacySnapshot, choice) => {
+    const ticket=++syncTicket.current,accountId=authModule.getUser?.()?.id;
+    const current=()=>ticket===syncTicket.current && authModule.getUser?.()?.id===accountId;
+    setCloudStatus('syncing');
+    try {
+      const result = await authModule.syncProgressToCloud(undefined, choice);
+      if (current()) {
+        if (result) { setCloudStatus('saved'); setCloudError(null); setLastSyncedAt(Date.now()); }
+        else setCloudStatus('idle');
+      }
+      return result;
+    } catch (error) {
+      if (current()) {
+        setCloudStatus(error.code === 'BOOTSTRAP_CONFLICT' ? 'conflict' : 'error');
+        setCloudError(error);
+      }
+      throw error;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (authReady && user?.id) syncToCloud().catch(() => {});
+    else { setCloudStatus('idle'); setCloudError(null); setLastSyncedAt(null); }
+  }, [authReady, user?.id, syncToCloud]);
+
+  const mutateAccount = useCallback(action=>{
+    if (mutationTask.current || loginTask.current) return Promise.resolve({success:false,error:'Başka bir hesap işlemi sürüyor. Lütfen bekle.'});
+    mutationTask.current = Promise.resolve().then(async()=>{
+      setLoading(true);
+      try { return await action(); }
+      catch (error) { return {success:false,error:'Hesap işlemi tamamlanamadı. Yeniden dene.'}; }
+      finally { mutationTask.current=null; setLoading(false); }
+    });
+    return mutationTask.current;
+  }, []);
+
+  const handleSignOut = useCallback(() => mutateAccount(async () => {
     // Sign-out öncesi son bir kez yerel -> cloud sync ki kullanıcı ilerlemesini
     // kaybetmesin. Sonra supabase'den çıkış + yerel veri temizliği.
-    try {
-      const { loadProgress } = require('../utils/storage');
-      const local = await loadProgress();
-      await authModule.syncProgressToCloud(local);
-    } catch (e) {}
-    await authModule.signOut();
+    try { await syncToCloud(); }
+    catch (e) {
+      // An offline user may sign out only after a durable account-scoped backup.
+      try { await authModule.preserveLocalAccountBackup(); }
+      catch (backupError) { return { success:false, error:'Yerel kayıt korunamadı. Lütfen yeniden dene.' }; }
+    }
+    try { await authModule.signOut(); }
+    catch (error) { return {success:false,error:'Hesaptan çıkış tamamlanamadı. İlerlemen korunuyor. Lütfen yeniden dene.'}; }
     // Hesaplar arası veri sızıntısını önle: Kullanıcı A çıkış yapıp B'ye
     // girerse, A'nın local coin/level'i Math.max merge ile B'nin cloud'una
     // geçerdi. Local ilerlemeyi varsayılana döndür (settings/device_id korunur).
     try {
       const { resetUserScopedData } = require('../utils/storage');
       await resetUserScopedData();
-    } catch (e) {}
-  }, []);
+    } catch (e) { return {success:false,error:'Çıkış yapıldı ancak yerel kayıt temizliği tamamlanamadı. Uygulamayı yeniden açarak tekrar dene.'}; }
+    return { success:true };
+  }), [syncToCloud,mutateAccount]);
 
   // Apple 5.1.1(v): Hesap silme — cloud + local tüm verileri siler
-  const handleDeleteAccount = useCallback(async () => {
+  const handleDeleteAccount = useCallback(() => mutateAccount(async () => {
     const result = await authModule.deleteAccount();
-    if (result.success) {
-      try {
-        const { resetUserScopedData } = require('../utils/storage');
-        await resetUserScopedData();
-      } catch (e) {}
-    }
     return result;
-  }, []);
+  }), [mutateAccount]);
 
   // Cloud sync helpers
-  const syncToCloud = useCallback(async (localProgress) => {
-    return await authModule.syncProgressToCloud(localProgress);
-  }, []);
-
   const loadFromCloud = useCallback(async () => {
     return await authModule.loadProgressFromCloud();
   }, []);
@@ -133,12 +162,13 @@ export function AuthProvider({ children }) {
     shouldShowLogin,
     isAppleAvailable: Platform.OS === 'ios',
     handleGoogleLogin,
-    handleAppleLogin,
+    handleAppleLogin, handleTestLogin,
     handleSkipLogin,
     handleSignOut,
     handleDeleteAccount,
     syncToCloud,
     loadFromCloud,
+    cloudStatus, cloudError, lastSyncedAt,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -151,3 +181,4 @@ export function useAuth() {
 }
 
 export default AuthContext;
+

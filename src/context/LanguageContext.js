@@ -6,6 +6,7 @@ const LanguageContext = createContext({ lang: 'tr', t: getT('tr'), setLang: () =
 
 export function LanguageProvider({ children }) {
   const [lang, setLangState] = useState('tr');
+  const [languageReady, setLanguageReady] = useState(false);
   const [t, setT] = useState(getT('tr'));
 
   useEffect(() => {
@@ -13,7 +14,7 @@ export function LanguageProvider({ children }) {
       const l = s.language || 'tr';
       setLangState(l);
       setT(getT(l));
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => setLanguageReady(true));
   }, []);
 
   const setLang = async (code) => {
@@ -25,7 +26,7 @@ export function LanguageProvider({ children }) {
 
   return (
     <LanguageContext.Provider value={{ lang, t, setLang }}>
-      {children}
+      {languageReady ? children : null}
     </LanguageContext.Provider>
   );
 }
@@ -33,3 +34,4 @@ export function LanguageProvider({ children }) {
 export function useLang() {
   return useContext(LanguageContext);
 }
+

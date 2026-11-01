@@ -1,5 +1,6 @@
+import { getAuthDiagnostics } from '../src/utils/auth';
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView, Image, Alert, Linking , ImageBackground} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Switch, ScrollView, Image, Alert, Linking , ImageBackground} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -15,6 +16,7 @@ import { getAdDiagnostics } from '../src/utils/ads';
 const BG_STARS = require('../assets/bg-stars.webp');
 
 const APP_VERSION = Constants?.expoConfig?.version || '1.0.0';
+const AUDIT_QA = Constants?.expoConfig?.extra?.auditQa === true;
 
 const LANG_OPTIONS = [
   { code: 'tr', flag: '🇹🇷', name: 'Türkçe' },
@@ -28,13 +30,15 @@ const LANG_OPTIONS = [
 
 export default function SettingsScreen() {
   const { lang, t, setLang } = useLang();
-  const { user, loading, handleGoogleLogin, handleAppleLogin, handleSignOut, handleDeleteAccount, isAppleAvailable, syncToCloud } = useAuth();
+  const { user, loading, handleGoogleLogin, handleAppleLogin, handleTestLogin, handleSignOut, handleDeleteAccount, isAppleAvailable, syncToCloud, cloudStatus, cloudError, lastSyncedAt } = useAuth();
   const [sound, setSound] = useState(true);
   const [vibration, setVibration] = useState(true);
   const [bgm, setBgm] = useState(true);
   const [coins, setCoins] = useState(0);
   const [busy, setBusy] = useState(false);
   const [showLangPicker, setShowLangPicker] = useState(false);
+  const [testEmail,setTestEmail] = useState('tilsim.qa.20261101@example.invalid');
+  const [testPassword,setTestPassword] = useState('');
 
   useEffect(() => {
     loadSettings().then((s) => {
@@ -79,7 +83,19 @@ export default function SettingsScreen() {
   const handleReset = () => {
     Alert.alert(t.resetProgress, t.resetConfirm, [
       { text: t.cancel, style: 'cancel' },
-      { text: t.reset, style: 'destructive', onPress: async () => { await resetAll(); router.replace('/'); } },
+      { text: t.reset, style: 'destructive', onPress: async () => {
+        if (busy) return;
+        setBusy(true);
+        try {
+          await resetAll();
+          if (user) {
+            try { await syncToCloud(undefined,'device'); }
+            catch (error) { Alert.alert(t.cloudSave || 'Bulut kaydı','Bu cihazdaki ilerleme sıfırlandı. Bulut kaydı henüz güncellenemedi; eski kayıt otomatik geri yüklenmeyecek. Bağlantı geldiğinde bulut eşitlemesini yeniden dene.'); }
+          }
+          router.replace('/');
+        } catch (error) { Alert.alert(t.cloudSave || 'Kayıt','Sıfırlama tamamlanamadı. Mevcut kayıt korunuyor; yeniden dene.'); }
+        finally { setBusy(false); }
+      } },
     ]);
   };
 
@@ -106,6 +122,9 @@ export default function SettingsScreen() {
       <ScrollView style={{ flex: 1 }} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Oyun Tercihleri */}
+        <TouchableOpacity style={[s.card,{padding:16}]} onPress={()=>router.push('/wallet')}>
+          <Text style={{color:COLORS.primary,fontFamily:FONTS.bodyBold}}>{t.walletTitle || 'Coin hareketleri'} →</Text>
+        </TouchableOpacity>
         <View style={s.sectionHeader}>
           <MaterialIcons name="tune" size={18} color={COLORS.primary} />
           <Text style={s.sectionTitle}>{t.gamePrefs}</Text>
@@ -127,6 +146,23 @@ export default function SettingsScreen() {
           <SettingRow icon="translate" iconColor={COLORS.secondary} label={t.language} right={<ChevronValue value={LANG_OPTIONS.find(l => l.code === lang)?.flag + ' ' + LANG_OPTIONS.find(l => l.code === lang)?.name || 'Türkçe'} />} />
         </TouchableOpacity>
 
+        {AUDIT_QA && <View style={[s.card,{padding:16,gap:12}]}>
+          <Text style={{color:COLORS.coin,fontFamily:FONTS.headline}}>Tılsım Test · Denetim sürümü</Text>
+          <Text style={{color:COLORS.onSurfaceVariant}}>Bu ayrı test sürümüdür. Reklamlar test reklamıdır. Silme deneyi yalnız geçici test profiliyle yapılabilir.</Text>
+          {user ? <Text style={{color:COLORS.onSurfaceVariant}}>Geçici test hesabına girmeden önce aşağıdan mevcut hesaptan çıkış yap.</Text> : <>
+            <TextInput accessibilityLabel="Test e-posta adresi" value={testEmail} onChangeText={setTestEmail} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" editable={!busy&&!loading} style={{color:COLORS.onSurface,borderColor:COLORS.outlineVariant,borderWidth:1,borderRadius:12,padding:12}} />
+            <TextInput accessibilityLabel="Test hesabı şifresi" placeholder="Yalnız test için belirlediğin şifre" placeholderTextColor={COLORS.onSurfaceVariant} value={testPassword} onChangeText={setTestPassword} secureTextEntry autoCapitalize="none" autoCorrect={false} editable={!busy&&!loading} style={{color:COLORS.onSurface,borderColor:COLORS.outlineVariant,borderWidth:1,borderRadius:12,padding:12}} />
+            <TouchableOpacity disabled={busy||loading||!testPassword} onPress={async()=>{
+              setBusy(true);
+              try {
+                const result=await handleTestLogin(testEmail,testPassword);
+                if(result.error) Alert.alert('Test hesabı',result.error);
+                else Alert.alert('Test hesabı','Geçici test profiline giriş yapıldı.');
+              } finally {setTestPassword('');setBusy(false);}
+            }}><Text style={{color:COLORS.primary,fontFamily:FONTS.headline}}>{loading||busy?'Giriş yapılıyor…':'Test hesabıyla giriş yap'}</Text></TouchableOpacity>
+          </>}
+        </View>}
+
         {/* Hesap */}
         <View style={s.sectionHeader}>
           <MaterialIcons name="person" size={18} color={COLORS.coin} />
@@ -134,6 +170,19 @@ export default function SettingsScreen() {
         </View>
         {user ? (
           <View style={s.card}>
+            <View style={{ padding:16, gap:8 }}>
+              <Text style={{ color:COLORS.onSurface, fontFamily:FONTS.bodyBold }}>{t.cloudSave || 'Bulut kaydı'}</Text>
+              <Text style={{ color:COLORS.onSurfaceVariant }}>{cloudStatus === 'saved' ? (t.cloudSaved || 'Kaydın bulutla eşitlendi.') : cloudStatus === 'syncing' ? (t.cloudSaving || 'Kaydın eşitleniyor…') : cloudStatus === 'conflict' ? (t.cloudConflict || 'Bu cihazın kaydıyla buluttaki kayıt farklı. Hangisini kullanacağını seçebilirsin.') : cloudStatus === 'error' ? (t.cloudPending || 'Kaydın bu cihazda korunuyor. Bulut eşitlemesi henüz tamamlanmadı.') : (t.cloudNotSynced || 'Henüz eşitlenmedi.')}</Text>
+              {lastSyncedAt && <Text style={{ color:COLORS.onSurfaceVariant }}>{new Date(lastSyncedAt).toLocaleTimeString()}</Text>}
+              {cloudStatus === 'conflict' && <>
+                <Text style={{color:COLORS.onSurfaceVariant}}>{t.deviceSave || 'Bu cihaz'}: {cloudError?.local?.currentLevel} · {cloudError?.local?.coins} {t.gold || 'coin'}{ '\n' }{t.cloudSave || 'Bulut'}: {cloudError?.remote?.currentLevel} · {cloudError?.remote?.coins} {t.gold || 'coin'}</Text>
+                {['device','cloud'].map(choice => <TouchableOpacity key={choice} onPress={() => Alert.alert(t.cloudChoose || 'Kayıt seçimi', t.cloudChooseInfo || 'Seçmediğin kopya kurtarma için saklanır.', [
+                  {text:t.cancel || 'Vazgeç',style:'cancel'},
+                  {text:choice === 'device' ? (t.useDevice || 'Bu cihazı kullan') : (t.useCloud || 'Buluttaki kaydı kullan'),onPress:()=>syncToCloud(undefined,choice).then(p=>{if(p)setCoins(p.coins);}).catch(()=>{})},
+                ])}><Text style={{color:COLORS.primary,paddingVertical:8}}>{choice === 'device' ? (t.useDevice || 'Bu cihazı kullan') : (t.useCloud || 'Buluttaki kaydı kullan')}</Text></TouchableOpacity>)}
+              </>}
+              {cloudStatus !== 'syncing' && cloudStatus !== 'conflict' && <TouchableOpacity onPress={() => syncToCloud().then(p=>{if(p)setCoins(p.coins);}).catch(()=>{})}><Text style={{color:COLORS.primary}}>{t.syncNow || 'Şimdi eşitle'}</Text></TouchableOpacity>}
+            </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 }}>
               <MaterialIcons name="account-circle" size={40} color={COLORS.primary} />
               <View style={{ flex: 1 }}>
@@ -145,7 +194,8 @@ export default function SettingsScreen() {
             </View>
             <View style={s.divider} />
             <TouchableOpacity style={{ padding: 14, alignItems: 'center' }} onPress={async () => {
-              await handleSignOut();
+              const result = await handleSignOut();
+              if (result?.success === false) { Alert.alert(t.cloudSave || 'Bulut kaydı', result.error); return; }
               Alert.alert(t.signedOut || 'Çıkış yapıldı');
               router.replace('/');
             }}>
@@ -229,9 +279,9 @@ export default function SettingsScreen() {
           </View>
           <Text
             style={s.footerVersion}
-            onLongPress={() => Alert.alert('Destek / Support', JSON.stringify(getAdDiagnostics(), null, 2))}
+            onLongPress={() => Alert.alert('Destek / Support', JSON.stringify({ads:getAdDiagnostics(),auth:getAuthDiagnostics()}, null, 2))}
             accessibilityHint="Support information"
-          >VERSION V{APP_VERSION} · R2</Text>
+          >VERSION V{APP_VERSION} · S2 TEST</Text>
         </View>
 
         <View style={{ height: 120 }} />
@@ -356,3 +406,4 @@ const s = StyleSheet.create({
   langClose: { marginTop: 12, paddingVertical: 12, paddingHorizontal: 40, borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.primary },
   langCloseText: { fontFamily: FONTS.headlineBlack, fontSize: 14, color: COLORS.primary },
 });
+

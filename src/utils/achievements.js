@@ -1,4 +1,5 @@
 // Başarım Sistemi
+import { updateProgress } from './storage';
 let AsyncStorage;
 try { AsyncStorage = require('@react-native-async-storage/async-storage').default; } catch (e) {}
 
@@ -8,13 +9,14 @@ async function withLock(key, fn) {
   const prev = _locks.get(key) || Promise.resolve();
   let release;
   const next = new Promise((r) => { release = r; });
-  _locks.set(key, prev.then(() => next));
+  const queued = prev.then(() => next);
+  _locks.set(key, queued);
   try {
     await prev;
     return await fn();
   } finally {
     release();
-    if (_locks.get(key) === next) _locks.delete(key);
+    if (_locks.get(key) === queued) _locks.delete(key);
   }
 }
 
@@ -104,10 +106,8 @@ export async function loadAchievements() {
 }
 
 export async function saveAchievements(map) {
-  try {
-    if (!AsyncStorage) return;
-    await AsyncStorage.setItem(ACHIEV_KEY, JSON.stringify(map));
-  } catch (e) {}
+  if (!AsyncStorage) throw new Error('Achievement storage unavailable');
+  await AsyncStorage.setItem(ACHIEV_KEY, JSON.stringify(map));
 }
 
 export async function checkAchievements(stats) {
@@ -134,19 +134,31 @@ export async function checkAchievements(stats) {
 
 // YENİ: Tek bir başarımın ödülünü topla
 export async function claimAchievement(id) {
+  return claimAchievements([id]);
+}
+
+// The payment and its receipt share the progress record. A crash between the
+// payment and marking the achievement claimed can therefore never pay twice.
+export async function claimAchievements(ids) {
   return withLock(ACHIEV_KEY, async () => {
     const current = await loadAchievements();
-    const entry = current[id];
-    if (!entry) return { success: false, reward: 0, reason: 'not_unlocked' };
-    if (entry.claimed) return { success: false, reward: 0, reason: 'already_claimed' };
-
-    const ach = ACHIEVEMENTS.find(a => a.id === id);
-    const reward = ach?.reward || 0;
-
-    current[id] = { ...entry, claimed: true, claimedAt: Date.now() };
-    await saveAchievements(current);
-
-    return { success: true, reward };
+    const eligible = [...new Set(ids)].filter(id => current[id]?.claimed === false && ACHIEVEMENTS.some(a => a.id === id));
+    if (!eligible.length) return { success: false, reward: 0, reason: 'already_claimed_or_not_unlocked' };
+    let reward = 0;
+    const progress = await updateProgress(cur => {
+      const receipts = new Set(cur.claimedAchievementIds || []);
+      const unpaid = eligible.filter(id => !receipts.has(id));
+      reward = unpaid.reduce((sum, id) => sum + ACHIEVEMENTS.find(a => a.id === id).reward, 0);
+      eligible.forEach(id => receipts.add(id));
+      const achievementPayouts = { ...(cur.achievementPayouts || {}) };
+      unpaid.forEach(id => { achievementPayouts[id] = { coins: ACHIEVEMENTS.find(a => a.id === id).reward }; });
+      return { coins: (cur.coins || 0) + reward, claimedAchievementIds: [...receipts], achievementPayouts, unseenAch: Math.max(0, (cur.unseenAch || 0) - unpaid.length) };
+    }, {kind:'achievement',source:'achievement',description:'Başarım ödülü'});
+    eligible.forEach(id => { current[id] = { ...current[id], claimed: true, claimedAt: Date.now() }; });
+    // The receipt is authoritative if this secondary write fails. Retry repairs
+    // the display flag without awarding money again.
+    try { await saveAchievements(current); } catch (e) { console.warn('[Achievements] claim flag pending'); }
+    return { success: true, reward, coins: progress.coins };
   });
 }
 
@@ -496,3 +508,4 @@ export const ACHIEVEMENT_I18N = {
     combo_15: ['Ракетное комбо', '15+ комбо'],
   },
 };
+

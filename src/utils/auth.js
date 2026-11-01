@@ -1,3 +1,6 @@
+import { createCloudSync } from './cloudSync';
+import { loadProgress, updateProgress, loadCloudJournal, saveCloudJournal, loadXP, loadLevelStars, recoverLocalCleanup, resetUserScopedData, getPendingAccountDeletion, rememberAccountDeletion, clearPendingAccountDeletion, prepareAccountLocalData } from './storage';
+
 // Auth — Google (Android/iOS) + Apple (iOS) via Supabase
 // Expo Go-safe: lazy imports throughout
 
@@ -33,100 +36,169 @@ function userFromSession(session) {
   };
 }
 
-let _authSubscribed = false;
-
-// ─── Init ────────────────────────────────────────────────────
-export async function initAuth() {
-  try {
-    supabase = require('./supabase').default;
-    if (!supabase) return null;
-
-    const { data } = await supabase.auth.getSession();
-    if (data?.session) {
-      currentUser = userFromSession(data.session);
-      notifyListeners();
-    }
-
-    // Tek subscription yeterli — multiple initAuth çağrılarında duplicate listener olmasın
-    if (!_authSubscribed) {
-      _authSubscribed = true;
-      supabase.auth.onAuthStateChange((_event, session) => {
-        currentUser = userFromSession(session);
-        notifyListeners();
-      });
-    }
-  } catch (e) {
-    console.log('[Auth] init skipped:', e.message);
+async function publishSession(session, revision) {
+  const next = userFromSession(session);
+  if (next && typeof prepareAccountLocalData === 'function') {
+    if (currentUser && currentUser.id !== next.id) { currentUser=null; notifyListeners(); }
+    await prepareAccountLocalData(next.id);
   }
+  if (revision !== sessionRevision) return currentUser;
+  currentUser=next; notifyListeners();
   return currentUser;
 }
 
-// ─── Google Sign-In (Supabase OAuth) ────────
-export async function signInWithGoogle() {
+let _authSubscribed = false;
+let authInitPromise = null;
+let googleLoginPromise = null;
+let sessionRevision = 0;
+let lastAuthEvent = null;
+let authPhase = 'idle';
+let lastAuthError = null;
+let refreshSubscription = null;
+
+function authFailure(code, error) {
+  const message = String(error?.message || error || code)
+    .replace(/([?&#](?:access_token|refresh_token|code)=)[^&\s]+/gi,'$1[redacted]')
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,'[email]');
+  lastAuthError = {code,message};
+  return {error:message,code};
+}
+
+export function getAuthDiagnostics() {
+  return {revision:'auth-20261101-audit',phase:authPhase,lastEvent:lastAuthEvent,
+    hasSession:!!currentUser,lastError:lastAuthError};
+}
+
+function installRefreshLifecycle() {
+  if (refreshSubscription) return;
   try {
-    if (!supabase) return { error: 'Supabase connection unavailable', code: 'no_supabase' };
+    const { AppState, Platform } = require('react-native');
+    if (Platform.OS === 'web' || !supabase.auth.startAutoRefresh) return;
+    const refresh = state => {
+      const action = state === 'active' ? supabase.auth.startAutoRefresh() : supabase.auth.stopAutoRefresh();
+      Promise.resolve(action).catch(() => {});
+    };
+    refreshSubscription = AppState.addEventListener('change',refresh);
+    refresh(AppState.currentState || 'active');
+  } catch (error) {}
+}
 
-    const { makeRedirectUri } = require('expo-auth-session');
-    const WebBrowser = require('expo-web-browser');
-    const Constants = require('expo-constants');
-    WebBrowser.maybeCompleteAuthSession();
-
-    // Build redirect URL
-    const isExpoGo = Constants.default?.appOwnership === 'expo';
-    const hostUri = Constants.default?.expoConfig?.hostUri;
-    const redirectUrl = isExpoGo && hostUri
-      ? `exp://${hostUri}/--/`
-      : makeRedirectUri({ scheme: 'tilsim-solitaire' });
-
-    console.log('[Auth] redirectUrl:', redirectUrl);
-
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: redirectUrl, skipBrowserRedirect: true },
-    });
-
-    if (error) return { error: error.message };
-    if (!data?.url) return { error: 'OAuth URL unavailable', code: 'no_oauth_url' };
-
-    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
-    console.log('[Auth] result type:', result.type);
-
-    if (result.type === 'success' && result.url) {
-      console.log('[Auth] result url:', result.url.substring(0, 80));
-      // Tokens come in hash fragment: #access_token=...&refresh_token=...
-      const hashPart = result.url.split('#')[1];
-      if (hashPart) {
-        const params = new URLSearchParams(hashPart);
-        const access_token = params.get('access_token');
-        const refresh_token = params.get('refresh_token');
-
-        if (access_token) {
-          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-            access_token,
-            refresh_token,
-          });
-          if (sessionError) return { error: sessionError.message };
-          // Listener'ın currentUser'ı güncellemesini bekle (race fix)
-          const sessionUser = userFromSession(sessionData?.session);
-          if (sessionUser) {
-            currentUser = sessionUser;
-            notifyListeners();
-          }
-          return { user: currentUser };
-        }
+// Subscribe before the initial read. A late cached read cannot replace a newer login.
+export function initAuth() {
+  if (authInitPromise) return authInitPromise;
+  authInitPromise = (async () => {
+    try {
+      if (typeof recoverLocalCleanup === 'function') {
+        try { await recoverLocalCleanup(); } catch (error) { authPhase='cleanup_failed'; throw error; }
       }
-      return { error: 'Could not retrieve token', code: 'no_token' };
-    }
+      supabase = require('./supabase').default;
+      if (!supabase) return null;
+      const pendingDeletion = typeof getPendingAccountDeletion === 'function' ? await getPendingAccountDeletion() : null;
+      if (pendingDeletion) {
+        try { await completeDeletedAccount(pendingDeletion.accountId); } catch (error) { authPhase='cleanup_failed'; throw error; }
+      }
+      if (!_authSubscribed) {
+        supabase.auth.onAuthStateChange((event, session) => {
+          sessionRevision++;
+          lastAuthEvent = event;
+          // Do not show Connected for an OAuth session that has not passed persistence checks.
+          if (googleLoginPromise && authPhase === 'saving_session' && event !== 'SIGNED_OUT') return;
+          publishSession(session,sessionRevision).catch(error=>authFailure('local_account_failed',error));
+        });
+        _authSubscribed = true;
+      }
+      installRefreshLifecycle();
+      const revision = sessionRevision;
+      const {data,error} = await cloudRequest(supabase.auth.getSession());
+      if (error) throw error;
+      if (revision === sessionRevision) await publishSession(data?.session,revision);
+    } catch (error) { authFailure('init_failed',error); }
+    return currentUser;
+  })().finally(() => { authInitPromise = null; });
+  return authInitPromise;
+}
 
-    return { error: 'Sign-in cancelled', code: 'cancelled' };
-  } catch (e) {
-    return { error: e.message || 'Google sign-in failed', code: 'google_fail' };
+function matchesRedirect(url, expected) {
+  const base = value => String(value || '').split(/[?#]/)[0].replace(/\/+$/,'');
+  return !!url && base(url) === base(expected);
+}
+
+async function sessionFromCallback(url, redirectUrl) {
+  if (!matchesRedirect(url,redirectUrl)) return authFailure('wrong_redirect','Google dönüş adresi doğrulanamadı.');
+  const query = new URLSearchParams((url.split('?')[1] || '').split('#')[0]);
+  const fragment = new URLSearchParams(url.split('#')[1] || '');
+  const value = key => fragment.get(key) || query.get(key);
+  if (value('error') || value('error_code')) return authFailure(value('error_code') || value('error'),value('error_description') || 'Google girişi tamamlanamadı.');
+  authPhase = 'saving_session';
+  let response;
+  if (value('code')) response = await cloudRequest(supabase.auth.exchangeCodeForSession(value('code')));
+  else if (value('access_token') && value('refresh_token')) {
+    response = await cloudRequest(supabase.auth.setSession({access_token:value('access_token'),refresh_token:value('refresh_token')}));
+  } else return authFailure('no_token','Google oturum bilgisi oyuna ulaşmadı. Lütfen tekrar dene.');
+  if (response.error) return authFailure('session_save_failed',response.error);
+  const sessionUser = userFromSession(response.data?.session);
+  if (!sessionUser) return authFailure('no_session','Google oturumu doğrulanamadı. Lütfen tekrar dene.');
+  // A successful browser return alone is not a successful game login.
+  const persisted = await cloudRequest(supabase.auth.getSession());
+  if (persisted.error || persisted.data?.session?.user?.id !== sessionUser.id) {
+    return authFailure('session_not_persisted',persisted.error || 'Oturum kaydedilemedi. Lütfen tekrar dene.');
   }
+  sessionRevision++;
+  await publishSession(persisted.data.session,sessionRevision);
+  if (currentUser?.id !== sessionUser.id) return authFailure('session_changed','Giriş sırasında hesap değişti. Yeniden dene.');
+  lastAuthError = null;
+  authPhase = 'signed_in';
+  return {user:sessionUser};
+}
+
+async function runGoogleLogin() {
+  let sub, timer;
+  try {
+    authPhase = 'initializing';
+    await initAuth();
+    if (authPhase === 'cleanup_failed') return authFailure('cleanup_pending','Önce yarım kalan kayıt temizliği tamamlanmalı. Yeniden dene.');
+    if (!supabase) return authFailure('no_supabase','Hesap bağlantısı hazırlanamadı. Lütfen tekrar dene.');
+    const {makeRedirectUri} = require('expo-auth-session');
+    const WebBrowser = require('expo-web-browser');
+    const Constants = require('expo-constants').default;
+    WebBrowser.maybeCompleteAuthSession();
+    const redirectUrl = Constants?.appOwnership === 'expo' && Constants?.expoConfig?.hostUri
+      ? `exp://${Constants.expoConfig.hostUri}/--/` : makeRedirectUri({scheme:(Array.isArray(Constants?.expoConfig?.scheme) ? Constants.expoConfig.scheme[0] : Constants?.expoConfig?.scheme) || 'tilsim-solitaire'});
+    authPhase = 'requesting_google';
+    const {data,error} = await cloudRequest(supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:redirectUrl,skipBrowserRedirect:true}}));
+    if (error) return authFailure('oauth_failed',error);
+    if (!data?.url) return authFailure('no_oauth_url','Google giriş sayfası hazırlanamadı.');
+    let callbackUrl = null, resolveCallback;
+    const callback = new Promise(resolve => { resolveCallback = resolve; });
+    try {
+      sub = require('expo-linking').addEventListener('url',({url}) => {
+        if (matchesRedirect(url,redirectUrl)) { callbackUrl = url; resolveCallback(url); }
+      });
+    } catch (error) {}
+    authPhase = 'browser';
+    const result = await WebBrowser.openAuthSessionAsync(data.url,redirectUrl);
+    let url = result.type === 'success' ? result.url : callbackUrl;
+    // Android can report dismissal just before delivering the return link.
+    // This bounded grace period never opens a new browser or retries cancellation.
+    if (!url && result.type === 'dismiss' && sub) {
+      url = await Promise.race([callback,new Promise(resolve => { timer=setTimeout(()=>resolve(null),1000); })]);
+    }
+    if (!url) { authPhase='cancelled'; return {error:'Sign-in cancelled',code:'cancelled'}; }
+    return await sessionFromCallback(url,redirectUrl);
+  } catch (error) { authPhase='error'; return authFailure(error.code || 'google_fail',error); }
+  finally { sub?.remove(); clearTimeout(timer); }
+}
+
+export function signInWithGoogle() {
+  if (!googleLoginPromise) googleLoginPromise = runGoogleLogin().finally(() => { googleLoginPromise = null; });
+  return googleLoginPromise;
 }
 
 // ─── Apple Sign-In (iOS native — expo-apple-authentication) ──
 export async function signInWithApple() {
   try {
+    await initAuth();
+    if (authPhase === 'cleanup_failed') return authFailure('cleanup_pending','Önce yarım kalan kayıt temizliği tamamlanmalı. Yeniden dene.');
     if (!supabase) return { error: 'Supabase connection unavailable', code: 'no_supabase' };
 
     let AppleAuthentication;
@@ -167,14 +239,13 @@ export async function signInWithApple() {
       }
     }
 
-    // Race fix: listener'dan önce currentUser'ı set et
     const sessionUser = userFromSession(data?.session);
-    if (sessionUser) {
-      currentUser = sessionUser;
-      notifyListeners();
-    }
-
-    return { user: currentUser };
+    if (!sessionUser) return authFailure('no_session','Apple oturumu doğrulanamadı.');
+    const persisted = await cloudRequest(supabase.auth.getSession());
+    if (persisted.error || persisted.data?.session?.user?.id !== sessionUser.id) return authFailure('session_not_persisted','Apple oturumu kaydedilemedi.');
+    sessionRevision++;
+    await publishSession(persisted.data.session,sessionRevision);
+    return {user:currentUser};
   } catch (e) {
     if (e.code === 'ERR_REQUEST_CANCELED' || e.code === 'ERR_CANCELED') {
       return { error: 'Sign-in cancelled', code: 'cancelled' };
@@ -183,12 +254,28 @@ export async function signInWithApple() {
   }
 }
 
+// Only isolated audit builds expose this password login. No password is stored here.
+export async function signInWithTestAccount(email,password) {
+  if (!(typeof process !== 'undefined' && process.env.EXPO_PUBLIC_AUDIT_QA === '1')) return authFailure('qa_only','Bu giriş yalnız test sürümünde kullanılabilir.');
+  if (!/^tilsim\.qa\.[a-z0-9-]+@example\.invalid$/i.test(String(email).trim())) return authFailure('qa_account_required','Yalnız geçici test adresini kullan.');
+  try {
+    await initAuth();
+    if (!supabase || authPhase === 'cleanup_failed') return authFailure('cleanup_pending','Hesap bağlantısı hazırlanamadı.');
+    const {data,error} = await cloudRequest(supabase.auth.signInWithPassword({email:String(email).trim(),password}));
+    if (error || !data?.session?.user?.id) return authFailure('test_login_failed','Test hesabına giriş yapılamadı. E-posta ve şifreyi kontrol et.');
+    const saved = await cloudRequest(supabase.auth.getSession());
+    if (saved.error || saved.data?.session?.user?.id !== data.session.user.id) return authFailure('session_not_persisted','Test oturumu kaydedilemedi.');
+    sessionRevision++;
+    await publishSession(saved.data.session,sessionRevision);
+    return {user:currentUser};
+  } catch (error) { return authFailure('test_login_failed','Test hesabına giriş tamamlanamadı.'); }
+}
+
 // ─── Sign Out ────────────────────────────────────────────────
 export async function signOut() {
-  try {
-    if (supabase) await supabase.auth.signOut();
-  } catch (e) {
-    console.log('[Auth] signOut error:', e.message);
+  if (supabase) {
+    const result = await supabase.auth.signOut();
+    if (result?.error) throw result.error;
   }
   currentUser = null;
   notifyListeners();
@@ -197,112 +284,100 @@ export async function signOut() {
 // ─── Delete Account ─────────────────────────────────────────
 // Apple 5.1.1(v) requirement: hesap oluşturma varsa silme de olmalı.
 // Kullanıcının tüm verilerini siler (cloud + local), ardından çıkış yapar.
+async function completeDeletedAccount(accountId) {
+  const signedOut = await supabase.auth.signOut({scope:'local'});
+  if (signedOut?.error) throw signedOut.error;
+  await resetUserScopedData({deleteAccountId:accountId});
+  await clearPendingAccountDeletion();
+  currentUser = null; notifyListeners();
+}
+
 export async function deleteAccount() {
-  if (!supabase || !currentUser) {
-    // Hesap yoksa sadece yerel veriyi temizle
-    return { success: true };
-  }
+  if (!supabase) return {success:false,error:'Hesap bağlantısı hazırlanamadı.',code:'AUTH_REQUIRED'};
   try {
-    const userId = currentUser.id;
-
-    // 1. Cloud verileri sil
-    try {
-      await supabase.from('user_progress').delete().eq('user_id', userId);
-    } catch (e) { console.log('[Auth] delete user_progress error:', e.message); }
-
-    try {
-      await supabase.from('leaderboard').delete().eq('device_id', await _getDeviceId());
-    } catch (e) { console.log('[Auth] delete leaderboard error:', e.message); }
-
-    // 2. Supabase auth sign out
-    try {
-      await supabase.auth.signOut();
-    } catch (e) { console.log('[Auth] signOut during delete:', e.message); }
-
-    currentUser = null;
-    notifyListeners();
-
-    return { success: true };
-  } catch (e) {
-    console.log('[Auth] deleteAccount error:', e.message);
-    return { success: false, error: e.message };
-  }
+    const pending = await getPendingAccountDeletion();
+    if (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_AUDIT_QA === '1' && currentUser && !/^tilsim\.qa\.[a-z0-9-]+@example\.invalid$/i.test(currentUser.email || '')) return {success:false,error:'Test sürümünde yalnız geçici test profili silinebilir. Normal profilin korunuyor.',code:'QA_ACCOUNT_REQUIRED'};
+    const accountId = currentUser?.id || pending?.accountId;
+    if (!accountId || (pending && pending.accountId !== accountId)) return {success:false,error:'Önce yarım kalan hesap işlemi tamamlanmalı.',code:'AUTH_REQUIRED'};
+    if (!pending) {
+      const result = await cloudRequest(supabase.functions.invoke('delete-account',{body:{}}));
+      if (result.error || result.data?.success !== true || result.data?.deletedUserId !== accountId) {
+        return {success:false,error:'Hesap silme sunucuda doğrulanamadı. Mevcut kayıtların korunuyor; yeniden dene.',code:'DELETE_NOT_CONFIRMED'};
+      }
+      await rememberAccountDeletion(accountId);
+    }
+    await completeDeletedAccount(accountId);
+    return {success:true,deletedUserId:accountId};
+  } catch (error) { return {success:false,error:'Hesap silme veya yerel temizlik tamamlanamadı. Yeniden dene.',code:'DELETE_INCOMPLETE'}; }
 }
 
-// Device ID helper for account deletion (leaderboard uses device_id)
-async function _getDeviceId() {
+// Versioned, receipt-backed sync. Never fall back to max(balance).
+async function cloudRequest(request) {
+  let timer;
   try {
-    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-    return await AsyncStorage.getItem('@tilsim_device_id');
-  } catch (e) { return null; }
+    return await Promise.race([request,new Promise((_,reject)=>{
+      timer=setTimeout(()=>reject(Object.assign(new Error('Cloud request timed out'),{code:'CLOUD_TIMEOUT'})),15000);
+    })]);
+  } finally { clearTimeout(timer); }
 }
 
-// ─── Cloud Sync (merge: keep highest) ───────────────────────
-// NOT: Alan-bazlı Math.max, cihazlar arası sync için çalışır ama canlı play'de
-// "powerup aldım, coin azaldı" gibi durumlarda eski yüksek coin cloud'dan gelip
-// üzerine yazabilir. Data model üzerinde "coins_spent" tutulmadığı sürece
-// düzgün çözüm yok. Bu davranış kasıtlı — kullanıcı cihaz kaybederse ilerlemesi
-// korunsun. Alternatif "zaman damgalı full-snapshot" için data model değişikliği
-// gerekiyor; bu PR'da scope dışı.
-export async function syncProgressToCloud(localProgress) {
+function cloudError(error) {
+  const message = String(error?.message || error || 'Cloud unavailable');
+  const code = error?.code === '40001' || message.includes('SYNC_CONFLICT') ? 'SYNC_CONFLICT'
+    : ['PGRST202','PGRST204','42703','42883'].includes(error?.code) ? 'SETUP_REQUIRED' : (error?.code || 'CLOUD_UNAVAILABLE');
+  return Object.assign(new Error(message), { code });
+}
+
+async function readCloudRecord(accountId) {
+  const { data, error } = await cloudRequest(supabase.from('user_progress').select('*').eq('user_id', accountId).maybeSingle());
+  if (error) throw cloudError(error);
+  if (!data) return { revision:0, state:null };
+  if (!Object.prototype.hasOwnProperty.call(data,'revision')) throw Object.assign(new Error('Cloud migration required'), {code:'SETUP_REQUIRED'});
+  return { revision:data.revision, state:data.state_v2 || {
+    currentLevel:data.current_level, coins:data.coins, totalGames:data.total_games,
+    totalWins:data.total_wins,bestScore:data.best_score,streak:data.streak,xp:data.xp || 0,
+  }};
+}
+
+const syncEngine = createCloudSync({
+  getAccountId: () => currentUser?.id,
+  readJournal: loadCloudJournal,
+  writeJournal: saveCloudJournal,
+  loadLocal: async () => {
+    const current = await loadProgress();
+    if (Number.isFinite(current.xp) && current.levelStars) return current;
+    const [xp,stars] = await Promise.all([loadXP(),loadLevelStars()]);
+    // Reading must not write a migration into a different account after an await.
+    return { ...current, xp:Number.isFinite(current.xp) ? current.xp : xp.xp, levelStars:current.levelStars || stars };
+  },
+  applyLocal: patch => updateProgress(patch,{kind:'sync',source:'cloud',description:'Bulut kaydıyla eşitleme'}),
+  createRequestId: () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`,
+  readRemote: readCloudRecord,
+  commitRemote: async (accountId,requestId,revision,state) => {
+    if (currentUser?.id !== accountId) throw Object.assign(new Error('Account changed'),{code:'ACCOUNT_CHANGED'});
+    const { data,error } = await cloudRequest(supabase.rpc('sync_progress_v2', {
+      p_request_id:requestId,p_expected_revision:revision,p_state:state,
+    }));
+    if (error) throw cloudError(error);
+    if (!data?.state || !Number.isFinite(data.revision)) throw new Error('Invalid cloud response');
+    return data;
+  },
+});
+
+export async function syncProgressToCloud(_legacySnapshot, choice) {
   if (!supabase || !currentUser) return null;
-  try {
-    const { data: cloud } = await supabase
-      .from('user_progress')
-      .select('*')
-      .eq('user_id', currentUser.id)
-      .maybeSingle();
+  return syncEngine(currentUser.id,choice);
+}
 
-    const merged = {
-      user_id: currentUser.id,
-      current_level: Math.max(localProgress.currentLevel || 1, cloud?.current_level || 1),
-      coins: Math.max(localProgress.coins || 0, cloud?.coins || 0),
-      total_games: Math.max(localProgress.totalGames || 0, cloud?.total_games || 0),
-      total_wins: Math.max(localProgress.totalWins || 0, cloud?.total_wins || 0),
-      best_score: Math.max(localProgress.bestScore || 0, cloud?.best_score || 0),
-      streak: Math.max(localProgress.streak || 0, cloud?.streak || 0),
-      xp: Math.max(localProgress.xp || 0, cloud?.xp || 0),
-      updated_at: new Date().toISOString(),
-    };
-
-    await supabase.from('user_progress').upsert(merged, { onConflict: 'user_id' });
-
-    return {
-      currentLevel: merged.current_level,
-      coins: merged.coins,
-      totalGames: merged.total_games,
-      totalWins: merged.total_wins,
-      bestScore: merged.best_score,
-      streak: merged.streak,
-      xp: merged.xp,
-    };
-  } catch (e) {
-    console.log('[Auth] syncToCloud error:', e.message);
-    return null;
-  }
+export async function preserveLocalAccountBackup() {
+  if (!currentUser) return;
+  const accountId = currentUser.id;
+  const journal = await loadCloudJournal(accountId) || {};
+  const backup = await loadProgress();
+  await saveCloudJournal(accountId,{ ...journal,backup });
 }
 
 export async function loadProgressFromCloud() {
   if (!supabase || !currentUser) return null;
-  try {
-    const { data } = await supabase
-      .from('user_progress')
-      .select('*')
-      .eq('user_id', currentUser.id)
-      .maybeSingle();
-
-    if (!data) return null;
-    return {
-      currentLevel: data.current_level,
-      coins: data.coins,
-      totalGames: data.total_games,
-      totalWins: data.total_wins,
-      bestScore: data.best_score,
-      streak: data.streak,
-      xp: data.xp || 0,
-    };
-  } catch (e) {
-    console.log('[Auth] loadFromCloud error:', e.message);
-    return null;
-  }
+  return (await readCloudRecord(currentUser.id)).state;
 }

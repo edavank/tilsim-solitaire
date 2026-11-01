@@ -1,5 +1,6 @@
 // Günlük Meydan Okuma — her gün benzersiz, ZOR bir bölüm
 import { WORD_POOLS } from '../data/wordPools';
+import { loadProgress } from './storage';
 
 function seededRandom(seed) {
   let s = Math.abs(seed) || 1;
@@ -88,6 +89,8 @@ export async function isDailyChallengeCompleted(dateStr) {
   try {
     const AsyncStorage = require('@react-native-async-storage/async-storage').default;
     const key = dateStr || todayKeyLocal();
+    const progress = await loadProgress();
+    if (progress.dailyCompletions?.[key]) return true;
     return (await AsyncStorage.getItem('@tilsim_daily_' + key)) === 'done';
   } catch (e) { return false; }
 }
@@ -105,7 +108,8 @@ export async function getDailyCompletionMap() {
     const AsyncStorage = require('@react-native-async-storage/async-storage').default;
     const keys = await AsyncStorage.getAllKeys();
     const dailyKeys = keys.filter(k => k.startsWith('@tilsim_daily_'));
-    const map = {};
+    const progress = await loadProgress();
+    const map = { ...(progress.dailyCompletions || {}) };
     for (const k of dailyKeys) {
       const val = await AsyncStorage.getItem(k);
       if (val === 'done') {
@@ -132,3 +136,4 @@ export async function getDailyStreak() {
   }
   return streak;
 }
+

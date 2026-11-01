@@ -1,0 +1,12 @@
+name: Tilsim audit QA - upload iPhone build 33 to TestFlight only
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  upload_testflight:
+    name: Upload completed audit archive; no public store release
+    type: submit
+    params:
+      build_id: f6a6fce1-603c-4f59-ac1d-a4fe317fe46f
+      profile: production

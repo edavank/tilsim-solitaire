@@ -1,13 +1,15 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Animated, AppState } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Updates from 'expo-updates';
+import { usePathname } from 'expo-router';
+import { isAdFlowActive } from '../utils/ads';
 import { COLORS, FONTS } from '../constants/theme';
 import { useLang } from '../context/LanguageContext';
 
 const I18N = {
-  tr: { title: 'Yeni Güncelleme Hazır!', body: 'Tılsım Solitaire için yeni özellikler eklendi.', update: 'Şimdi Güncelle', later: 'Sonra', updating: 'Güncelleniyor...' },
+  tr: { title: 'Yeni Güncelleme Hazır!', body: 'İyileştirmeler indirildi ve hazır. Uygulamayı kapatmadan şimdi uygulayabilirsin.', update: 'Güncellemeyi Uygula', later: 'Sonra', updating: 'Güncelleniyor...' },
   en: { title: 'Update Available!', body: 'New features have been added to Tılsım Solitaire.', update: 'Update Now', later: 'Later', updating: 'Updating...' },
   de: { title: 'Update verfügbar!', body: 'Neue Funktionen wurden zu Tılsım Solitaire hinzugefügt.', update: 'Jetzt aktualisieren', later: 'Später', updating: 'Aktualisiert...' },
   fr: { title: 'Mise à jour disponible !', body: 'De nouvelles fonctionnalités ont été ajoutées à Tılsım Solitaire.', update: 'Mettre à jour', later: 'Plus tard', updating: 'Mise à jour...' },
@@ -25,53 +27,56 @@ export default function UpdatePrompt() {
   const [message, setMessage] = useState('');
   const fade = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.85)).current;
-  const checkedRef = useRef(false);
+  const pathname = usePathname();
+  const { isUpdatePending } = Updates.useUpdates();
+  const [ready, setReady] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const [active, setActive] = useState(AppState.currentState === 'active');
+  const [reloadError, setReloadError] = useState(false);
+  const mountedRef = useRef(false);
+  const checkingRef = useRef(false);
+  const lastCheckRef = useRef(0);
+  const canApplyHere = pathname === '/' || pathname === '/index';
 
-  // Update kontrolü
-  const checkForUpdate = async () => {
+  const checkForUpdate = useCallback(async () => {
+    if (__DEV__ || !Updates.isEnabled || checkingRef.current) return;
+    if (lastCheckRef.current && Date.now() - lastCheckRef.current < 60000) return;
+    checkingRef.current = true;
+    lastCheckRef.current = Date.now();
     try {
-      // Dev mode ve Expo Go'da çalışmaz, sessizce çık
-      if (__DEV__ || !Updates.isEnabled) return;
-
       const result = await Updates.checkForUpdateAsync();
       if (result.isAvailable) {
         const fetched = await Updates.fetchUpdateAsync();
-        if (fetched.isNew) {
-          // Manifest'teki mesajı al (eas update --message ... ile yazılan)
-          try {
-            const manifest = fetched.manifest;
-            const msg = manifest?.extra?.expoClient?.extra?.updateMessage 
-                     || manifest?.metadata?.updateMessage 
-                     || manifest?.message 
-                     || '';
-            if (msg) setMessage(msg);
-          } catch (e) {}
-          setVisible(true);
-        }
+        if (mountedRef.current && fetched.isNew) setReady(true);
       }
     } catch (e) {
-      // Sessiz hata — kullanıcıya hiçbir şey gösterme
-    }
-  };
+      // Keep the current game usable offline. Retry on a later foreground/home visit.
+    } finally { checkingRef.current = false; }
+  }, []);
 
   useEffect(() => {
-    if (checkedRef.current) return;
-    checkedRef.current = true;
-    // İlk açılışta 3 saniye sonra kontrol et (uygulama açılış UX'ini bozmasın)
+    mountedRef.current = true;
     const timer = setTimeout(checkForUpdate, 3000);
-
-    // Uygulama foreground'a geri dönerse de kontrol et
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') {
-        checkForUpdate();
-      }
+      setActive(state === 'active');
+      if (state === 'active') checkForUpdate();
     });
+    return () => { mountedRef.current = false; clearTimeout(timer); sub.remove(); };
+  }, [checkForUpdate]);
 
-    return () => {
-      clearTimeout(timer);
-      sub.remove();
-    };
-  }, []);
+  useEffect(() => {
+    // Expo may have downloaded an update during native startup already.
+    if (isUpdatePending) setReady(true);
+  }, [isUpdatePending]);
+
+  useEffect(() => {
+    if (canApplyHere && active) checkForUpdate();
+  }, [canApplyHere, active, checkForUpdate]);
+
+  useEffect(() => {
+    // Never interrupt a board, reward settlement, sign-in or an advertising flow.
+    setVisible(ready && !dismissed && canApplyHere && active && !isAdFlowActive());
+  }, [ready, dismissed, canApplyHere, active]);
 
   // Görünür olunca animasyon
   useEffect(() => {
@@ -84,16 +89,20 @@ export default function UpdatePrompt() {
   }, [visible]);
 
   const onUpdate = async () => {
+    if (!canApplyHere || !active || isAdFlowActive()) return;
+    setReloadError(false);
     setUpdating(true);
     try {
       await Updates.reloadAsync();
     } catch (e) {
       setUpdating(false);
+      setReloadError(true);
     }
   };
 
   const onLater = () => {
     Animated.timing(fade, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
+      setDismissed(true);
       setVisible(false);
     });
   };
@@ -101,14 +110,14 @@ export default function UpdatePrompt() {
   if (!visible) return null;
 
   return (
-    <Animated.View style={[s.overlay, { opacity: fade }]} pointerEvents={updating ? 'none' : 'auto'}>
+    <Animated.View style={[s.overlay, { opacity: fade }]} pointerEvents="auto">
       <View style={s.backdrop} />
       <Animated.View style={[s.card, { transform: [{ scale }] }]}>
         <LinearGradient colors={['#FFD700', '#FFA500']} style={s.iconCircle}>
           <MaterialIcons name="card-giftcard" size={32} color="#000" />
         </LinearGradient>
         <Text style={s.title}>{t.title}</Text>
-        <Text style={s.body}>{message || t.body}</Text>
+        <Text style={s.body}>{reloadError ? (lang === 'tr' ? 'Güncelleme uygulanamadı. Tekrar deneyebilir veya oynamaya devam edebilirsin.' : 'Could not apply the update. Try again or keep playing.') : message || t.body}</Text>
         {updating ? (
           <View style={s.updatingBox}>
             <ActivityIndicator size="small" color={COLORS.primary} />
@@ -144,4 +153,5 @@ const s = StyleSheet.create({
   updatingBox: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 14 },
   updatingText: { fontFamily: FONTS.headline, fontSize: 14, color: '#fff' },
 });
-// test bump 1777105679
+
+

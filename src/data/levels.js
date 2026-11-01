@@ -1,3 +1,4 @@
+import { repairInitialCategoryLock } from '../utils/dealSafety';
 import { generateLevels } from './levelGenerator';
 import { EMOJI_MAP as WORD_EMOJIS, CATEGORY_EMOJIS } from './wordPools';
 
@@ -130,6 +131,10 @@ export const LEVELS = [
 ];
 
 
+export function createRunId() {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+}
+
 export function generateGameState(level) {
   const wordCards = [];
   level.categories.forEach((cat, ci) => {
@@ -169,11 +174,11 @@ export function generateGameState(level) {
     slots.push({ locked: i < level.lockedSlots, category: null, placedCards: [] });
   }
 
-  return {
-    levelId: level.id, moves: level.moves, hints: level.hints, undos: level.undos,
+  return repairInitialCategoryLock({
+    runId: createRunId(), levelId: level.id, moves: level.moves, hints: level.hints, undos: level.undos,
     deck, drawnCards: [], columns, slots,
     coins: 500, score: 0, completedCats: 0, isComplete: false, isFailed: false,
-  };
+  });
 }
 
 // Auto-generate levels 11+ for Turkish (default)
@@ -199,3 +204,4 @@ export function getTotalLevels(language = 'tr') {
   if (language === 'tr') return LEVELS.length;
   return 230;
 }
+

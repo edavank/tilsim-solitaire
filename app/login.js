@@ -7,7 +7,6 @@ import { router } from 'expo-router';
 import { COLORS, FONTS } from '../src/constants/theme';
 import { useAuth } from '../src/context/AuthContext';
 import { useLang } from '../src/context/LanguageContext';
-import { loadProgress, saveProgress } from '../src/utils/storage';
 
 export default function LoginScreen() {
   const { handleGoogleLogin, handleAppleLogin, handleSkipLogin, syncToCloud, isAppleAvailable, loading } = useAuth();
@@ -27,9 +26,7 @@ export default function LoginScreen() {
     }
     // Sync local → cloud on first login
     try {
-      const local = await loadProgress();
-      const merged = await syncToCloud(local);
-      if (merged) await saveProgress(merged);
+      await syncToCloud();
     } catch (e) {}
     setBusy(false);
     router.replace('/');
@@ -165,3 +162,4 @@ const s = StyleSheet.create({
     marginTop: 32, paddingHorizontal: 16,
   },
 });
+

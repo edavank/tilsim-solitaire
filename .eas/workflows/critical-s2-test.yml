@@ -1,0 +1,19 @@
+name: Tilsim S2 - iPhone build only (no submission)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build_ios:
+    name: Build isolated preview-channel iPhone version
+    type: build
+    params:
+      platform: ios
+      profile: qa
+      message: S2 TEST - rewards and cloud save validation
+    hooks:
+      after_install_node_modules:
+        - name: Check critical behavior before building
+          run: |
+            node --test scripts/test-*.cjs
+            node scripts/verify-screen.cjs

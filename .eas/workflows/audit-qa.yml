@@ -1,0 +1,32 @@
+name: Tilsim audit QA - isolated Android APK and iPhone test archive
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build_android:
+    name: Build separate Android test app
+    type: build
+    params:
+      platform: android
+      profile: audit_android
+      message: AUDIT QA - account deletion, cloud reset and recovery
+    hooks:
+      after_install_node_modules:
+        - name: Verify candidate before Android build
+          run: |
+            node --test scripts/test-*.cjs
+            node scripts/verify-screen.cjs
+  build_ios:
+    name: Build iPhone TestFlight archive only
+    type: build
+    params:
+      platform: ios
+      profile: audit_ios
+      message: AUDIT QA - account deletion, cloud reset and recovery
+    hooks:
+      after_install_node_modules:
+        - name: Verify candidate before iPhone build
+          run: |
+            node --test scripts/test-*.cjs
+            node scripts/verify-screen.cjs
